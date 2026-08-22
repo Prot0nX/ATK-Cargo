@@ -234,40 +234,5 @@ class UserController {
         }
     }
 
-    // به‌روزرسانی توکن FCM؛ user_id از نشست احرازشده گرفته می‌شود، نه از ورودی، تا جعل توکن ممکن نباشد (S-08)
-    public function updateFcmToken(): void {
-        $this->requireAuthenticatedSession();
-
-        $userRepo = new \App\Repositories\UserRepository();
-        $currentUser = $userRepo->getByUsername((string)$this->authenticatedUsername);
-        if (!$currentUser) {
-            Response::error('کاربر یافت نشد', 404);
-        }
-        $userId = (int)$currentUser['id'];
-        $token = (string)$this->request->get('token', '');
-
-        if (!$userId || empty($token)) {
-            Response::error('Missing user_id or token', 400);
-        }
-
-        try {
-            $conn = \App\Core\Database::getInstance()->getMysqliConnection();
-            $stmt = $conn->prepare("UPDATE Users SET fcm_token = ? WHERE id = ?");
-            if (!$stmt) {
-                // تست جدول users در صورت حروف کوچک
-                $stmt = $conn->prepare("UPDATE users SET fcm_token = ? WHERE id = ?");
-            }
-            $stmt->bind_param("si", $token, $userId);
-            if ($stmt->execute()) {
-                $stmt->close();
-                Response::json(['message' => 'FCM token updated successfully']);
-            } else {
-                $stmt->close();
-                Response::error('Failed to update FCM token', 500);
-            }
-        } catch (\Exception $e) {
-            Response::error('Failed to update FCM token', 500);
-        }
-    }
 }
 

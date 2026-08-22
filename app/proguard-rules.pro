@@ -61,7 +61,6 @@
 # -----------------------------------------------------------------------
 # Retrofit Interfaces & Annotations
 -keep interface com.atk.atk_cargo.api.ApiServiceV2 { *; }
--keep interface com.atk.atk_cargo.api.ThirdPartyApiService { *; }
 
 -keepclassmembers interface * {
     @retrofit2.http.* <methods>;
@@ -157,14 +156,7 @@
 # SECTION 12: MEDIA, DOCUMENT & THIRD-PARTY SDKs
 # -----------------------------------------------------------------------
 # Image Loading & Animations
--dontwarn coil.**
--dontwarn io.coil.**
 -dontwarn com.airbnb.lottie.**
-
-# Document & Charts Processing
--keep class com.itextpdf.** { *; }
--dontwarn com.itextpdf.**
--dontwarn com.patrykandpatrick.vico.**
 
 # Barcode & CameraX ML Kit
 -dontwarn com.google.zxing.**

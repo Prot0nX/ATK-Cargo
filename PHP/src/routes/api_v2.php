@@ -427,10 +427,6 @@ return [
 
     // ===== UTILITY =====
     [
-        'method' => 'POST', 'path' => 'utility/check-password', 'auth' => true, 'permission' => null,
-        'handler' => function () { (new UtilityController())->checkPassword(); },
-    ],
-    [
         'method' => 'POST', 'path' => 'utility/check-existence', 'auth' => true, 'permission' => null,
         'handler' => function () { (new UtilityController())->checkExistence(); },
     ],
@@ -495,10 +491,6 @@ return [
         'handler' => function () { $_GET['action'] = 'getMessages'; (new ChatController())->handleChatRequest(); },
     ],
     [
-        'method' => 'GET', 'path' => 'chat/unread-count', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'getUnreadCount'; (new ChatController())->handleChatRequest(); },
-    ],
-    [
         'method' => 'POST', 'path' => 'chat/messages', 'auth' => true, 'permission' => null,
         'handler' => function () { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest(); },
     ],
@@ -520,15 +512,6 @@ return [
             (new ChatController())->handleChatRequest();
         },
     ],
-    [
-        'method' => 'POST', 'path' => 'chat/messages/{id}/read', 'auth' => true, 'permission' => null,
-        'handler' => function (array $params) {
-            $_GET['action'] = 'markAsRead';
-            $_GET['messageId'] = $params['id'];
-            (new ChatController())->handleChatRequest();
-        },
-    ],
-
     // ===== ANALYTICS / REAL-TIME — الگوی Shim؛ هر ۴ اکشن دقیقاً همین یک permission ('view_reports') را چک می‌کنند =====
     [
         'method' => 'GET', 'path' => 'analytics/kotazh', 'auth' => true, 'permission' => 'view_reports',
@@ -573,15 +556,5 @@ return [
     [
         'method' => 'GET', 'path' => 'license/info', 'auth' => false, 'permission' => null,
         'handler' => function () { (new LicenseController())->getLicenseInfo(); },
-    ],
-    [
-        // handleQuotaRemaining داخلاً requireAuthenticatedSession() و requirePermission('active_quotas') را صدا می‌زند
-        'method' => 'GET', 'path' => 'analytics/quota-remaining', 'auth' => true, 'permission' => 'active_quotas',
-        'handler' => function () { (new AnalyticsController())->handleQuotaRemaining(); },
-    ],
-    [
-        // updateFcmToken داخلاً requireAuthenticatedSession() را صدا می‌زند و فقط برای کاربر همان نشست عمل می‌کند
-        'method' => 'POST', 'path' => 'users/fcm-token', 'auth' => true, 'permission' => null,
-        'handler' => function () { (new UserController())->updateFcmToken(); },
     ],
 ];

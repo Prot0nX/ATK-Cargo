@@ -11,7 +11,6 @@ use mysqli_stmt;
 use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
-use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 use App\Exceptions\ApiException;
@@ -54,11 +53,6 @@ class ChatController {
                         'success' => true,
                         'messages' => $this->getMessages($lastMessageId, $olderThanId, $limit, $username)
                     ]);
-                } elseif ($action === 'getUnreadCount') {
-                    Response::json([
-                        'success' => true,
-                        'unreadCount' => $this->getUnreadCount($username)
-                    ]);
                 } else {
                     throw new ApiException('عملیات نامعتبر است', 400);
                 }
@@ -75,9 +69,6 @@ class ChatController {
                         break;
                     case 'deleteMessage':
                         Response::json($this->deleteMessage((int)$this->request->get('messageId', 0), $username));
-                        break;
-                    case 'markAsRead':
-                        Response::json($this->markAsRead((int)$this->request->get('messageId', 0), $username));
                         break;
                     default:
                         throw new ApiException('عملیات نامعتبر است', 400);
@@ -238,43 +229,6 @@ class ChatController {
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'خطا در حذف پیام'];
         }
-    }
-
-    private function markAsRead(int $messageId, string $username): array {
-        if (!$this->isAdmin($username)) return ['success' => false, 'message' => 'دسترسی غیرمجاز'];
-        
-        try {
-            $stmt = $this->prepareAndExecute("INSERT IGNORE INTO admin_chat_reads (message_id, username) VALUES (?, ?)", 'is', $messageId, $username);
-            $stmt->close();
-            return ['success' => true];
-        } catch (Exception $e) {
-            return ['success' => false, 'message' => 'خطا'];
-        }
-    }
-
-    private function getUnreadCount(string $username): int {
-        if (!$this->isAdmin($username)) return 0;
-
-        // کش کوتاه برای کاهش بار دیتابیس در poll مکرر badge تعداد نخوانده
-        return MicroCache::remember('chat_unread_' . $username, 4, function () use ($username) {
-            $query = "
-                SELECT COUNT(*) as count
-                FROM admin_chat_messages c
-                WHERE c.username != ?
-                AND NOT EXISTS (
-                    SELECT 1 FROM admin_chat_reads r
-                    WHERE r.message_id = c.id AND r.username = ?
-                )
-            ";
-            try {
-                $stmt = $this->prepareAndExecute($query, 'ss', $username, $username);
-                $result = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                return (int)($result['count'] ?? 0);
-            } catch (Exception $e) {
-                return 0;
-            }
-        });
     }
 
     private function isMessageOwner(int $messageId, string $username): bool {

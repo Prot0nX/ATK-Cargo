@@ -20,9 +20,6 @@ interface ChatDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessageEntity)
 
-    @Query("UPDATE chat_messages SET isRead = 1 WHERE id = :messageId")
-    suspend fun markAsRead(messageId: Int)
-
     @Query("DELETE FROM chat_messages")
     suspend fun clearAll()
 

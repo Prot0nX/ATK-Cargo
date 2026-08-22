@@ -3116,15 +3116,15 @@ Medium
 | ~~`UserPreferencesManager.saveHardwareScore()`~~ | `app/.../UserPreferencesManager.kt:191` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
 | ~~نمایش امتیاز سخت‌افزار~~ | `feature/home/.../ProfileMenu.kt:191` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
 | ~~`AnimationManager` تکراری~~ | `feature/startup/.../domain/AnimationManager.kt` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
-| `ChatDao.markAsRead(messageId)` | `core/database/.../ChatDao.kt:24` | هیچ فراخوانی‌ای وجود ندارد |
-| endpoint `chat/messages/{id}/read` | `PHP/src/routes/api_v2.php:524` | کلاینت هرگز صدا نمی‌زند → `read_by_names` سمت سرور هرگز از این اپ پر نمی‌شود |
-| endpoint `chat/unread-count` | `api_v2.php:498` | کلاینت از `chatDao.getUnreadCount()` محلی استفاده می‌کند |
-| endpoint `utility/check-password` | `api_v2.php:430` | بررسی رمز حالا داخل `deleteCargoInfo` انجام می‌شود |
-| endpoint `analytics/quota-remaining` | `api_v2.php:579` + `quota_remaining_api.php` | در `ApiServiceV2` وجود ندارد |
-| **کل زنجیره‌ی FCM** | `api_v2.php:584` + `update_fcm_token.php` + `UserController::updateFcmToken` + ستون `Users.fcm_token` | **هیچ وابستگی Firebase در `libs.versions.toml` وجود ندارد** — قابلیت انتها‌به‌انتها مرده است |
-| قوانین ProGuard مرده | `app/proguard-rules.pro:63, 165-167` | `ThirdPartyApiService`, `com.itextpdf.**`, `coil.**`, `vico.**` — هیچ‌کدام در پروژه نیستند |
-| مسیر FileProvider برای PDF | `res/xml/file_path.xml` | کامنت به «خروجی PDF گزارش‌ها در ReportsViewModel» اشاره می‌کند، اما هیچ کد تولید PDF در پروژه وجود ندارد |
-| منابع layout افقی/تبلت | `res/values-land`, `values-w600dp`, `values-w1240dp` | `MainActivity` روی `screenOrientation="portrait"` قفل است |
+| ~~`ChatDao.markAsRead(messageId)`~~ | `core/database/.../ChatDao.kt:24` | ✅ حذف شد (فاز ۳، مورد ۲۹) |
+| ~~endpoint `chat/messages/{id}/read`~~ | `PHP/src/routes/api_v2.php:524` | ✅ حذف شد (فاز ۳، مورد ۲۹) — route + `ChatController::markAsRead` |
+| ~~endpoint `chat/unread-count`~~ | `api_v2.php:498` | ✅ حذف شد (فاز ۳، مورد ۲۹) — route + `ChatController::getUnreadCount` |
+| ~~endpoint `utility/check-password`~~ | `api_v2.php:430` | ✅ حذف شد (فاز ۳، مورد ۲۹) — route + `UtilityController::checkPassword` |
+| ~~endpoint `analytics/quota-remaining`~~ | `api_v2.php:579` + `quota_remaining_api.php` | ✅ حذف شد (فاز ۳، مورد ۲۹) — route، `AnalyticsController::handleQuotaRemaining`/`getActiveQuotasRemaining`/`getShipQuotasRemaining`، و فایل `quota_remaining_api.php` |
+| ~~کل زنجیره‌ی FCM~~ | `api_v2.php:584` + `update_fcm_token.php` + `UserController::updateFcmToken` + ستون `Users.fcm_token` | ✅ حذف شد (فاز ۳، مورد ۲۹) — طبق تصمیم کاربر (بدون Firebase واقعی، حذف کامل به‌جای نگه‌داشتن). ستون `fcm_token` از قبل در `schema.sql` تعریف نشده بود، پس نیازی به migration نبود |
+| ~~قوانین ProGuard مرده~~ | `app/proguard-rules.pro:63-64, 159-167` | ✅ حذف شد (فاز ۳، مورد ۲۹) — `ThirdPartyApiService`, `com.itextpdf.**`, `coil.**`, `io.coil.**`, `vico.**` |
+| ~~مسیر FileProvider برای PDF~~ | `res/xml/file_path.xml` | ✅ حذف شد (فاز ۳، مورد ۲۹) — ورودی `documents` از `file_path.xml` حذف شد؛ `updates/` (زنده، برای `UpdateManager`) دست‌نخورده ماند |
+| ~~منابع layout افقی/تبلت~~ | `res/values-land`, `values-w600dp`, `values-w1240dp` | ✅ حذف شد (فاز ۳، مورد ۲۹) — طبق تصمیم کاربر (`MainActivity` قفل portrait دارد) |
 
 ### بدهی ریپازیتوری
 
@@ -3227,21 +3227,30 @@ Medium
 
 ### Phase 3 — Medium Priority (۱–۲ ماه)
 
-| # | اقدام | تلاش |
-|---|-------|------|
-| ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High |
-| ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High |
-| ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium |
-| ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium |
-| ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium |
-| ۲۶ | حذف متدهای pass-through `AppApiController` | Medium |
-| ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium |
-| ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium |
-| ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low |
-| ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low |
-| ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low |
-| ۳۲ | وصل کردن `health_monitor.php` به cron + هشدار تلگرام | Low |
-| ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium |
+> **وضعیت:** مورد به مورد و با تأیید کاربر پیش می‌رود.
+
+| # | اقدام | تلاش | وضعیت |
+|---|-------|------|:-----:|
+| ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ⏳ در انتظار |
+| ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ⏳ در انتظار |
+| ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⏳ در انتظار |
+| ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ⏳ در انتظار |
+| ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
+| ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ⏳ در انتظار |
+| ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ⏳ در انتظار |
+| ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ⏳ در انتظار |
+| ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
+| ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ⏳ در انتظار |
+| ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ⏳ در انتظار |
+| ۳۲ | وصل کردن `health_monitor.php` به cron + هشدار تلگرام | Low | ⏳ در انتظار |
+| ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium | ⏳ در انتظار |
+
+**یادداشت‌های اجرای مورد ۲۹:**
+
+- حذف کامل شامل: متد `ChatDao.markAsRead` (Kotlin، بدون فراخوان)؛ روت‌ها و متدهای PHP برای `chat/messages/{id}/read` (`ChatController::markAsRead`)، `chat/unread-count` (`ChatController::getUnreadCount`)، `utility/check-password` (`UtilityController::checkPassword` + import بی‌استفاده‌ی `PasswordGateService`) و `analytics/quota-remaining` (`AnalyticsController::handleQuotaRemaining` + دو متد کمکی `getActiveQuotasRemaining`/`getShipQuotasRemaining` که فقط از همان‌جا صدا زده می‌شدند)؛ فایل‌های shim مستقل `PHP/quota_remaining_api.php` و `PHP/update_fcm_token.php`؛ زنجیره‌ی کامل FCM (`UserController::updateFcmToken` + روت `users/fcm-token`) طبق تصمیم کاربر؛ چهار قانون ProGuard مرده (`ThirdPartyApiService`, `com.itextpdf.**`, `coil.**`/`io.coil.**`, `vico.**`)؛ ورودی `documents` در `file_path.xml` (بدون هیچ کد تولید PDF در پروژه)؛ و سه پوشه‌ی منبع `values-land`/`values-w600dp`/`values-w1240dp` طبق تصمیم کاربر.
+- **بررسی جانبی:** قبل از حذف `markAsRead`/`getUnreadCount`، تأیید شد که جدول `admin_chat_reads` و منطق `read_by_names`/`is_read_by_me` در `getMessages`/`sendMessage` هنوز زنده‌اند و حذف نشدند — فقط مسیر توقفی endpoint صریح «علامت‌گذاری خوانده‌شده» مرده بود، نه کل مکانیزم ردیابی خواندن.
+- ستون `Users.fcm_token` از قبل در `schema.sql` تعریف نشده بود (drift ردیابی‌نشده با production)، پس migration لازم نبود.
+- تأیید شد: `php -l` روی همه‌ی فایل‌های PHP تغییریافته بدون خطا، و `./gradlew :core:database:compileDebugKotlin :app:compileDebugKotlin` موفق (exit 0). به دلیل نبود `vendor/bin/phpstan`/`phpunit` نصب‌شده در این محیط، PHPStan/PHPUnit اجرا نشدند.
 
 ### Phase 4 — Optimization (بلندمدت)
 

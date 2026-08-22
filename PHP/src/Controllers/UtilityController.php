@@ -13,7 +13,6 @@ use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Response;
-use App\Services\PasswordGateService;
 use App\Services\PermissionService;
 
 class UtilityController {
@@ -84,38 +83,6 @@ class UtilityController {
             $this->logger->error("Signature check error: " . $e->getMessage());
             Response::error('خطای سرور رخ داده است', 500);
         }
-    }
-
-    // بررسی رمز عبور (check_password.php)
-    public function checkPassword(): void {
-        header('Content-Type: application/json; charset=utf-8');
-        header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: DENY');
-        header('X-XSS-Protection: 1; mode=block');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method Not Allowed']);
-            exit;
-        }
-
-        // احراز هویت نشست الزامی است تا شمارنده‌ی تلاش ناموفق روی هویت واقعی کلید بخورد، نه $_SESSION
-        $this->requireAuthenticatedSession();
-
-        $receivedPassword = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
-        $passwordType = isset($_POST['passwordType']) ? trim((string)$_POST['passwordType']) : '';
-
-        try {
-            $gateResult = (new PasswordGateService())->verify($passwordType, $receivedPassword, (string)$this->authenticatedUsername);
-            if ($gateResult['locked']) {
-                http_response_code(429);
-            }
-            echo json_encode(['success' => $gateResult['success'], 'message' => $gateResult['message']], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            $this->logger->error("Check password error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'خطایی رخ داده است. لطفا بعدا تلاش کنید.'], JSON_UNESCAPED_UNICODE);
-        }
-        exit;
     }
 
     // بررسی وجود اطلاعات (checkExistence.php)
