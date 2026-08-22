@@ -66,10 +66,10 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import com.atk.atk_cargo.ui.theme.DeepOrange100
 import com.atk.atk_cargo.ui.theme.DeepOrange300
 import com.atk.atk_cargo.ui.theme.DeepOrange900
-import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 private val ShipDetailsTealAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary

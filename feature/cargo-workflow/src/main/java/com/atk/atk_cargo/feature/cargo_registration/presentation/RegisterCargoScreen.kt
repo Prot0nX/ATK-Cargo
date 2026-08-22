@@ -86,6 +86,8 @@ import com.atk.atk_cargo.domain.model.CargoConfirmStatus
 import com.atk.atk_cargo.domain.model.CargoStatus
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.ShipInfo
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoDialog
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.CargoInfoDetailsDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateConfirmationDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateTrackingNumbersDialog
@@ -97,8 +99,6 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Quot
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
-import com.atk.atk_cargo.feature.cargo.viewmodel.CargoDialog
-import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay

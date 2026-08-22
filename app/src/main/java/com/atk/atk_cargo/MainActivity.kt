@@ -44,14 +44,14 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.navigation.MainScreen
 import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
-import com.atk.atk_cargo.startup.StartupEvent
-import com.atk.atk_cargo.startup.StartupState
-import com.atk.atk_cargo.startup.StartupViewModel
 import com.atk.atk_cargo.feature.startup.presentation.ServerSyncingScreen
 import com.atk.atk_cargo.feature.startup.presentation.SplashScreen
 import com.atk.atk_cargo.feature.update.presentation.UpdateDialog
 import com.atk.atk_cargo.security.SecurityBlockScreen
 import com.atk.atk_cargo.security.VersionExpiredDialog
+import com.atk.atk_cargo.startup.StartupEvent
+import com.atk.atk_cargo.startup.StartupState
+import com.atk.atk_cargo.startup.StartupViewModel
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.onEach

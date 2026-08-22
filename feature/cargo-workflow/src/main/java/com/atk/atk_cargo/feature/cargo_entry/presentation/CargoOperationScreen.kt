@@ -8,8 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
 import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
 
 @Composable
 fun CargoOperationScreen(

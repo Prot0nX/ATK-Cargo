@@ -17,10 +17,10 @@ import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.domain.session.StartupController
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
-import com.atk.atk_cargo.startup.data.SessionCheckOutcome
-import com.atk.atk_cargo.startup.data.StartupSessionRepository
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SecurityVerifier
+import com.atk.atk_cargo.startup.data.SessionCheckOutcome
+import com.atk.atk_cargo.startup.data.StartupSessionRepository
 import com.atk.atk_cargo.workers.ChatNotificationWorker
 import com.atk.atk_cargo.workers.LoadingNotificationWorker
 import kotlinx.coroutines.Dispatchers
