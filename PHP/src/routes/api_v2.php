@@ -376,21 +376,21 @@ return [
     // ===== CARGO — الگوی Direct passthrough؛ auth/permission هر route دقیقاً مطابق چک داخلی خودِ متد است =====
     [
         'method' => 'POST', 'path' => 'cargo', 'auth' => true, 'permission' => null,
-        'handler' => function () { (new CargoController())->saveOrUpdate(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->saveOrUpdate($username, $userType); },
     ],
     [
         // PATCH — قبلاً POST بود، با هماهنگی کلاینت اندروید به فعل معنایی درست تغییر کرد
         'method' => 'PATCH', 'path' => 'cargo/update', 'auth' => true, 'permission' => 'edit_cargo',
-        'handler' => function () { (new CargoController())->updateCargoInfo(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->updateCargoInfo($username, $userType); },
     ],
     [
         'method' => 'POST', 'path' => 'cargo/confirm', 'auth' => true, 'permission' => 'cargo_counter',
-        'handler' => function () { (new CargoController())->confirmCargo(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->confirmCargo($username, $userType); },
     ],
     [
         // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'cargo/delete', 'auth' => true, 'permission' => 'delete_cargo',
-        'handler' => function () { (new CargoController())->deleteCargoInfo(); },
+        'handler' => function (array $params, Request $request, ?string $username) { (new CargoController())->deleteCargoInfo($username); },
     ],
     [
         'method' => 'GET', 'path' => 'cargo/search/scale-receipt', 'auth' => true, 'permission' => null,
@@ -426,101 +426,101 @@ return [
     [
         // auth=>true با ApiAuthGate (که توکن را هم بررسی می‌کند) شکاف اعتبارسنجی v1 را برای مسیر v2 می‌بندد
         'method' => 'POST', 'path' => 'utility/sync-permissions', 'auth' => true, 'permission' => null,
-        'handler' => function () { (new UtilityController())->syncPermissions(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new UtilityController())->syncPermissions($username, $userType); },
     ],
 
     // ===== USERS — الگوی Shim؛ ADMIN_ONLY_ACTIONS باید با UserController هماهنگ بماند. updateUser عمداً permission=>null دارد چون تمایز خودِکاربر/ادمین داخلی است =====
     [
         'method' => 'GET', 'path' => 'users', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'getAllUsers'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getAllUsers'; (new UserController())->handle($username, $userType); },
     ],
     [
         // بعد از قفل شدن getAllUsers پشت manage_users، این دو action محدودتر برای هر کاربر احرازشده باز ماندند
         'method' => 'GET', 'path' => 'users/self', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'getSelfProfile'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getSelfProfile'; (new UserController())->handle($username, $userType); },
     ],
     [
         'method' => 'GET', 'path' => 'users/admins', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'getAdminUsers'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getAdminUsers'; (new UserController())->handle($username, $userType); },
     ],
     [
         'method' => 'GET', 'path' => 'users/status', 'auth' => true, 'permission' => 'manage_users',
-        'handler' => function () { $_GET['action'] = 'getAllUsersWithStatus'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getAllUsersWithStatus'; (new UserController())->handle($username, $userType); },
     ],
     [
         'method' => 'GET', 'path' => 'users/active-device', 'auth' => true, 'permission' => 'manage_users',
-        'handler' => function () { $_GET['action'] = 'getActiveDeviceId'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getActiveDeviceId'; (new UserController())->handle($username, $userType); },
     ],
     [
         'method' => 'POST', 'path' => 'users', 'auth' => true, 'permission' => 'manage_users',
-        'handler' => function () { $_GET['action'] = 'createUser'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'createUser'; (new UserController())->handle($username, $userType); },
     ],
     [
         // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'users/{id}/update', 'auth' => true, 'permission' => null,
-        'handler' => function (array $params) {
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) {
             $_GET['action'] = 'updateUser';
             $_GET['id'] = $params['id'];
-            (new UserController())->handle();
+            (new UserController())->handle($username, $userType);
         },
     ],
     [
         // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'users/{id}/delete', 'auth' => true, 'permission' => 'manage_users',
-        'handler' => function (array $params) {
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) {
             $_GET['action'] = 'deleteUser';
             $_GET['userId'] = $params['id']; // نام فیلد داخلی UserController متفاوت از {id} مسیر است
-            (new UserController())->handle();
+            (new UserController())->handle($username, $userType);
         },
     ],
     [
         'method' => 'POST', 'path' => 'users/force-logout', 'auth' => true, 'permission' => 'manage_users',
-        'handler' => function () { $_GET['action'] = 'forceLogout'; (new UserController())->handle(); },
+        'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'forceLogout'; (new UserController())->handle($username, $userType); },
     ],
 
     // ===== CHAT — الگوی Shim؛ کنترل دسترسی واقعی داخل ChatController است، اینجا permission=>null و auth=>true فقط معتبربودن نشست را تضمین می‌کند =====
     [
         'method' => 'GET', 'path' => 'chat/messages', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'getMessages'; (new ChatController())->handleChatRequest(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getMessages'; (new ChatController())->handleChatRequest($username); },
     ],
     [
         'method' => 'POST', 'path' => 'chat/messages', 'auth' => true, 'permission' => null,
-        'handler' => function () { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest($username); },
     ],
     [
         // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'chat/messages/{id}/edit', 'auth' => true, 'permission' => null,
-        'handler' => function (array $params) {
+        'handler' => function (array $params, Request $request, ?string $username) {
             $_GET['action'] = 'editMessage';
             $_GET['messageId'] = $params['id'];
-            (new ChatController())->handleChatRequest();
+            (new ChatController())->handleChatRequest($username);
         },
     ],
     [
         // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'chat/messages/{id}/delete', 'auth' => true, 'permission' => null,
-        'handler' => function (array $params) {
+        'handler' => function (array $params, Request $request, ?string $username) {
             $_GET['action'] = 'deleteMessage';
             $_GET['messageId'] = $params['id'];
-            (new ChatController())->handleChatRequest();
+            (new ChatController())->handleChatRequest($username);
         },
     ],
     // ===== ANALYTICS / REAL-TIME — الگوی Shim؛ هر ۴ اکشن دقیقاً همین یک permission ('view_reports') را چک می‌کنند =====
     [
         'method' => 'GET', 'path' => 'analytics/kotazh', 'auth' => true, 'permission' => 'view_reports',
-        'handler' => function () { $_GET['action'] = 'getKotazhInfo'; (new AnalyticsController())->handleRealTimeLoadingData(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getKotazhInfo'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
     ],
     [
         'method' => 'GET', 'path' => 'analytics/realtime', 'auth' => true, 'permission' => 'view_reports',
-        'handler' => function () { $_GET['action'] = 'getRealTimeData'; (new AnalyticsController())->handleRealTimeLoadingData(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getRealTimeData'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
     ],
     [
         'method' => 'GET', 'path' => 'analytics/comprehensive', 'auth' => true, 'permission' => 'view_reports',
-        'handler' => function () { $_GET['action'] = 'getComprehensiveAnalysis'; (new AnalyticsController())->handleRealTimeLoadingData(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getComprehensiveAnalysis'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
     ],
     [
         'method' => 'POST', 'path' => 'analytics/export-log', 'auth' => true, 'permission' => 'view_reports',
-        'handler' => function () { $_GET['action'] = 'logAnalyticsExport'; (new AnalyticsController())->handleRealTimeLoadingData(); },
+        'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'logAnalyticsExport'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
     ],
 
     // ===== DIAGNOSTICS — عمداً بدون auth: health باید برای مانیتورینگ خارجی و گزارش کرش حتی بدون نشست معتبر در دسترس باشد =====

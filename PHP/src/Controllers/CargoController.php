@@ -8,7 +8,6 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
-use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\MicroCache;
 use App\Core\Request;
@@ -21,8 +20,6 @@ use App\Repositories\CargoRepository;
 use App\Enums\CargoStatus;
 
 class CargoController {
-    use AuthenticatesRequests;
-
     // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
@@ -41,19 +38,16 @@ class CargoController {
         $this->cargoService = $cargoService ?? new CargoService($this->cargoRepo);
     }
 
-    // ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)
-    public function saveOrUpdate(): void {
+    // ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)؛ $username/$userType از Router::dispatch
+    // می‌آیند تا audit trail با هدر جعلی قابل دستکاری نباشد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function saveOrUpdate(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=utf-8');
         ini_set('memory_limit', '64M');
         ini_set('max_execution_time', '15');
 
-        $this->requireAuthenticatedSession();
-
         $params = $this->request->all();
-
-        // username/userType از نشست معتبرشده گرفته می‌شود تا audit trail با هدر جعلی قابل دستکاری نباشد
-        $params['username'] = $this->authenticatedUsername;
-        $params['userType'] = $this->authenticatedUserType;
+        $params['username'] = $username;
+        $params['userType'] = $userType;
 
         $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber'];
         $optionalFields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
@@ -92,8 +86,9 @@ class CargoController {
         }
     }
 
-    // به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)
-    public function updateCargoInfo(): void {
+    // به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)؛ $username/$userType از Router::dispatch می‌آیند —
+    // route این متد از قبل permission=>'edit_cargo' سطح Router دارد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function updateCargoInfo(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
@@ -103,9 +98,6 @@ class CargoController {
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             Response::json(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط PATCH مجاز است.'], 405);
         }
-
-        $this->requireAuthenticatedSession();
-        $this->requirePermission('edit_cargo');
 
         try {
             $jsonInput = file_get_contents('php://input');
@@ -122,9 +114,8 @@ class CargoController {
 
             $trackingNumber = $this->validateStringField($data['trackingNumber'] ?? null, 'شماره حواله');
             $numberOfPeople = $this->validateStringField($data['numberOfPeople'] ?? null, 'تعداد افراد', false);
-            // username/userType از نشست معتبرشده گرفته می‌شود تا زنجیره‌ی ردیابی با هدر جعلی قابل دستکاری نباشد
-            $username = (string)$this->authenticatedUsername;
-            $userType = (string)$this->authenticatedUserType;
+            $username = (string)$username;
+            $userType = (string)$userType;
             $entryTime = $this->validateStringField($data['entryTime'] ?? null, 'زمان ورود');
             $netWeight = $this->validateNumericField($data['netWeight'] ?? null, 'وزن خالص');
             $scaleReceiptNumber = $this->validateStringField($data['scaleReceiptNumber'] ?? null, 'شماره قبض باسکول');
@@ -183,18 +174,15 @@ class CargoController {
         }
     }
 
-    // تأیید حواله توسط بارشمار (confirm_cargo.php)
-    public function confirmCargo(): void {
+    // تأیید حواله توسط بارشمار (confirm_cargo.php)؛ $username/$userType از Router::dispatch می‌آیند — route این متد
+    // از قبل permission=>'cargo_counter' سطح Router دارد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function confirmCargo(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
         }
-
-        $this->requireAuthenticatedSession();
-        // تأیید حواله باید پشت مجوز مشخص قفل شود، مثل سایر عملیات نوشتنی این کنترلر
-        $this->requirePermission('cargo_counter');
 
         $data = json_decode((string)file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
@@ -206,9 +194,8 @@ class CargoController {
         }
 
         $cargoId = (int)$data['id'];
-        // username/userType از نشست معتبرشده گرفته می‌شود تا معلوم شود واقعاً چه کسی تأیید کرده است
-        $username = (string)$this->authenticatedUsername;
-        $userType = (string)$this->authenticatedUserType;
+        $username = (string)$username;
+        $userType = (string)$userType;
 
         // بررسی loadingQuotaNumber/shipName برای جلوگیری از تأیید حواله‌های خارج از دامنه‌ی کاربر (IDOR)
         $loadingQuotaNumber = $this->sanitizeString((string)($data['loadingQuotaNumber'] ?? ''));
@@ -263,17 +250,15 @@ class CargoController {
         }
     }
 
-    // حذف اطلاعات حواله (deleteCargoInfo.php)
-    public function deleteCargoInfo(): void {
+    // حذف اطلاعات حواله (deleteCargoInfo.php)؛ $username از Router::dispatch می‌آید — route این متد از قبل
+    // permission=>'delete_cargo' سطح Router دارد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function deleteCargoInfo(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
 
         // متد DELETE جایگزین POST قبلی شده، هم‌راستا با routes/api_v2.php و کلاینت اندروید (Phase4 #33)
         if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
             Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش DELETE استفاده کنید."], 405);
         }
-
-        $this->requireAuthenticatedSession();
-        $this->requirePermission('delete_cargo');
 
         $data = json_decode((string)file_get_contents("php://input"), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data) || !isset($data['id']) || empty($data['id'])) {
@@ -291,7 +276,7 @@ class CargoController {
             Response::json(["status" => "error", "message" => "رمز عبور الزامی است"], 400);
         }
 
-        $gateResult = (new PasswordGateService())->verify('delete_info', $password, (string)$this->authenticatedUsername);
+        $gateResult = (new PasswordGateService())->verify('delete_info', $password, (string)$username);
         if (!$gateResult['success']) {
             Response::json(["status" => "error", "message" => $gateResult['message']], $gateResult['locked'] ? 429 : 403);
         }
@@ -317,8 +302,6 @@ class CargoController {
         if (!$this->request->isGet()) {
             Response::json(['error' => 'روش درخواست نامعتبر است'], 405);
         }
-
-        $this->requireAuthenticatedSession();
 
         try {
             $receipt = trim((string)$this->request->get('receipt', ''));
@@ -373,8 +356,6 @@ class CargoController {
         if (!$this->request->isGet()) {
             Response::json(['error' => 'روش درخواست نامعتبر است'], 405);
         }
-
-        $this->requireAuthenticatedSession();
 
         try {
             $tracking = trim((string)$this->request->get('tracking', ''));
@@ -432,8 +413,6 @@ class CargoController {
     public function getInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
-
-        $this->requireAuthenticatedSession();
 
         $requiredParams = ['quotaNumber', 'shippingCompany', 'warehouse', 'cargoType'];
         $missingParams = [];
@@ -553,11 +532,9 @@ class CargoController {
     }
 
     // ثبت اطلاعات اولیه جدید (saveInitialInfo.php)
+    // route این متد از قبل permission=>'initial_info' سطح Router دارد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
     public function saveInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
-
-        $this->requireAuthenticatedSession();
-        $this->requirePermission('initial_info');
 
         $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'cargoWeight', 'loadingQuotaNumber', 'remainingWeight', 'totalNetWeight', 'averageNetWeight', 'remainingServices', 'cargoOwner'];
 
@@ -612,8 +589,6 @@ class CargoController {
     public function getActiveShips(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
-        $this->requireAuthenticatedSession();
-
         try {
             $activeShips = $this->cargoService->getActiveShips();
             Response::json($activeShips);
@@ -626,8 +601,6 @@ class CargoController {
     // بررسی تکراری بودن شماره قبض باسکول (check_scale_receipt.php)
     public function checkScaleReceipt(): void {
         header('Content-Type: application/json; charset=utf-8');
-
-        $this->requireAuthenticatedSession();
 
         $scaleReceiptNumber = $this->sanitizeString((string)$this->request->get('scaleReceiptNumber', ''));
 

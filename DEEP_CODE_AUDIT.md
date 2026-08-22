@@ -1711,6 +1711,8 @@ High (مهاجرت تدریجی)
 
 #### [MEDIUM] گیت احراز هویت دوبار پیاده‌سازی شده است
 
+> ✅ **رفع شد (فاز۳، مورد ۲۵):** `AuthenticatesRequests.php` حذف شد؛ هر ۵ کنترلر مصرف‌کننده‌اش هویت را از `Router::dispatch` می‌گیرند. جزئیات در یادداشت‌های اجرای فاز ۳.
+
 **File:**
 `PHP/src/Core/AuthenticatesRequests.php` و `PHP/src/Core/ApiAuthGate.php`
 
@@ -3233,7 +3235,7 @@ Medium
 | ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ⏳ در انتظار |
 | ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⚠️ دامنه کاهش یافت — فقط ۶ پکیج کوچک؛ `com.atk.atk_cargo.api` (بزرگ‌ترین، سه‌طرفه) طبق تصمیم کاربر باقی ماند |
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ✅ اعمال شد |
-| ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
+| ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ✅ اعمال شد |
 | ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
 | ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ✅ اعمال شد |
 | ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ✅ اعمال شد |
@@ -3327,6 +3329,19 @@ Medium
   - `JalaliDateUtilsTest.kt` از `app/src/test` به `core/common/src/test` منتقل شد (تست کنار کلاسی که تست می‌کند)؛ چون `core:common` تا امروز هیچ `testImplementation` نداشت، `libs.junit` اضافه شد.
 - **بررسی جانبی مهم:** قبل از حذف/انتقال هرکدام، بررسی شد که آیا واقعاً بدون استفاده است یا خیر — `AppError.kt` تنها موردی بود که صفر فراخوان داشت؛ بقیه (`StartupViewModel`, `ColorSelector`, `CargoViewModel`, `ReportsViewModel`) همگی فعال و پرکاربرد بودند، پس هر importکننده‌ای تک‌تک ردیابی و اصلاح شد نه صرفاً حدس زده شد.
 - تأیید شد: `./gradlew compileDebugKotlin` (کل پروژه) و `./gradlew testDebugUnitTest` (کل پروژه، شامل ۱۵ تست `JalaliDateUtilsTest` در خانه‌ی جدیدش) هر دو بدون خطا/شکست.
+
+**یادداشت‌های اجرای مورد ۲۵:**
+
+- ۵ کنترلر (`AnalyticsController`, `CargoController`, `ChatController`, `UserController`, `UtilityController`) از `use AuthenticatesRequests;` استفاده می‌کردند؛ همه به هویت پاس‌شده از `Router::dispatch` (پارامتر سوم/چهارم closure) مهاجرت کردند و trait حذف شد.
+- **مهم‌ترین یافته‌ی امنیتی حین بررسی:** برخلاف تصور اولیه («بررسی مجوز داخلی همیشه با Router تکراری است»)، در `UserController::handle()` عضویت در `ADMIN_ONLY_ACTIONS` برای اکشن `getAllUsers` **تنها** لایه‌ی enforcement مجوز `manage_users` بود — route آن در سطح Router عمداً `permission => null` دارد (کامنت خودِ فایل: «getAllUsers قفل شد تا افشای اطلاعات همه‌ی کاربران رخ ندهد»). این بررسی داخلی **حذف نشد**، فقط از `$this->requirePermission()` به `ApiAuthGate::requirePermission($username, $userType, 'manage_users')` (همان کلاس static که Router خودش استفاده می‌کند) منتقل شد. برای ۵ اکشن دیگر (`getAllUsersWithStatus`, `getActiveDeviceId`, `createUser`, `deleteUser`, `forceLogout`) که route‌شان از قبل `permission => 'manage_users'` سطح Router دارد، این بررسی داخلی از قبل غیرقابل‌دسترس بود (Router زودتر رد می‌کند)؛ منتقل‌کردنش به‌جای حذف، یک احتیاط بدون هزینه بود، نه یک تصمیم لازم.
+- **عارضه‌ی جانبی بی‌خطر:** شکل بدنه‌ی پاسخ ۴۰۳ برای `getAllUsers` توسط کاربر غیرمدیر از `{"error": true, "message": ...}` (فرمت پیش‌فرض trait) به `{"success": false, "message": ...}` (فرمت `ApiAuthGate`/`Response::error`) تغییر کرد. بررسی شد که این باعث ناسازگاری نمی‌شود: ۵ اکشن دیگر همین کنترلر از قبل (چون Router زودتر رد می‌کند) دقیقاً همین فرمت `success:false` را برمی‌گرداندند؛ این تغییر فقط `getAllUsers` را با آن‌ها هم‌شکل کرد.
+- برای `AnalyticsController`/`CargoController`/`ChatController`/`UtilityController`، تمام بررسی‌های `requirePermission()` داخلی با مجوز سطح Router یکسان بودند (مثلاً `updateCargoInfo` ↔ route با `permission=>'edit_cargo'`) پس مستقیماً حذف شدند، نه منتقل — کدام‌یک حذف و کدام‌یک منتقل شود را برای هر ۹+۴+۶ فراخوانی جداگانه بررسی کردم، نه یک قاعده‌ی یکسان برای کل فایل.
+- متدهایی که فقط `requireAuthenticatedSession()` داشتند (بدون استفاده‌ی بعدی از نام‌کاربری) امضایشان دست‌نخورده ماند (مثل `CargoController::searchByScaleReceipt`) — فقط خط اعتبارسنجی حذف شد، چون Router با `auth=>true` همان تضمین را می‌دهد.
+- متدهایی که به‌جای پارامتر از `$this->authenticatedUsername`/`authenticatedUserType` استفاده می‌کردند (مثل `UserController`/`AnalyticsController`) به‌جای بازنویسی همه‌ی ارجاع‌های داخلی، همان نام property حفظ شد و فقط منبع مقداردهی از فراخوانی trait به پارامتر ورودی تغییر کرد — کمترین دیف ممکن با کمترین ریسک از‌قلم‌افتادگی.
+- ۲۸ closure در `routes/api_v2.php` امضایشان به `function (array $params, Request $request, ?string $username[, ?string $userType])` تغییر کرد تا با ترتیب واقعی آرگومان‌های `Router::dispatch` (`$params, $request, $username, $userType`) یکی باشد؛ این ترتیب برای تک‌تک closureها دستی بازبینی شد چون جابه‌جایی تصادفی نوع (مثلاً گرفتن `Request` به‌جای `?string`) فقط در زمان اجرا TypeError می‌داد، نه در PHPStan/php-l.
+- فایل `PHP/src/Core/AuthenticatesRequests.php` پس از تأیید صفر ارجاع باقی‌مانده (فقط دو کامنت توضیحی در `MinVersionGate.php`/یک تست، بدون وابستگی کد) حذف شد.
+- **بدون تست خودکار برای این ۵ کنترلر** (نه AuthController-style قابل mock، همه مستقیم به mysqli واقعی وصل‌اند) — تنها سپر ایمنی، بازخوانی دستی تک‌تک ۲۸ نقطه‌ی تغییر بود؛ توصیه می‌شود قبل از انتشار این تغییر روی یک نسخه‌ی staging با دیتابیس واقعی دستی تست شود (سناریوهای حیاتی: `getAllUsers` توسط کاربر غیرمدیر باید ۴۰۳ بگیرد؛ `updateUser` روی حساب دیگران بدون `manage_users` باید ۴۰۳ بگیرد؛ حذف/تأیید حواله باید نام‌کاربری واقعی را در audit log ثبت کند).
+- تأیید شد: `php -l` روی ۶ فایل تغییریافته، `vendor/bin/phpstan analyse` (بدون baseline جدید)، `vendor/bin/phpunit` (۱۰۵ تست) و بارگذاری کامل `routes/api_v2.php` (۵۷ route، بدون خطای fatal) — همه سبز.
 
 ### Phase 4 — Optimization (بلندمدت)
 

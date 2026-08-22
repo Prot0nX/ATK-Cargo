@@ -8,7 +8,6 @@ namespace App\Controllers;
 use Exception;
 use mysqli;
 use mysqli_stmt;
-use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
@@ -17,8 +16,6 @@ use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 
 class ChatController {
-    use AuthenticatesRequests;
-
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
@@ -31,14 +28,14 @@ class ChatController {
         $this->request = new Request();
     }
 
-    public function handleChatRequest(): void {
+    // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر
+    // ورودی که رازی نیست و قابل جعل بود (S-03، DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function handleChatRequest(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
 
         try {
-            $this->requireAuthenticatedSession();
-            // هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر username که رازی نیست و قابل جعل بود (S-03)
-            $username = (string)$this->authenticatedUsername;
+            $username = (string)$username;
 
             if ($this->request->isGet()) {
                 $action = (string)$this->request->get('action', '');

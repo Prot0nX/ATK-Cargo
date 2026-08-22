@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\AuthenticatesRequests;
+use App\Core\ApiAuthGate;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\LoginAttemptLimiter;
@@ -14,11 +14,12 @@ use App\Validators\InputValidator;
 use App\Exceptions\ApiException;
 
 class UserController {
-    use AuthenticatesRequests;
-
     private UserService $userService;
     private Request $request;
     private LoginAttemptLimiter $loginAttemptLimiter;
+    // از Router::dispatch پر می‌شود، نه اعتبارسنجی داخلی (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    private ?string $authenticatedUsername = null;
+    private ?string $authenticatedUserType = null;
 
     public function __construct() {
         $this->userService = new UserService();
@@ -36,11 +37,13 @@ class UserController {
         'forceLogout',
     ];
 
-    // مدیریت و مسیریابی درخواست‌های کاربران؛ نیازمند احراز هویت چون همه‌ی actionها داده‌ی حساس‌اند (S-01)
-    public function handle(): void {
+    // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این
+    // کنترلر auth=>true دارند. getAllUsers با وجود permission=>null سطح Router، تنها از طریق عضویت در
+    // ADMIN_ONLY_ACTIONS محدود می‌شود، پس این بررسی داخلی حذف نشد، فقط به ApiAuthGate منتقل شد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function handle(?string $username, ?string $userType): void {
+        $this->authenticatedUsername = $username;
+        $this->authenticatedUserType = $userType;
         try {
-            $this->requireAuthenticatedSession();
-
             $action = $this->request->get('action');
             if (!$action) {
                 throw new ApiException('پارامتر action مورد نیاز است', 400);
@@ -48,7 +51,7 @@ class UserController {
             $action = (string)$action;
 
             if (in_array($action, self::ADMIN_ONLY_ACTIONS, true)) {
-                $this->requirePermission('manage_users');
+                ApiAuthGate::requirePermission((string)$username, (string)$userType, 'manage_users');
             }
 
             if ($this->request->isGet()) {

@@ -8,7 +8,6 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
-use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
@@ -16,8 +15,6 @@ use App\Core\Response;
 use App\Services\PermissionService;
 
 class UtilityController {
-    use AuthenticatesRequests;
-
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
@@ -86,11 +83,9 @@ class UtilityController {
     }
 
     // بررسی وجود اطلاعات (checkExistence.php)
+    // هویت از Router::dispatch (auth=>true) تضمین می‌شود؛ احراز هویت داخلی حذف شد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
     public function checkExistence(): void {
         header('Content-Type: application/json; charset=UTF-8');
-
-        // احراز هویت الزامی است تا امکان کشف loadingQuotaNumberهای ثبت‌شده وجود نداشته باشد (S-11)
-        $this->requireAuthenticatedSession();
 
         try {
             $input = file_get_contents('php://input');
@@ -202,8 +197,9 @@ class UtilityController {
         exit;
     }
 
-    // همگام‌سازی دسترسی‌ها (sync_permissions.php)
-    public function syncPermissions(): void {
+    // همگام‌سازی دسترسی‌ها (sync_permissions.php)؛ $username/$userType از Router::dispatch (auth=>true) می‌آیند —
+    // احراز هویت مبتنی‌بر توکن آنجا هم‌راستا با سایر endpointها انجام می‌شود (S-20، DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function syncPermissions(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
@@ -213,14 +209,11 @@ class UtilityController {
             $this->sendSyncResponse(false, 'Only POST method is allowed.', [], 405);
         }
 
-        // احراز هویت مبتنی‌بر توکن (نه صرفاً username/deviceId که سرّی نیستند) هم‌راستا با سایر endpointها (S-20)
-        $this->requireAuthenticatedSession();
-
         try {
-            $userType = (string)$this->authenticatedUserType;
+            $userType = (string)$userType;
             // استفاده از همان PermissionService::getUserPermissions مشترک با AuthController/AppApiController (Phase2.7)
             $userPermissions = (new PermissionService())->getUserPermissions(
-                (string)$this->authenticatedUsername,
+                (string)$username,
                 $userType
             );
 

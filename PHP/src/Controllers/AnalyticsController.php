@@ -8,7 +8,6 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
-use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
@@ -18,8 +17,6 @@ use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
 
 class AnalyticsController {
-    use AuthenticatesRequests;
-
     // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
@@ -27,6 +24,8 @@ class AnalyticsController {
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
+    // هویت از Router::dispatch می‌آید نه اعتبارسنجی داخلی؛ فقط برای لاگ استفاده می‌شود (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    private ?string $authenticatedUsername = null;
 
     // دو مرز زمانی عمداً متفاوت: WORKDAY_BOUNDARY_TIME برای تحلیل جامع، SHIFT_DAY_START_TIME برای شیفت روز
     private const WORKDAY_BOUNDARY_TIME = '07:00:00';
@@ -39,52 +38,36 @@ class AnalyticsController {
         $this->request = new Request();
     }
 
-    // فرمت سفارشی پاسخ خطای احراز هویت برای سازگاری با کلاینت این کنترلر
-    protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
-        header('Content-Type: application/json; charset=UTF-8');
-        http_response_code($httpCode);
-        $body = ['error' => $message];
-        if ($code !== null) {
-            $body['code'] = $code;
-        }
-        echo json_encode($body, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    // مدیریت درخواست‌های realTimeLoadingData.php
-    public function handleRealTimeLoadingData(): void {
+    // مدیریت درخواست‌های realTimeLoadingData.php؛ $username از Router::dispatch می‌آید — هر ۴ route این handler
+    // از قبل permission=>'view_reports' سطح Router دارند، پس بررسی دوباره‌ی داخلی حذف شد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+    public function handleRealTimeLoadingData(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
         date_default_timezone_set('Asia/Tehran');
+        $this->authenticatedUsername = $username;
 
         // logAnalyticsExport یک عملیات نوشتنی است و فقط با POST مجاز است؛ بقیه‌ی actionها GET هستند
         if (!$this->request->isGet() && !$this->request->isPost()) {
             Response::error('فقط متد GET یا POST مجاز است.', 400);
         }
 
-        $this->requireAuthenticatedSession();
-
         try {
             $action = (string)$this->request->get('action', '');
 
             switch ($action) {
                 case 'getKotazhInfo':
-                    $this->requirePermission('view_reports');
                     $this->handleKotazhRequest();
                     break;
                 case 'getRealTimeData':
-                    $this->requirePermission('view_reports');
                     $this->handleRealTimeDataRequest();
                     break;
                 case 'getComprehensiveAnalysis':
-                    $this->requirePermission('view_reports');
                     $this->handleComprehensiveAnalysisRequest();
                     break;
                 case 'logAnalyticsExport':
                     if (!$this->request->isPost()) {
                         Response::error('این عملیات فقط با POST مجاز است.', 400);
                     }
-                    $this->requirePermission('view_reports');
                     $this->handleLogAnalyticsExport();
                     break;
                 default:
