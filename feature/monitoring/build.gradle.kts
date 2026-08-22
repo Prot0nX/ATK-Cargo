@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
     implementation(project(":core:domain"))
+    implementation(project(":core:common"))
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
 

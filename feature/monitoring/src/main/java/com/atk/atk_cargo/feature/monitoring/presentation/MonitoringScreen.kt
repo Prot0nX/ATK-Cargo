@@ -19,20 +19,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sensors
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +58,7 @@ import com.atk.atk_cargo.core.ui.components.ErrorState
 import com.atk.atk_cargo.core.ui.components.LoadingOverlay
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.utils.JalaliDateUtils
 
 private data class StatusFilterOption(val value: String, val label: String)
 
@@ -63,11 +68,35 @@ private val STATUS_FILTERS = listOf(
     StatusFilterOption("all", "همه")
 )
 
+// دسته‌های تب — "all" یعنی بدون فیلتر شدت؛ بقیه دقیقاً مقدار خام severity سرور
+private val SEVERITY_TABS = listOf("all", "critical", "warning", "info")
+
 private val SEVERITY_LABEL = mapOf(
     "critical" to "بحرانی",
     "warning" to "هشدار",
     "info" to "اطلاعاتی"
 )
+
+// تاریخ/زمان سرور (میلادی، "yyyy-MM-dd HH:mm:ss") به شمسی — دقیقاً هم‌ارز toLocaleDateString('fa-IR')
+// داشبورد وب (PHP/Monitoring/assets/app.js) که مرورگر خودش شمسی نمایش می‌دهد؛ سمت اندروید باید صریح تبدیل شود
+private fun formatJalaliDateTime(raw: String): String {
+    val date = JalaliDateUtils.formatDate(raw)
+    val time = JalaliDateUtils.formatTime(raw)
+    return if (time.isNotEmpty()) "$date $time" else date
+}
+
+// فیلتر ترکیبی شدت + جستجوی متنی روی رویدادهای همین لحظه بارگذاری‌شده؛ کاملاً سمت کلاینت است
+// (بدون درخواست شبکه‌ی جدید) چون هر بار حداکثر ۱۰۰ رویداد برای یک وضعیت (باز/تأییدشده/همه) واکشی می‌شود
+private fun filterEvents(events: List<MonitoringEvent>, severity: String, query: String): List<MonitoringEvent> {
+    val bySeverity = if (severity == "all") events else events.filter { it.severity == severity }
+    val trimmedQuery = query.trim()
+    if (trimmedQuery.isEmpty()) return bySeverity
+    return bySeverity.filter {
+        it.eventType.contains(trimmedQuery, ignoreCase = true) ||
+            it.message.contains(trimmedQuery, ignoreCase = true) ||
+            it.source.contains(trimmedQuery, ignoreCase = true)
+    }
+}
 
 // صفحه‌ی نظارت — مصرف‌کننده‌ی api/v2/monitoring/* (فاز الف) با همان بازخوانی خودکار هر ۳۰ ثانیه‌ی
 // داشبورد وب (فاز ب). زبان طراحی عمداً هم‌راستا با UserManagementDialog/ComprehensiveAnalyticsDialog
@@ -86,6 +115,12 @@ fun MonitoringScreen(
     }
 
     var selectedEvent by remember { mutableStateOf<MonitoringEvent?>(null) }
+    var severityTab by remember { mutableStateOf("all") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredEvents = remember(uiState.events, severityTab, searchQuery) {
+        filterEvents(uiState.events, severityTab, searchQuery)
+    }
 
     Scaffold { padding ->
         Column(
@@ -98,6 +133,14 @@ fun MonitoringScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f))
 
             KpiSection(uiState)
+
+            SearchField(query = searchQuery, onQueryChange = { searchQuery = it })
+
+            SeverityTabRow(
+                events = uiState.events,
+                selected = severityTab,
+                onSelect = { severityTab = it }
+            )
 
             StatusFilterRow(
                 selected = uiState.statusFilter,
@@ -115,8 +158,10 @@ fun MonitoringScreen(
                             onRetryClick = { viewModel.refreshNow() }
                         )
                     }
-                    uiState.events.isEmpty() -> {
-                        EmptyState(message = "رویدادی برای نمایش وجود ندارد.")
+                    filteredEvents.isEmpty() -> {
+                        EmptyState(
+                            message = if (uiState.events.isEmpty()) "رویدادی برای نمایش وجود ندارد." else "رویدادی مطابق فیلتر یافت نشد."
+                        )
                     }
                     else -> {
                         Column(modifier = Modifier.fillMaxSize()) {
@@ -130,7 +175,7 @@ fun MonitoringScreen(
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
                             ) {
-                                items(uiState.events, key = { it.id }) { event ->
+                                items(filteredEvents, key = { it.id }) { event ->
                                     EventCard(
                                         event = event,
                                         onClick = { selectedEvent = event },
@@ -285,6 +330,85 @@ private fun KpiTile(icon: ImageVector, value: String, label: String, color: Colo
     }
 }
 
+// نوار جستجو — هم‌الگوی AnalyticsSearchField (ارتفاع ۴۴dp، شعاع ۱۱dp، بدون حاشیه، بک‌گراند surfaceVariant)
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.s)
+            .height(44.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp))
+            .padding(horizontal = ATKCargoTheme.spacing.m),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
+        )
+        Box(modifier = Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(
+                    text = "جستجو در نوع، پیام یا منبع رویداد…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (query.isNotEmpty()) {
+            Icon(
+                imageVector = Icons.Default.Clear,
+                contentDescription = "پاک کردن جستجو",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(ATKCargoTheme.dimensions.iconSmall)
+                    .clickable { onQueryChange("") }
+            )
+        }
+    }
+}
+
+// دسته‌بندی رویدادها بر اساس شدت، به‌صورت تب واقعی (نه چیپ) با شمارنده‌ی هر دسته
+@Composable
+private fun SeverityTabRow(events: List<MonitoringEvent>, selected: String, onSelect: (String) -> Unit) {
+    val selectedIndex = SEVERITY_TABS.indexOf(selected).coerceAtLeast(0)
+
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        edgePadding = ATKCargoTheme.spacing.l,
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.primary,
+        divider = {}
+    ) {
+        SEVERITY_TABS.forEach { severity ->
+            val count = if (severity == "all") events.size else events.count { it.severity == severity }
+            val label = if (severity == "all") "همه" else (SEVERITY_LABEL[severity] ?: severity)
+            Tab(
+                selected = selected == severity,
+                onClick = { onSelect(severity) },
+                text = {
+                    Text(
+                        text = "$label ($count)",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected == severity) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            )
+        }
+    }
+}
+
 // هم‌الگوی AnalyticsGroupingModeButton: انتخاب‌شده = بک‌گراند/حاشیه‌ی primaryContainer، غیرفعال = فقط حاشیه‌ی خنثی
 @Composable
 private fun StatusFilterRow(selected: String, onSelect: (String) -> Unit) {
@@ -416,7 +540,7 @@ private fun EventCard(
                 ) {
                     MetaItem(icon = Icons.Default.Sensors, text = event.source)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)) {
-                        MetaItem(icon = Icons.Default.Schedule, text = event.createdAt)
+                        MetaItem(icon = Icons.Default.Schedule, text = formatJalaliDateTime(event.createdAt))
                         if (isOpen) {
                             AcknowledgeChip(onClick = onAcknowledge)
                         }
@@ -511,8 +635,12 @@ private fun EventDetailsDialog(
                 DetailRow("شدت", SEVERITY_LABEL[event.severity] ?: event.severity)
                 DetailRow("پیام", event.message)
                 DetailRow("منبع", event.source)
-                DetailRow("زمان ثبت", event.createdAt)
-                DetailRow("وضعیت", if (event.acknowledgedAt != null) "تأییدشده در ${event.acknowledgedAt}" else "باز")
+                DetailRow("زمان ثبت", formatJalaliDateTime(event.createdAt))
+                val acknowledgedAt = event.acknowledgedAt
+                DetailRow(
+                    "وضعیت",
+                    if (acknowledgedAt != null) "تأییدشده در ${formatJalaliDateTime(acknowledgedAt)}" else "باز"
+                )
                 event.acknowledgedBy?.let { DetailRow("تأییدکننده", it) }
             }
         },
