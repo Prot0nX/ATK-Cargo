@@ -4,8 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ApiV2Routes
-import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
@@ -115,7 +113,7 @@ class CargoViewModel(
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(ioDispatcher) {
             try {
-                val response = apiServiceV2.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
+                val response = repository.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
                     response.body() ?: throw Exception("پاسخ خالی از سرور")
                 } else {
@@ -384,7 +382,7 @@ class CargoViewModel(
         excessWeight: String
     ) {
         try {
-            val response = apiServiceV2.saveOrUpdateCargoInfo(cargoInfo)
+            val response = repository.saveOrUpdateCargoInfo(cargoInfo)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -514,7 +512,7 @@ class CargoViewModel(
             val updatedCargoInfo = cargoInfo.copy(duplicateConfirmation = "proceed")
             viewModelScope.launch {
                 try {
-                    val response = apiServiceV2.saveOrUpdateCargoInfo(updatedCargoInfo)
+                    val response = repository.saveOrUpdateCargoInfo(updatedCargoInfo)
                     if (response.isSuccessful) {
                         val responseBody = response.body()
                         if (responseBody?.error == true) {
@@ -562,7 +560,7 @@ class CargoViewModel(
         }
 
         return try {
-            val response = apiServiceV2.checkScaleReceiptNumber(scaleReceiptNumber = scaleReceiptNumber)
+            val response = repository.checkScaleReceiptNumber(scaleReceiptNumber = scaleReceiptNumber)
             if (response.isSuccessful) {
                 val result = response.body()
                 if (result?.exists == true) {
@@ -717,7 +715,7 @@ class CargoViewModel(
                 )
 
                 val result = try {
-                    val response = apiServiceV2.confirmCargo(requestBody)
+                    val response = repository.confirmCargo(requestBody)
                     if (response.isSuccessful) {
                         val message = response.body()?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
                         Result.success(message)
@@ -762,7 +760,7 @@ class CargoViewModel(
 
     suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
         try {
-            val response = apiServiceV2.toggleQuotaStatus(route = ApiV2Routes.quotaToggleStatus(id))
+            val response = repository.toggleCargoQuotaStatus(id)
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody?.success == true) {
@@ -792,7 +790,7 @@ class CargoViewModel(
                     status = CargoStatus.EXITED.wireValue
                 )
 
-                val response = apiServiceV2.saveOrUpdateCargoInfo(updatedCargoInfo.toDto())
+                val response = repository.saveOrUpdateCargoInfo(updatedCargoInfo.toDto())
                 if (response.isSuccessful) {
                     _uiState.update { state ->
                         val updatedList = state.cargoInfoList.map { cargo ->
@@ -850,7 +848,7 @@ class CargoViewModel(
         viewModelScope.launch {
             try {
                 val response = withContext(ioDispatcher) {
-                    apiServiceV2.deleteCargo(cargoInfoRequest)
+                    repository.deleteCargo(cargoInfoRequest)
                 }
                 if (response.isSuccessful) {
                     showMessage(response.body()?.message ?: "حواله با موفقیت حذف شد.", MessageType.SUCCESS)

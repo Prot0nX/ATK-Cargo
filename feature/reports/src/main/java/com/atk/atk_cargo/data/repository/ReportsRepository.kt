@@ -4,21 +4,28 @@ import android.util.Log
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.ApiV2Routes
 import com.atk.atk_cargo.data.model.ActiveShipInfo
+import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.data.model.CargoInfoRequest
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
 import com.atk.atk_cargo.data.model.FilteredSummary
 import com.atk.atk_cargo.data.model.LoadableTonnageResponse
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaDetails
+import com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
 import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.data.model.QuotaStatusResponse
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
+import com.atk.atk_cargo.data.model.ScaleReceiptCheckResponse
 import com.atk.atk_cargo.data.model.Ship
 import com.atk.atk_cargo.data.model.ShipsData
+import com.atk.atk_cargo.data.model.SuccessResponse
 import com.atk.atk_cargo.data.model.Warehouse
 import com.atk.atk_cargo.domain.repository.QuotaRepository
+import com.google.gson.JsonElement
+import retrofit2.Response
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.CancellationException
@@ -74,6 +81,39 @@ class ReportsRepository(
     override suspend fun invalidateLoadableTonnageCache() {
         loadableTonnageCache.clear()
     }
+
+    // ===== شش پاس‌ثرو خام برای CargoViewModel — تفسیر پاسخ در ViewModel می‌ماند (DEEP_CODE_AUDIT.md فاز۳ #۲۱) =====
+
+    override suspend fun checkQuotaExistenceCargo(
+        quotaNumber: String,
+        shipName: String
+    ): Response<QuotaExistenceMultipleResponse> = withContext(Dispatchers.IO) {
+        apiServiceV2.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
+    }
+
+    override suspend fun saveOrUpdateCargoInfo(cargoInfo: CargoInfo): Response<SaveOrUpdateResponse> =
+        withContext(Dispatchers.IO) {
+            apiServiceV2.saveOrUpdateCargoInfo(cargoInfo)
+        }
+
+    override suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Response<ScaleReceiptCheckResponse> =
+        withContext(Dispatchers.IO) {
+            apiServiceV2.checkScaleReceiptNumber(scaleReceiptNumber = scaleReceiptNumber)
+        }
+
+    override suspend fun confirmCargo(request: Map<String, String>): Response<Map<String, JsonElement>> =
+        withContext(Dispatchers.IO) {
+            apiServiceV2.confirmCargo(request)
+        }
+
+    override suspend fun toggleCargoQuotaStatus(id: Int): Response<SuccessResponse> = withContext(Dispatchers.IO) {
+        apiServiceV2.toggleQuotaStatus(route = ApiV2Routes.quotaToggleStatus(id))
+    }
+
+    override suspend fun deleteCargo(cargoInfoRequest: CargoInfoRequest): Response<CargoDeleteResponse> =
+        withContext(Dispatchers.IO) {
+            apiServiceV2.deleteCargo(cargoInfoRequest)
+        }
 
     override suspend fun getCargoInfo(
         quotaNumber: String,
