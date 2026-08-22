@@ -3235,7 +3235,7 @@ Medium
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ⏳ در انتظار |
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
 | ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
-| ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ⏳ در انتظار |
+| ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ✅ اعمال شد |
 | ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ✅ اعمال شد |
 | ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
 | ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ✅ اعمال شد |
@@ -3283,6 +3283,17 @@ Medium
 - تست‌های جدید در `AuthControllerTest.php` (۶ تست: قفل‌شدن/رمز اشتباه/نشست نامعتبر هرکدام هم با نسخه‌ی جدید هم بدون هدر، + یک تست نشست معتبر) اضافه شدند. `ChatController` قابل unit-test نبود چون سازنده‌اش مستقیم به mysqli واقعی وصل می‌شود (بدون DB در این محیط)، هم‌راستا با محدودیت‌های تست قبلی این پروژه.
 - **رگرسیون کشف‌شده حین تست:** پس از چند بار اجرای کامل PHPUnit در همین نشست، شمارنده‌ی fallback فایلی `LoginAttemptLimiter` برای IP `127.0.0.1` در sandbox موقت تست (`sys_get_temp_dir()/atk_cargo_phpunit`) از سقف ۵۰ عبور کرد و باعث شکست کاذب ۴ تست غیرمرتبط شد. این یک ضعف شناخته‌شده‌ی همان rate-limiter فایل‌محور است (نه چیزی که این تغییر ایجاد کرده)؛ پاک کردن پوشه‌ی sandbox موقت رفعش کرد.
 - تأیید شد: `php -l`/`vendor/bin/phpstan analyse` (بعد از regenerate باسلاین برای ۱ خطای جدید در `Response::versionGatedJson`، از ۴۶۱ به ۴۶۲) هر دو تمیز؛ کل PHPUnit (۱۰۵ تست، شامل ۶ تست جدید) سبز؛ `./gradlew :feature:chat:compileDebugKotlin :feature:auth:compileDebugKotlin :core:network:compileDebugKotlin :app:compileDebugKotlin` موفق. تست end-to-end زنده (کلاینت واقعی ↔ سرور واقعی) در این محیط ممکن نبود.
+
+**یادداشت‌های اجرای مورد ۲۷:**
+
+- `core/network/.../HttpStack.kt` اضافه شد: یک `OkHttpClient` پایه با `ConnectionPool(10, 5, MINUTES)` و timeoutهای معقول عمومی (۱۰/۳۰/۳۰ ثانیه) + `retryOnConnectionFailure`. هر مصرف‌کننده با `HttpStack.shared.newBuilder()` فقط تفاوت خودش را روی همین یک pool مشترک اعمال می‌کند — دقیقاً الگوی پیشنهادی گزارش.
+- چهار مصرف‌کننده به این pool وصل شدند:
+  - `RetrofitClient.kt` — بدون تغییر رفتار (timeoutهای پایه‌ی `HttpStack.shared` از قبل با ثابت‌های همین کلاینت یکسان بودند)؛ interceptorها/authenticator/کش دیسک دست‌نخورده روی `newBuilder()` اعمال شدند.
+  - `TokenRefresher.kt` — عمداً **بدون** `TokenAuthenticator`/`headersInterceptor` مشترک، چون این کلاینتِ خودِ منطق رفرش است؛ گرفتن authenticator مشترک می‌توانست حلقه‌ی رفرش-روی-رفرش بسازد.
+  - `UpdateManager.kt` (ماژول `:feature:update`) — `Dispatcher` اختصاصی (`maxRequestsPerHost=10`) حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند؛ `ConnectionPool` جداگانه‌ی قبلی حذف و به pool مشترک واگذار شد.
+  - `SecurityVerifier.kt` (ماژول `:app`) — سه فراخوانی `HttpURLConnection` خام (`authenticateSignatureWithServer`, `fetchLicenseInfo`, `fetchLicenseValidation`) به OkHttp مهاجرت کردند؛ همان `BUFFER_DURATION=8000ms` برای connect/read حفظ شد و منطق «فقط پاسخ موفق پردازش شود» عیناً با `response.isSuccessful` بازتولید شد (بدون دست‌بردن در باگ نامرتبط «۴۰۳ لایسنس به خطای شبکه ترجمه می‌شود» که در بخش دیگری از گزارش، نه این مورد، مستند است).
+- certificate pinning به Network Security Config (سطح پلتفرم) متکی است، نه به کد کلاینت خاص — طبق تحلیل خود گزارش، مهاجرت `SecurityVerifier` از `HttpURLConnection` به OkHttp تأثیری روی pinning ندارد.
+- تأیید شد: `./gradlew :core:network:compileDebugKotlin :feature:update:compileDebugKotlin :app:compileDebugKotlin` و کل پروژه (`compileDebugKotlin`) موفق؛ `:feature:update:testDebugUnitTest` (۱۸ تست `UpdateManagerTest`) سبز. تست end-to-end زنده (handshake واقعی) در این محیط ممکن نبود.
 
 ### Phase 4 — Optimization (بلندمدت)
 

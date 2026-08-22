@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -51,13 +50,16 @@ class UpdateManager(
     context: Context
 ) {
     private val appContext: Context = context.applicationContext
-    private val client = OkHttpClient.Builder()
+
+    // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، DEEP_CODE_AUDIT.md فاز۳ #۲۷)؛
+    // Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف پیش‌فرض OkHttp (۵ در هر هاست)
+    // بدون این override بین دانلود و بقیه‌ی ترافیک هم‌زمان (API/بررسی امنیتی در startup) به اشتراک گذاشته می‌شد
+    private val client = HttpStack.shared.newBuilder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .protocols(listOf(Protocol.HTTP_1_1))
         .retryOnConnectionFailure(true)
-        .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
         .dispatcher(Dispatcher().apply {
             maxRequestsPerHost = 10
             maxRequests = 20

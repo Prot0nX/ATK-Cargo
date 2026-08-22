@@ -9,7 +9,6 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
 import okhttp3.Cache
-import okhttp3.ConnectionPool
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -130,9 +129,6 @@ object RetrofitClient {
         chain.proceed(request)
     }
 
-    // چون چند صفحه هم‌زمان poll می‌کنند، pool بزرگ‌تر از پیش‌فرض OkHttp باعث می‌شود اتصالات idle دوباره استفاده شوند نه بسته/باز
-    private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
-
     // تمدید خودکار access token با refresh token روی ۴۰۱ با code=access_token_expired؛ tokenStore باید قبل از اولین دسترسی به apiService مقداردهی شده باشد
     private val tokenAuthenticator: TokenAuthenticator by lazy {
         TokenAuthenticator(
@@ -141,13 +137,15 @@ object RetrofitClient {
         )
     }
 
-    // ساخت OkHttpClient؛ lazy تا appContext قبل از ساخته‌شدن این کلاینت (در RetrofitClient.init) فرصت مقداردهی داشته باشد
+    // مشتق از HttpStack.shared تا connection pool با بقیه‌ی مسیرهای شبکه (رفرش توکن، دانلود آپدیت، تأیید امنیتی)
+    // مشترک بماند (DEEP_CODE_AUDIT.md فاز۳ #۲۷)؛ timeoutهای پایه‌ی shared با همین مقادیر یکسان‌اند، اینجا صریح تکرار
+    // شده‌اند تا نیاز این کلاینت مستقل از تغییرات آینده‌ی HttpStack مستند بماند. lazy تا appContext قبل از ساخته‌شدن
+    // این کلاینت (در RetrofitClient.init) فرصت مقداردهی داشته باشد
     private val okHttpClient: OkHttpClient by lazy {
-        val builder = OkHttpClient.Builder()
+        val builder = HttpStack.shared.newBuilder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(headersInterceptor)
             .authenticator(tokenAuthenticator)
-            .connectionPool(connectionPool)
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)

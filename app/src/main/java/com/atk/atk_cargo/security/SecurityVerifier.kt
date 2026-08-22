@@ -7,18 +7,22 @@ import android.content.pm.Signature
 import android.os.Debug
 import android.util.Log
 import androidx.core.content.edit
+import com.atk.atk_cargo.api.HttpStack
 import com.atk.atk_cargo.api.Secrets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLException
 import javax.net.ssl.SSLHandshakeException
 import kotlin.time.Duration.Companion.milliseconds
@@ -47,6 +51,15 @@ class SecurityVerifier(private val context: Context) {
     }
 
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
+
+    // مشتق از HttpStack.shared (connection pool مشترک با API/دانلود آپدیت، DEEP_CODE_AUDIT.md فاز۳ #۲۷)؛
+    // جایگزین HttpURLConnection خام قبلی، با همان BUFFER_DURATION برای connect و read
+    private val securityHttpClient: OkHttpClient by lazy {
+        HttpStack.shared.newBuilder()
+            .connectTimeout(BUFFER_DURATION.toLong(), TimeUnit.MILLISECONDS)
+            .readTimeout(BUFFER_DURATION.toLong(), TimeUnit.MILLISECONDS)
+            .build()
+    }
 
     suspend fun verifySecurityStatus(): Pair<Boolean, SecurityErrorType?> = withContext(Dispatchers.IO) {
         repeat(CONNECTION_ATTEMPTS) { attemptNumber ->
@@ -141,48 +154,37 @@ class SecurityVerifier(private val context: Context) {
     }
 
     private suspend fun authenticateSignatureWithServer(): Boolean = withContext(Dispatchers.IO) {
-        var connection: HttpURLConnection? = null
         try {
             val packageInfo = getApplicationPackage()
             val signatures = extractDigitalSignatures(packageInfo)
             if (signatures.isEmpty()) return@withContext false
 
             val signatureHash = calculateSignatureHash(signatures[0])
-            val streamingUrl = URL(SIGNATURE_CHECK_URL)
-            connection = streamingUrl.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.connectTimeout = BUFFER_DURATION
-            connection.readTimeout = BUFFER_DURATION
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            connection.setRequestProperty("User-Agent", "ATK-Cargo-App")
-
             val requestPayload = JSONObject().apply {
                 put("app_signature", signatureHash)
                 put("app_package", context.packageName)
                 put("app_version", context.packageManager.getPackageInfo(context.packageName, 0).versionName)
             }
 
-            connection.outputStream.use { outputStream ->
-                outputStream.write(requestPayload.toString().toByteArray(Charsets.UTF_8))
-                outputStream.flush()
-            }
+            val request = Request.Builder()
+                .url(SIGNATURE_CHECK_URL)
+                .post(requestPayload.toString().toRequestBody("application/json; charset=UTF-8".toMediaType()))
+                .header("User-Agent", "ATK-Cargo-App")
+                .build()
 
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                val responseData = connection.inputStream.bufferedReader().use { it.readText() }
-                val responseJson = JSONObject(responseData)
-                responseJson.optBoolean("is_valid", false)
-            } else {
-                false
+            securityHttpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    val responseJson = JSONObject(response.body?.string().orEmpty())
+                    responseJson.optBoolean("is_valid", false)
+                } else {
+                    false
+                }
             }
         } catch (e: IOException) {
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error in server signature authentication: ${e.message}", e)
             false
-        } finally {
-            connection?.disconnect()
         }
     }
 
@@ -243,57 +245,45 @@ class SecurityVerifier(private val context: Context) {
     }
 
     private fun fetchLicenseInfo(): JSONObject? {
-        var connection: HttpURLConnection? = null
         return try {
-            val infoUrl = URL(LICENSE_INFO_URL)
-            connection = infoUrl.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("X-License-Key", LICENSE_KEY)
-            connection.connectTimeout = BUFFER_DURATION
-            connection.readTimeout = BUFFER_DURATION
+            val request = Request.Builder()
+                .url(LICENSE_INFO_URL)
+                .header("X-License-Key", LICENSE_KEY)
+                .build()
 
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(response)
+            securityHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                JSONObject(response.body?.string().orEmpty())
+            }
         } catch (e: IOException) {
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error fetching license info: ${e.message}", e)
             null
-        } finally {
-            connection?.disconnect()
         }
     }
 
     private fun fetchLicenseValidation(): JSONObject? {
-        var connection: HttpURLConnection? = null
         return try {
-            val validationUrl = URL(LICENSE_CHECK_URL)
-            connection = validationUrl.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.connectTimeout = BUFFER_DURATION
-            connection.readTimeout = BUFFER_DURATION
-            connection.setRequestProperty("Content-Type", "application/json")
-
             val validationRequest = JSONObject().apply {
                 put("licenseKey", LICENSE_KEY)
                 put("update_last_check", true)
             }
 
-            connection.outputStream.use { outputStream ->
-                outputStream.write(validationRequest.toString().toByteArray())
-                outputStream.flush()
-            }
+            val request = Request.Builder()
+                .url(LICENSE_CHECK_URL)
+                .post(validationRequest.toString().toRequestBody("application/json".toMediaType()))
+                .build()
 
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(response)
+            securityHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return null
+                JSONObject(response.body?.string().orEmpty())
+            }
         } catch (e: IOException) {
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error fetching license validation: ${e.message}", e)
             null
-        } finally {
-            connection?.disconnect()
         }
     }
 
