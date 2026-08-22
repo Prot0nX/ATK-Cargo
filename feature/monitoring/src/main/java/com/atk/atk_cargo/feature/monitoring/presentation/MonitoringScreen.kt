@@ -1,5 +1,8 @@
 package com.atk.atk_cargo.feature.monitoring.presentation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,31 +17,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,7 +52,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.core.ui.components.EmptyState
 import com.atk.atk_cargo.core.ui.components.ErrorState
 import com.atk.atk_cargo.core.ui.components.LoadingOverlay
-import com.atk.atk_cargo.core.ui.components.StatisticsCard
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
@@ -73,8 +70,9 @@ private val SEVERITY_LABEL = mapOf(
 )
 
 // صفحه‌ی نظارت — مصرف‌کننده‌ی api/v2/monitoring/* (فاز الف) با همان بازخوانی خودکار هر ۳۰ ثانیه‌ی
-// داشبورد وب (فاز ب)؛ DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج
-@OptIn(ExperimentalMaterial3Api::class)
+// داشبورد وب (فاز ب). زبان طراحی عمداً هم‌راستا با UserManagementDialog/ComprehensiveAnalyticsDialog
+// شد (هدر با نشان آیکون، کارت‌های آماری، فیلتر segmented، کارت‌های لیست با حاشیه‌ی ظریف) نه TopAppBar
+// پیش‌فرض Material3 — تا با بقیه‌ی صفحات مدیریتی اپ یکدست باشد (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج، بازطراحی).
 @Composable
 fun MonitoringScreen(
     viewModel: MonitoringViewModel,
@@ -89,29 +87,19 @@ fun MonitoringScreen(
 
     var selectedEvent by remember { mutableStateOf<MonitoringEvent?>(null) }
 
-    Scaffold(
-        topBar = {
-            Surface(shadowElevation = 2.dp, color = MaterialTheme.colorScheme.surface) {
-                TopAppBar(
-                    title = { Text("مانیتورینگ", fontWeight = FontWeight.Bold) },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, "بازگشت")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.refreshNow() }) {
-                            Icon(Icons.Default.Refresh, "بروزرسانی")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
-                )
-            }
-        }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            SummarySection(uiState)
-            FilterChipsRow(
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            MonitoringHeader(onBackClick = onBackClick, onRefreshClick = { viewModel.refreshNow() })
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f))
+
+            KpiSection(uiState)
+
+            StatusFilterRow(
                 selected = uiState.statusFilter,
                 onSelect = { viewModel.setStatusFilter(it) }
             )
@@ -131,18 +119,26 @@ fun MonitoringScreen(
                         EmptyState(message = "رویدادی برای نمایش وجود ندارد.")
                     }
                     else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(ATKCargoTheme.spacing.m),
-                            verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
-                        ) {
-                            items(uiState.events, key = { it.id }) { event ->
-                                EventCard(
-                                    event = event,
-                                    onClick = { selectedEvent = event },
-                                    onAcknowledge = { viewModel.acknowledge(event.id) }
-                                )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(
+                                    start = ATKCargoTheme.spacing.l,
+                                    end = ATKCargoTheme.spacing.l,
+                                    top = ATKCargoTheme.spacing.s,
+                                    bottom = ATKCargoTheme.spacing.l
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+                            ) {
+                                items(uiState.events, key = { it.id }) { event ->
+                                    EventCard(
+                                        event = event,
+                                        onClick = { selectedEvent = event },
+                                        onAcknowledge = { viewModel.acknowledge(event.id) }
+                                    )
+                                }
                             }
+                            RefreshHint()
                         }
                     }
                 }
@@ -162,55 +158,111 @@ fun MonitoringScreen(
     }
 }
 
+// هم‌الگوی AnalyticsHeaderCard در ComprehensiveAnalyticsDialog: دکمه‌ی بازگشت دایره‌ای + نشان آیکون مربعی + عنوان/زیرعنوان
 @Composable
-private fun SummarySection(uiState: MonitoringUiState) {
+private fun MonitoringHeader(onBackClick: () -> Unit, onRefreshClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ATKCargoTheme.spacing.xl, vertical = ATKCargoTheme.spacing.l),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m)
+    ) {
+        CircleIconButton(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "بازگشت", onClick = onBackClick)
+
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Sensors,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "مانیتورینگ",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "رویدادهای سلامت و امنیت سیستم",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        CircleIconButton(icon = Icons.Default.Refresh, contentDescription = "بروزرسانی", onClick = onRefreshClick)
+    }
+}
+
+@Composable
+private fun CircleIconButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
+        )
+    }
+}
+
+// چهار کاشی آماری داخل یک ظرف variant، هم‌الگوی دشبورد UserManagementDialog (خلاصه‌ی کاربران) و AnalyticsStatChip
+@Composable
+private fun KpiSection(uiState: MonitoringUiState) {
     val counts = uiState.openAlerts
     val health = uiState.health
+    val healthy = health?.healthy
 
-    Column(modifier = Modifier.padding(ATKCargoTheme.spacing.m)) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ATKCargoTheme.spacing.l)
+            .background(MaterialTheme.colorScheme.surfaceVariant, ATKCargoTheme.appShapes.large)
+            .padding(ATKCargoTheme.spacing.xs)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)
         ) {
-            StatisticsCard(
-                title = "سلامت سیستم",
-                value = when {
-                    health == null -> "—"
-                    health.healthy -> "سالم"
-                    else -> "ناسالم"
-                },
-                description = "بروزرسانی خودکار هر ۳۰ ثانیه",
-                icon = Icons.Default.MonitorHeart,
-                color = if (health?.healthy == false) MaterialTheme.colorScheme.error else ATKCargoTheme.semanticColors.success,
+            KpiTile(
+                icon = Icons.Default.Sensors,
+                value = when (healthy) { true -> "سالم"; false -> "ناسالم"; null -> "—" },
+                label = "وضعیت سیستم",
+                color = if (healthy == false) MaterialTheme.colorScheme.error else ATKCargoTheme.semanticColors.success,
                 modifier = Modifier.weight(1f)
             )
-            StatisticsCard(
-                title = "بحرانی",
+            KpiTile(
+                icon = Icons.Default.Warning,
                 value = counts?.openCritical?.toString() ?: "—",
-                description = "هشدار باز",
-                icon = Icons.Default.ErrorOutline,
+                label = "بحرانی",
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.weight(1f)
             )
-        }
-        Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.s))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
-        ) {
-            StatisticsCard(
-                title = "هشدار",
-                value = counts?.openWarning?.toString() ?: "—",
-                description = "هشدار باز",
+            KpiTile(
                 icon = Icons.Default.Warning,
+                value = counts?.openWarning?.toString() ?: "—",
+                label = "هشدار",
                 color = ATKCargoTheme.semanticColors.warning,
                 modifier = Modifier.weight(1f)
             )
-            StatisticsCard(
-                title = "اطلاعاتی",
-                value = counts?.openInfo?.toString() ?: "—",
-                description = "هشدار باز",
+            KpiTile(
                 icon = Icons.Default.Info,
+                value = counts?.openInfo?.toString() ?: "—",
+                label = "اطلاعاتی",
                 color = ATKCargoTheme.semanticColors.info,
                 modifier = Modifier.weight(1f)
             )
@@ -219,22 +271,54 @@ private fun SummarySection(uiState: MonitoringUiState) {
 }
 
 @Composable
-private fun FilterChipsRow(selected: String, onSelect: (String) -> Unit) {
+private fun KpiTile(icon: ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .padding(vertical = ATKCargoTheme.spacing.s, horizontal = ATKCargoTheme.spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall))
+        Text(text = value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// هم‌الگوی AnalyticsGroupingModeButton: انتخاب‌شده = بک‌گراند/حاشیه‌ی primaryContainer، غیرفعال = فقط حاشیه‌ی خنثی
+@Composable
+private fun StatusFilterRow(selected: String, onSelect: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = ATKCargoTheme.spacing.m),
+            .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.m),
         horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
     ) {
         STATUS_FILTERS.forEach { option ->
-            FilterChip(
-                selected = selected == option.value,
-                onClick = { onSelect(option.value) },
-                label = { Text(option.label) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+            val isSelected = selected == option.value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(38.dp)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        RoundedCornerShape(11.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = .45f) else MaterialTheme.colorScheme.outlineVariant,
+                        shape = RoundedCornerShape(11.dp)
+                    )
+                    .clickable { onSelect(option.value) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            )
+            }
         }
     }
 }
@@ -247,12 +331,20 @@ private fun severityColor(severity: String): Color = when (severity) {
 }
 
 @Composable
+private fun severityContainerColor(severity: String): Color = when (severity) {
+    "critical" -> MaterialTheme.colorScheme.errorContainer
+    "warning" -> ATKCargoTheme.semanticColors.warningContainer
+    else -> ATKCargoTheme.semanticColors.infoContainer
+}
+
+@Composable
 private fun severityIcon(severity: String): ImageVector = when (severity) {
-    "critical" -> Icons.Default.ErrorOutline
+    "critical" -> Icons.Default.Warning
     "warning" -> Icons.Default.Warning
     else -> Icons.Default.Info
 }
 
+// هم‌الگوی AnalyticsQuotaCard: کارت با حاشیه‌ی ظریف به‌جای سایه، نشان آیکون رنگی، ردیف meta زیر یک خط جداکننده
 @Composable
 private fun EventCard(
     event: MonitoringEvent,
@@ -260,36 +352,49 @@ private fun EventCard(
     onAcknowledge: () -> Unit
 ) {
     val color = severityColor(event.severity)
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = ATKCargoTheme.appShapes.card,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = ATKCargoTheme.elevation.cardDefault)
+    val isOpen = event.acknowledgedAt == null
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(ATKCargoTheme.spacing.m)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(ATKCargoTheme.spacing.m),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = severityIcon(event.severity),
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
-            )
-            Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = SEVERITY_LABEL[event.severity] ?: event.severity,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = color,
-                    fontWeight = FontWeight.Bold
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(severityContainerColor(event.severity), RoundedCornerShape(9.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = severityIcon(event.severity),
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
                 )
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = SEVERITY_LABEL[event.severity] ?: event.severity,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                    StatusBadge(isOpen = isOpen)
+                }
                 Text(
                     text = event.eventType,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -299,17 +404,95 @@ private fun EventCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-            if (event.acknowledgedAt == null) {
-                IconButton(onClick = onAcknowledge) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = "تأیید رویداد",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xs))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f))
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxs))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MetaItem(icon = Icons.Default.Sensors, text = event.source)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)) {
+                        MetaItem(icon = Icons.Default.Schedule, text = event.createdAt)
+                        if (isOpen) {
+                            AcknowledgeChip(onClick = onAcknowledge)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatusBadge(isOpen: Boolean) {
+    val (bg, fg, label) = if (isOpen) {
+        Triple(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.error, "باز")
+    } else {
+        Triple(ATKCargoTheme.semanticColors.successContainer, ATKCargoTheme.semanticColors.success, "تأییدشده")
+    }
+    Row(
+        modifier = Modifier
+            .background(bg, RoundedCornerShape(8.dp))
+            .padding(horizontal = ATKCargoTheme.spacing.s, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Box(modifier = Modifier.size(6.dp).background(fg, CircleShape))
+        Text(text = label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = fg)
+    }
+}
+
+@Composable
+private fun MetaItem(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+        Text(text = text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun AcknowledgeChip(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = "تأیید رویداد",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+@Composable
+private fun RefreshHint() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = ATKCargoTheme.spacing.s),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(12.dp)
+        )
+        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.xs))
+        Text(
+            text = "بروزرسانی خودکار هر ۳۰ ثانیه",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -321,7 +504,8 @@ private fun EventDetailsDialog(
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(event.eventType) },
+        shape = ATKCargoTheme.appShapes.dialog,
+        title = { Text(event.eventType, fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 DetailRow("شدت", SEVERITY_LABEL[event.severity] ?: event.severity)
@@ -340,7 +524,7 @@ private fun EventDetailsDialog(
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss) {
                 Text("بستن")
             }
         }

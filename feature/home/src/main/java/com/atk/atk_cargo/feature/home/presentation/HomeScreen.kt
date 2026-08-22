@@ -680,7 +680,8 @@ private fun CategorizedMenuGrid(
     }
 }
 
-private fun MenuItem.isWideCard(): Boolean = route == "manage_ships" || category == "ارتباطات"
+// manage_ships عمداً دیگر wide نیست تا کنار view_monitoring در یک ردیف جفت شود (طبق تصمیم کاربر)
+private fun MenuItem.isWideCard(): Boolean = category == "ارتباطات"
 
 @Composable
 private fun CategoryHeader(title: String, showAnimation: Boolean) {
