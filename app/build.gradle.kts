@@ -13,8 +13,8 @@ plugins {
 // امضای release از طریق keystore.properties (خارج از git، الگو در
 // keystore.properties.example) یا متغیرهای محیطی CI — چون این اپ خودش را از
 // downloads/app-release.apk به‌روز می‌کند و امضا در SecurityVerifier به‌عنوان
-// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار (DEEP_CODE_REVIEW.md
-// Phase1.3). اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود
+// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار (DEEP_CODE_AUDIT.md).
+// اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود
 // (برای لینت/کامپایل محلی کافی است) اما قابل نصب/توزیع نخواهد بود.
 val keystoreProperties = Properties().apply {
     val propsFile = rootProject.file("keystore.properties")

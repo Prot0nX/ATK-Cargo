@@ -32,7 +32,7 @@ dependencies {
     // MessageType/QuotaValidationResult (core:network) نیاز دارد؛ بدون
     // Compose چون هر دو کلاس این ماژول (CargoSnackbarQueue،
     // QuotaValidationUseCase) خالص Kotlin/coroutines هستند
-    // (DEEP_CODE_REVIEW.md Phase4 #29).
+    // (DEEP_CODE_AUDIT.md).
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
     implementation(project(":core:common"))

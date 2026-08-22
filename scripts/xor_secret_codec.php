@@ -1,7 +1,7 @@
 <?php
 // scripts/xor_secret_codec.php
 //
-// DEEP_CODE_REVIEW.md Phase1.1/Top20 #1 — ابزار کمکی برای چرخش
+// DEEP_CODE_AUDIT.md — ابزار کمکی برای چرخش
 // API_KEY/LICENSE_KEY (و بقیه‌ی مقادیر) در app/src/main/cpp/secrets.cpp.
 //
 // ⚠️ این ابزار فقط "مبهم‌سازی" XOR فعلی را جایگزین می‌کند، امنیت واقعی اضافه

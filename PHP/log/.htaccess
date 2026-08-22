@@ -3,7 +3,7 @@
 # Apache 2.2 (mod_access_compat) و 2.4. این تنها لایه‌ی محافظت واقعی است —
 # یک DirectoryMatch مشابه قبلاً در .htaccess ریشه‌ی PHP/ هم بود، اما
 # `<Directory>`/`<DirectoryMatch>` در .htaccess اصلاً معتبر نیستند (فقط در
-# httpd.conf مجازند) و حذف شدند (DEEP_CODE_REVIEW.md Top20 #13).
+# httpd.conf مجازند) و حذف شدند (DEEP_CODE_AUDIT.md).
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>

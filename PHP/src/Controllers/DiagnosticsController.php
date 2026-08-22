@@ -17,7 +17,7 @@ class DiagnosticsController {
     private Request $request;
     private CrashReportRateLimiter $rateLimiter;
 
-    // سقف حجم crash_reports.log — DEEP_CODE_REVIEW.md Phase2.14.
+    // سقف حجم crash_reports.log — DEEP_CODE_AUDIT.md.
     private const MAX_CRASH_LOG_BYTES = 50 * 1024 * 1024;
 
     public function __construct() {

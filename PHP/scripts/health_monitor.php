@@ -1,7 +1,7 @@
 <?php
 // PHP/scripts/health_monitor.php
 //
-// مانیتورینگ خودکار health-check (DEEP_CODE_REVIEW.md Phase3 #28). قبلاً
+// مانیتورینگ خودکار health-check (DEEP_CODE_AUDIT.md فاز۳ #۳۲). قبلاً
 // endpoint سلامت (`GET /api/v2/health`) وجود داشت اما هیچ مصرف‌کننده‌ای
 // نداشت — خرابی دیتابیس/جدول تا وقتی کاربر گزارش می‌داد کشف نمی‌شد.
 //

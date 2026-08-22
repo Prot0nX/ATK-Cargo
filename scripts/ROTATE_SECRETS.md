@@ -1,7 +1,7 @@
 # چرخش رازهای `secrets.cpp` (Phase 1, آیتم #۱)
 
 این راهنما برای چرخش فوری `API_KEY`/`LICENSE_KEY` افشاشده در
-[DEEP_CODE_REVIEW.md](../DEEP_CODE_REVIEW.md#critical-issues) است. این کار را
+[DEEP_CODE_AUDIT.md](../DEEP_CODE_AUDIT.md) است. این کار را
 باید کسی با دسترسی به سرور production انجام دهد؛ این فایل و
 `xor_secret_codec.php` فقط بخش کلاینت را آماده می‌کنند.
 

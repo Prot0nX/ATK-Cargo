@@ -5,7 +5,7 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
 
-// نگاشت خطای متمرکز (DEEP_CODE_REVIEW.md Phase3 #22)؛ هنوز به ViewModel/Screen سیم‌کشی نشده (پیام‌های context-specific فعلی حفظ می‌شوند)، اما catch(Exception) در ۹ فایل شبکه اصلاح شد تا CancellationException به‌اشتباه «خطای سرور» نمایش داده نشود — این فایل برای استفاده‌ی تدریجی/آینده نگه داشته شده است
+// نگاشت خطای متمرکز (DEEP_CODE_AUDIT.md)؛ هنوز به ViewModel/Screen سیم‌کشی نشده (پیام‌های context-specific فعلی حفظ می‌شوند)، اما catch(Exception) در ۹ فایل شبکه اصلاح شد تا CancellationException به‌اشتباه «خطای سرور» نمایش داده نشود — این فایل برای استفاده‌ی تدریجی/آینده نگه داشته شده است
 sealed interface AppError {
     data object Network : AppError
     data object Timeout : AppError

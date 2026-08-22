@@ -2,7 +2,7 @@
 // PHP/scripts/migrate_legacy_passwords_to_bcrypt.php
 //
 // یک‌بارمصرف: تبدیل رمزهای غیر-bcrypt باقی‌مانده در جدول Users به bcrypt
-// (DEEP_CODE_REVIEW.md Top20 #3 / Phase1 #4). پیش‌نیاز حذف کامل fallback
+// (DEEP_CODE_AUDIT.md). پیش‌نیاز حذف کامل fallback
 // «حالت ۳» (رمز متن‌خام/SHA-256 مستقیم) در UserService::verifyCredentials —
 // تا وقتی این تعداد صفر نشود، حذف آن fallback یعنی قفل‌شدن خاموش حساب
 // کاربرانی که مهاجرت نکرده‌اند.

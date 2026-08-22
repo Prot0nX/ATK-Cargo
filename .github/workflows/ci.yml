@@ -72,7 +72,7 @@ jobs:
 
       # بدون qualifier ماژول اجرا می‌شود تا تست‌های core:network
       # (TokenAuthenticatorTest، TokenRefresherTest — منطق چرخش توکن) هم
-      # پوشش داده شوند، نه فقط app (DEEP_CODE_REVIEW.md Phase1.6).
+      # پوشش داده شوند، نه فقط app (DEEP_CODE_AUDIT.md).
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --console=plain
 

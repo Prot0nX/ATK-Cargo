@@ -42,7 +42,7 @@ google-services.json
 .env
 *.env
 
-# سرور info dump (DEEP_CODE_REVIEW.md Phase1.8) — شامل نسخه‌های نرم‌افزار سرور، cron، پیکربندی PHP
+# سرور info dump (DEEP_CODE_AUDIT.md) — شامل نسخه‌های نرم‌افزار سرور، cron، پیکربندی PHP
 php_server_info_*.txt
 
 # PHP composer dependencies — vendor/ لایو در web root است و نباید کامیت شود
@@ -61,9 +61,9 @@ php_server_info_*.txt
 
 /app/release/baselineProfiles
 
-# graphify local build artifacts (machine-specific paths, extraction cache)
-/graphify-out/cache/
-/graphify-out/.graphify_python
-/graphify-out/.graphify_root
+# خروجی گراف graphify — اسنپ‌شات‌های روزانه و ~۹۷ مگابایت، نباید کامیت شود
+# (DEEP_CODE_AUDIT.md فاز۳ #۳۰). فقط محلی بماند، هرکس با graphify update . خودش می‌سازد.
+/graphify-out/
+
 /app/release/baselineProfiles
 php_server_info.txt
