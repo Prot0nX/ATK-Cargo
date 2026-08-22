@@ -55,5 +55,4 @@ return [
         'excluded_versions' => []
     ]
 ];
-?>
  

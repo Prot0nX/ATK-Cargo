@@ -1,0 +1,1846 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Parameter \\#1 \\$name of function setcookie expects string, string\\|false given\\.$#"
+			count: 1
+			path: Lic/_guard.php
+
+		-
+			message: "#^Parameter \\#3 \\$options of function setcookie expects array\\{expires\\?\\: int, path\\?\\: string, domain\\?\\: string, secure\\?\\: bool, httponly\\?\\: bool, samesite\\?\\: 'Lax'\\|'lax'\\|'None'\\|'none'\\|'Strict'\\|'strict'\\}, array\\{expires\\: int\\<\\-41999, max\\>, path\\: non\\-falsy\\-string, domain\\: string, secure\\: bool, httponly\\: bool, samesite\\: string\\} given\\.$#"
+			count: 1
+			path: Lic/_guard.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fclose expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: Lic/export.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fputcsv expects resource, resource\\|false given\\.$#"
+			count: 2
+			path: Lic/export.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fwrite expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: Lic/export.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on bool\\|mysqli_result\\.$#"
+			count: 1
+			path: PermissionManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$name of function setcookie expects string, string\\|false given\\.$#"
+			count: 1
+			path: PermissionManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function htmlspecialchars expects string, float\\|int\\|string\\|null given\\.$#"
+			count: 5
+			path: PermissionManager.php
+
+		-
+			message: "#^Parameter \\#2 \\$timestamp of function date expects int\\|null, int\\|false given\\.$#"
+			count: 1
+			path: PermissionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:cleanupExpiredSessions\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$androidVersion with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$appVersion with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$deviceModel with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$ipAddress with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$userType with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getActiveSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getActiveSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getOnlineUsers\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionStats\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionTimeout\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionToken\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$action with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$ipAddress with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$userType with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:setSessionTimeout\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:setSessionTimeout\\(\\) has parameter \\$seconds with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:cleanupExpiredSessions\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$androidVersion with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$deviceModel with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$ipAddress with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$userType with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:createSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:deactivateSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:forceLogoutFromDevice\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getActiveSession\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getActiveSession\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getOnlineUsers\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionStats\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionTimeout\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionToken\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:getSessionToken\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:isSessionActive\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$action with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$ipAddress with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$userType with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:logActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:setSessionTimeout\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:setSessionTimeout\\(\\) has parameter \\$seconds with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateLastActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has parameter \\$deviceId with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Method SessionManager\\:\\:updateSessionActivity\\(\\) has parameter \\$username with no type specified\\.$#"
+			count: 1
+			path: User/SessionManager.php
+
+		-
+			message: "#^Argument of an invalid type array\\<int, string\\>\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: config/config.php
+
+		-
+			message: "#^Cannot call method fetch\\(\\) on PDOStatement\\|false\\.$#"
+			count: 4
+			path: export_schema.php
+
+		-
+			message: "#^Cannot call method fetchAll\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Method DatabaseSchemaExporter\\:\\:getTables\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Method DatabaseSchemaExporter\\:\\:getTriggers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Method DatabaseSchemaExporter\\:\\:getViews\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Parameter \\#1 \\$dbName of class DatabaseSchemaExporter constructor expects string, array\\<int, mixed\\>\\|string\\|false given\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Parameter \\#2 \\$outputFile of class DatabaseSchemaExporter constructor expects string\\|null, array\\<int, mixed\\>\\|string\\|false given\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Part \\$dbName \\(array\\<int, mixed\\>\\|string\\|false\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Part \\$outputFile \\(array\\<int, mixed\\>\\|string\\|false\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: export_schema.php
+
+		-
+			message: "#^Argument of an invalid type array\\<int, string\\>\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function logAccess\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function logAccess\\(\\) has parameter \\$action with no type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function logAccess\\(\\) has parameter \\$clientIP with no type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function logAccess\\(\\) has parameter \\$file with no type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function scanPHPFiles\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Function scanPHPFiles\\(\\) has parameter \\$directory with no type specified\\.$#"
+			count: 1
+			path: file_manager.php
+
+		-
+			message: "#^Binary operation \"\\*\" between 365 and string results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\+\" between \\(float\\|int\\) and string results in an error\\.$#"
+			count: 2
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\+\" between string and 1 results in an error\\.$#"
+			count: 11
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\+\" between string and 12 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\+\" between string and 2 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\+\\=\" between string and 1595 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\-\" between string and 1 results in an error\\.$#"
+			count: 2
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\-\" between string and 10 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\-\" between string and 5 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"\\-\" between string and 7 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Binary operation \"/\" between string and 6\\.5 results in an error\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function gregorian_to_jalali\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function gregorian_to_jalali\\(\\) has parameter \\$gd with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function gregorian_to_jalali\\(\\) has parameter \\$gm with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function gregorian_to_jalali\\(\\) has parameter \\$gy with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function gregorian_to_jalali\\(\\) has parameter \\$mod with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jalali_to_gregorian\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jalali_to_gregorian\\(\\) has parameter \\$jd with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jalali_to_gregorian\\(\\) has parameter \\$jm with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jalali_to_gregorian\\(\\) has parameter \\$jy with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jalali_to_gregorian\\(\\) has parameter \\$mod with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jcheckdate\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jcheckdate\\(\\) has parameter \\$jd with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jcheckdate\\(\\) has parameter \\$jm with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jcheckdate\\(\\) has parameter \\$jy with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has parameter \\$format with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has parameter \\$none with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has parameter \\$time_zone with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has parameter \\$timestamp with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate\\(\\) has parameter \\$tr_num with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate_words\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate_words\\(\\) has parameter \\$array with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jdate_words\\(\\) has parameter \\$mod with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jgetdate\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jgetdate\\(\\) has parameter \\$none with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jgetdate\\(\\) has parameter \\$timestamp with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jgetdate\\(\\) has parameter \\$timezone with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jgetdate\\(\\) has parameter \\$tn with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$h with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$jd with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$jm with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$jy with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$m with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$none with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$s with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jmktime\\(\\) has parameter \\$timezone with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has parameter \\$format with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has parameter \\$none with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has parameter \\$time_zone with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has parameter \\$timestamp with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function jstrftime\\(\\) has parameter \\$tr_num with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function tr_num\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function tr_num\\(\\) has parameter \\$mf with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function tr_num\\(\\) has parameter \\$mod with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Function tr_num\\(\\) has parameter \\$str with no type specified\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$hour of function mktime expects int, string given\\.$#"
+			count: 6
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function str_pad expects string, \\(float\\|int\\) given\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function strlen expects string, int given\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function substr expects string, int given\\.$#"
+			count: 3
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function substr expects string, int\\<100, max\\> given\\.$#"
+			count: 2
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#2 \\$minute of function mktime expects int\\|null, string given\\.$#"
+			count: 5
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#3 \\$pad_string of function str_pad expects string, int given\\.$#"
+			count: 1
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#3 \\$second of function mktime expects int\\|null, string given\\.$#"
+			count: 4
+			path: jdf.php
+
+		-
+			message: "#^Parameter \\#1 \\$value of function count expects array\\|Countable, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: scripts/crash_report_summary.php
+
+		-
+			message: "#^Cannot call method execute\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: scripts/fix_double_escaped_cargo_fields.php
+
+		-
+			message: "#^Cannot call method fetchAll\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: scripts/fix_double_escaped_cargo_fields.php
+
+		-
+			message: "#^Cannot call method fetchAll\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: scripts/migrate_legacy_passwords_to_bcrypt.php
+
+		-
+			message: "#^Cannot call method fetchColumn\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: scripts/migrate_legacy_passwords_to_bcrypt.php
+
+		-
+			message: "#^Argument of an invalid type array\\<int, string\\>\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 2
+			path: scripts/rotate_logs.php
+
+		-
+			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 4
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 4
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 4
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Cannot call method fetch_all\\(\\) on mysqli_result\\|false\\.$#"
+			count: 2
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 2
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 4
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:determineShiftInfo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:getRealTimeData\\(\\) has parameter \\$shiftInfo with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:getRealTimeData\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:sendCacheableAnalyticsResponse\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:sendCacheableRealTimeResponse\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function md5 expects string, string\\|false given\\.$#"
+			count: 2
+			path: src/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaExistenceCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaStatus\\(\\) has parameter \\$params with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaStatus\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getAllQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getFilteredQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getGroupedQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getLoadableTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getQuotaDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getShipDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getShipsList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getWarehouseDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:sendCacheableJsonResponse\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:sendCacheableJsonResponse\\(\\) has parameter \\$etagSource with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:updateTemporaryTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function md5 expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Controllers/AppApiController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\AuthController\\:\\:getUserPermissions\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/AuthController.php
+
+		-
+			message: "#^Cannot access offset 'avgNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot access offset 'cargoWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot access offset 'remainingWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot access offset 'totalNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot access offset 'totalVouchers' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 4
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 3
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\CargoController\\:\\:validateNumericField\\(\\) has parameter \\$value with no type specified\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\CargoController\\:\\:validateStringField\\(\\) has parameter \\$value with no type specified\\.$#"
+			count: 1
+			path: src/Controllers/CargoController.php
+
+		-
+			message: "#^Cannot call method fetch_all\\(\\) on mysqli_result\\|false\\.$#"
+			count: 3
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 3
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:deleteMessage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:editMessage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:getMessages\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:getUserFullName\\(\\) should return string but returns float\\|int\\|string\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:prepareAndExecute\\(\\) has parameter \\$params with no type specified\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:sendMessage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/ChatController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\DiagnosticsController\\:\\:evaluateHealth\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 2
+			path: src/Controllers/DiagnosticsController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\LicenseController\\:\\:presentLicense\\(\\) has parameter \\$license with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/LicenseController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\LicenseController\\:\\:presentLicense\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/LicenseController.php
+
+		-
+			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
+			count: 3
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 5
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 3
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Method App\\\\Controllers\\\\UtilityController\\:\\:sendSyncResponse\\(\\) has parameter \\$extra with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Controllers/UtilityController.php
+
+		-
+			message: "#^Method App\\\\Core\\\\ApiAuthGate\\:\\:requireAuthenticated\\(\\) should return array\\{string, string\\} but returns array\\{string, string\\|null\\}\\.$#"
+			count: 1
+			path: src/Core/ApiAuthGate.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Config\\:\\:get\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/Core/Config.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Config\\:\\:get\\(\\) has parameter \\$default with no type specified\\.$#"
+			count: 1
+			path: src/Core/Config.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Config\\:\\:set\\(\\) has parameter \\$value with no type specified\\.$#"
+			count: 1
+			path: src/Core/Config.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Config\\:\\:\\$settings type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Config.php
+
+		-
+			message: "#^Property App\\\\Core\\\\DatabaseManager\\:\\:\\$preparedStatements type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/DatabaseManager.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Logger\\:\\:\\$buffer type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Logger.php
+
+		-
+			message: "#^Method App\\\\Core\\\\MicroCache\\:\\:remember\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/Core/MicroCache.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Request\\:\\:all\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Request\\:\\:get\\(\\) has no return type specified\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Request\\:\\:get\\(\\) has parameter \\$default with no type specified\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Request\\:\\:getHeadersParsed\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Request\\:\\:getJsonParams\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Request\\:\\:\\$headers type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Request\\:\\:\\$jsonParams type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Request\\:\\:\\$postParams type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Property App\\\\Core\\\\Request\\:\\:\\$queryParams type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Request.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Response\\:\\:error\\(\\) has parameter \\$details with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Response\\:\\:json\\(\\) has parameter \\$data with no type specified\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Response\\:\\:success\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Router\\:\\:__construct\\(\\) has parameter \\$routes with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Router.php
+
+		-
+			message: "#^Method App\\\\Exceptions\\\\ApiException\\:\\:__construct\\(\\) has parameter \\$details with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ApiException.php
+
+		-
+			message: "#^Method App\\\\Exceptions\\\\ApiException\\:\\:getDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ApiException.php
+
+		-
+			message: "#^Property App\\\\Exceptions\\\\ApiException\\:\\:\\$details type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ApiException.php
+
+		-
+			message: "#^Method App\\\\Exceptions\\\\ResponseSentException\\:\\:__construct\\(\\) has parameter \\$payload with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ResponseSentException.php
+
+		-
+			message: "#^Method App\\\\Exceptions\\\\ResponseSentException\\:\\:getPayload\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ResponseSentException.php
+
+		-
+			message: "#^Property App\\\\Exceptions\\\\ResponseSentException\\:\\:\\$payload type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Exceptions/ResponseSentException.php
+
+		-
+			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 9
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:confirmCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:find24hCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findByScaleReceiptNumber\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findCargoById\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findCargoByKeys\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findQuotaControlData\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findTempTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:getActiveShipsList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:insertCargo\\(\\) has parameter \\$params with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:searchByScaleReceipt\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:searchByTracking\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:updateCargoFull\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
+			message: "#^Cannot call method fetch\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: src/Repositories/LicenseRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\LicenseRepository\\:\\:findById\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/LicenseRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\LicenseRepository\\:\\:findByKey\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/LicenseRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\LicenseRepository\\:\\:listAll\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/LicenseRepository.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 3
+			path: src/Repositories/PermissionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getAllRolePermissions\\(\\) should return array\\<string, array\\<string, bool\\>\\> but returns array\\<int\\|string, array\\<int\\|string, bool\\>\\>\\.$#"
+			count: 1
+			path: src/Repositories/PermissionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getAllUserPermissions\\(\\) should return array\\<string, array\\<string, bool\\>\\> but returns array\\<int\\|string, array\\<int\\|string, bool\\>\\>\\.$#"
+			count: 1
+			path: src/Repositories/PermissionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getLastUpdatedAt\\(\\) should return string\\|null but returns float\\|int\\|string\\|null\\.$#"
+			count: 1
+			path: src/Repositories/PermissionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:createSession\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:deactivateSessionsByIds\\(\\) has parameter \\$ids with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getActiveSession\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getActiveSessionByDevice\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getActiveSessionsForUser\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getLatestSessionsForAllUsers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getOnlineUsers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:getSessionStats\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/SessionRepository.php
+
+		-
+			message: "#^Cannot call method fetch\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Cannot call method fetchAll\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:create\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:getAll\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:getById\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:getByUserType\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:getByUsername\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Repositories\\\\UserRepository\\:\\:update\\(\\) has parameter \\$updates with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/UserRepository.php
+
+		-
+			message: "#^Method App\\\\Services\\\\AuditLogger\\:\\:log\\(\\) has parameter \\$details with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/AuditLogger.php
+
+		-
+			message: "#^Method App\\\\Services\\\\CargoService\\:\\:checkScaleReceipt\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/CargoService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\CargoService\\:\\:deleteCargoInfo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/CargoService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\CargoService\\:\\:getActiveShips\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/CargoService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\CargoService\\:\\:saveOrUpdateCargo\\(\\) has parameter \\$params with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/CargoService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\CargoService\\:\\:saveOrUpdateCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/CargoService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\LicenseAdminService\\:\\:create\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/LicenseAdminService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\LicenseAdminService\\:\\:presentRow\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/LicenseAdminService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\LicenseAdminService\\:\\:update\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/LicenseAdminService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\LicenseAdminService\\:\\:validate\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/LicenseAdminService.php
+
+		-
+			message: "#^Cannot access offset 'password' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
+			count: 1
+			path: src/Services/PasswordGateService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\PermissionService\\:\\:getUserPermissions\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/PermissionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\PermissionService\\:\\:loadFromDatabase\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/PermissionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\PermissionService\\:\\:loadFromJsonFile\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/PermissionService.php
+
+		-
+			message: "#^Cannot access offset 'count' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Cannot access offset 'isActive' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Cannot access offset 'loadingQuotaNumber' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 11
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:checkQuotaExistenceCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:checkQuotaStatus\\(\\) has parameter \\$params with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:checkQuotaStatus\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:computeQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getAllQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getFilteredQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getGroupedQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getLoadableTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getQuotaDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getShipNameById\\(\\) should return string\\|null but returns float\\|int\\|string\\|null\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:updateTemporaryTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Parameter \\#1 \\$shipName of method App\\\\Services\\\\QuotaService\\:\\:forgetShipCaches\\(\\) expects string\\|null, float\\|int\\|string\\|null given\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Parameter \\#1 \\$shipName of static method App\\\\Services\\\\AppApiCacheKeys\\:\\:quotasList\\(\\) expects string, float\\|int\\|string\\|null given\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Parameter \\#1 \\$shipName of static method App\\\\Services\\\\AppApiCacheKeys\\:\\:shipDetails\\(\\) expects string, float\\|int\\|string\\|null given\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:createMobileSession\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:createWebSession\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:deactivateSession\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:forceLogoutFromDevice\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:generateTokenPair\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:getOnlineUsers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:getSessionStats\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\SessionService\\:\\:refreshTokens\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/SessionService.php
+
+		-
+			message: "#^Cannot access offset 'totalNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Cannot access offset 'voucherCount' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
+			count: 7
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\ShipService\\:\\:computeShipDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\ShipService\\:\\:getFilteredSummary\\(\\) should return string but returns string\\|false\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\ShipService\\:\\:getShipDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\ShipService\\:\\:getShipsList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\ShipService\\:\\:getWarehouseDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/ShipService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:createUser\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:createUser\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:deleteUser\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:getAdminUsers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:getAllUsers\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:getAllUsersWithStatus\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:getSelfProfile\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:updateUser\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:updateUser\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\UserService\\:\\:verifyCredentials\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/UserService.php
+
+		-
+			message: "#^Method App\\\\Validators\\\\InputValidator\\:\\:validateFloat\\(\\) has parameter \\$value with no type specified\\.$#"
+			count: 1
+			path: src/Validators/InputValidator.php
+
+		-
+			message: "#^Method App\\\\Validators\\\\InputValidator\\:\\:validateRequired\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Validators/InputValidator.php
+
+		-
+			message: "#^Method App\\\\Validators\\\\InputValidator\\:\\:validateRequired\\(\\) has parameter \\$requiredFields with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Validators/InputValidator.php
+
+		-
+			message: "#^Function getFileSize\\(\\) has parameter \\$filePath with no type specified\\.$#"
+			count: 1
+			path: update_config.php

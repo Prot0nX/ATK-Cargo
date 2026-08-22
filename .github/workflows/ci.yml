@@ -34,10 +34,10 @@ jobs:
           find . -name '*.php' -not -path './vendor/*' -print0 \
             | xargs -0 -n1 -P4 php -l
 
-      # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon
-      # دقیقاً همین حالت (نبود .env) را به‌عنوان baseline پیش‌فرض می‌شناسد
-      # (نگاه کنید به کامنت‌های ignoreErrors در phpstan.neon).
-      - name: PHPStan (level 5)
+      # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon دقیقاً
+      # همین حالت (نبود .env) را پیش‌فرض می‌شناسد. خطاهای از‌پیش‌موجود (عمدتاً
+      # jdf.php شخص‌ثالث) در phpstan-baseline.neon نگه داشته شده‌اند.
+      - name: PHPStan (level 7)
         run: vendor/bin/phpstan analyse --no-progress --error-format=github
 
       # فقط منطق خالص (بدون دیتابیس) مثل QuotaCalculator — تست‌هایی که به

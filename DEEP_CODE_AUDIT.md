@@ -3239,7 +3239,7 @@ Medium
 | ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ⏳ در انتظار |
 | ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
 | ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ✅ اعمال شد |
-| ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ⏳ در انتظار |
+| ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ✅ اعمال شد |
 | ۳۲ | وصل کردن `health_monitor.php` به cron + هشدار تلگرام | Low | ⏳ در انتظار |
 | ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium | ⏳ در انتظار |
 
@@ -3249,6 +3249,17 @@ Medium
 - **بررسی جانبی:** قبل از حذف `markAsRead`/`getUnreadCount`، تأیید شد که جدول `admin_chat_reads` و منطق `read_by_names`/`is_read_by_me` در `getMessages`/`sendMessage` هنوز زنده‌اند و حذف نشدند — فقط مسیر توقفی endpoint صریح «علامت‌گذاری خوانده‌شده» مرده بود، نه کل مکانیزم ردیابی خواندن.
 - ستون `Users.fcm_token` از قبل در `schema.sql` تعریف نشده بود (drift ردیابی‌نشده با production)، پس migration لازم نبود.
 - تأیید شد: `php -l` روی همه‌ی فایل‌های PHP تغییریافته بدون خطا، و `./gradlew :core:database:compileDebugKotlin :app:compileDebugKotlin` موفق (exit 0). به دلیل نبود `vendor/bin/phpstan`/`phpunit` نصب‌شده در این محیط، PHPStan/PHPUnit اجرا نشدند.
+
+**یادداشت‌های اجرای مورد ۳۱:**
+
+- `composer install` برای اولین‌بار در این محیط اجرا شد (تا امروز `vendor/bin/phpstan`/`phpunit` هرگز نصب نشده بودند، برخلاف تصور اولیه‌ی «هیچ‌کدام نصب نیستند» در یادداشت مورد ۲۹).
+- `paths` در `phpstan.neon` گسترش یافت تا `scripts/`, `User/`, `config/` و ۱۰ فایل ریشه‌ی `PHP/` (`PermissionManager.php`, `SessionManager.php`, `check_signature.php`, `check_update.php`, `export_schema.php`, `file_manager.php`, `get_csrf_token.php`, `get_license_info.php`, `jdf.php`, `update_config.php`, `validate_license.php`) را هم پوشش دهد — قبلاً فقط `src`/`api`/`Lic` آنالیز می‌شدند.
+- **رگرسیون کشف‌شده:** با نصب واقعی وابستگی‌ها، قانون `ignoreErrors` قبلی برای `UtilityController.php` (`Result of || is always true`) دیگر با خروجی واقعی PHPStan match نمی‌شد (به‌احتمال زیاد چون نسخه‌ی نصب‌شده‌ی phpstan/nikic-php-parser دیگر نوع `UPDATE_CHECK_API_KEY` را به رشته‌ی لفظی `''` باریک نمی‌کند) و باعث خطای «unmatched ignore» می‌شد. طبق همان اصلی که در نکته‌ی فاز۳ #۲۱ مستند شده بود، قانون حذف و توضیح در کامنت به‌روزرسانی شد.
+- در گسترش دامنه، دو خطای واقعی (نه third-party) پیدا شد و مستقیماً رفع شد: `update_config.php` تگ پایانی `?>` + فاصله‌ی خالی بعدش داشت (`Unreachable statement` + هشدار whitespace) — هر دو با حذف `?>` رفع شدند.
+- ۴۶ خطای باقی‌مانده در سطح ۵، همگی در `jdf.php` (کتابخانه‌ی تاریخ جلالی شخص‌ثالث با هدر لایسنس GNU/LGPL که طبق یادداشت‌های قبلی گزارش نباید محتوایش دست بخورد) — این‌ها به baseline رفتند، نه اصلاح در کد.
+- سطح از ۵ به ۷ افزایش یافت و بلافاصله `--generate-baseline` اجرا شد: **۴۷۴ خطا در ۴۷ فایل** (`phpstan-baseline.neon`، شامل همان ۴۶ خطای `jdf.php` + خطاهای جدید سطح ۶/۷ در کد پروژه مثل `Lic/_guard.php`/`Lic/export.php`) baseline شدند تا هیچ‌کدام بلاک نشوند اما کد جدید از این پس زیر سطح ۷ واقعی چک شود. `phpstan.neon` با `includes: [phpstan-baseline.neon]` آن را بارگذاری می‌کند.
+- CI (`ci.yml`) به‌روزرسانی شد: نام مرحله از «PHPStan (level 5)» به «PHPStan (level 7)» تغییر کرد و کامنت بالای آن با وضعیت واقعی (baseline به‌جای ignoreErrors) هم‌راستا شد.
+- تأیید شد: `vendor/bin/phpstan analyse` با پیکربندی نهایی «No errors» می‌دهد؛ کل مجموعه‌ی PHPUnit (۹۹ تست، ۱۹۵ assertion) سبز است.
 
 ### Phase 4 — Optimization (بلندمدت)
 
