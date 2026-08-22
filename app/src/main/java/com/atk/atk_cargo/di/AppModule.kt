@@ -11,6 +11,8 @@ import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
+import com.atk.atk_cargo.startup.data.StartupSessionRepository
+import com.atk.atk_cargo.startup.data.StartupSessionRepositoryImpl
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -45,7 +47,10 @@ val appModule = module {
     // ===== دیتابیس محلی =====
     single { AppDatabase.getDatabase(androidContext()) }
 
+    // ===== Startup =====
+    single<StartupSessionRepository> { StartupSessionRepositoryImpl(get()) }
+
     // ===== ViewModelهایی که خودشان هنوز در :app هستند =====
-    viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get()) }
+    viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get(), get()) }
 }
 

@@ -11,14 +11,14 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.atk.atk_cargo.api.AppNotificationManager
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.Secrets
-import com.atk.atk_cargo.api.SessionCheckRequest
 import com.atk.atk_cargo.api.TokenRefresher
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.domain.session.StartupController
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
+import com.atk.atk_cargo.startup.data.SessionCheckOutcome
+import com.atk.atk_cargo.startup.data.StartupSessionRepository
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.workers.ChatNotificationWorker
@@ -70,7 +70,8 @@ class StartupViewModel(
     private val userPreferencesManager: UserPreferencesManager,
     private val securityVerifier: SecurityVerifier,
     private val updateManager: UpdateManager,
-    private val chatRepository: ChatRepository
+    private val chatRepository: ChatRepository,
+    private val sessionRepository: StartupSessionRepository
 ) : AndroidViewModel(application), StartupController {
 
     private val appContext get() = getApplication<Application>()
@@ -246,33 +247,23 @@ class StartupViewModel(
         val username = userPreferencesManager.username.first()
         if (username.isEmpty()) return false
 
-        return try {
-            val deviceId = userPreferencesManager.deviceId.first()
-            val sessionToken = userPreferencesManager.sessionToken.first()
-            val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
+        val deviceId = userPreferencesManager.deviceId.first()
+        val sessionToken = userPreferencesManager.sessionToken.first()
 
-            val response = RetrofitClient.apiServiceV2.checkSession(sessionRequest)
-
-            if (!response.isSuccessful && response.code() >= 500) {
-                isWithinSessionOfflineGracePeriod()
-            } else {
-                val isValid = response.isSuccessful && response.body()?.success == true
-                if (isValid) {
-                    userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
-                    true
-                } else {
-                    // تلاش صریح برای refresh توکن در صورت انقضای access token در زمان استارتاپ اپ (I-05).
-                    val refreshed = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager) != null
-                    if (refreshed) {
-                        userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
-                    }
-                    refreshed
-                }
+        return when (sessionRepository.checkSession(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })) {
+            SessionCheckOutcome.Valid -> {
+                userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+                true
             }
-        } catch (e: java.io.IOException) {
-            isWithinSessionOfflineGracePeriod()
-        } catch (_: Exception) {
-            false
+            SessionCheckOutcome.Unreachable -> isWithinSessionOfflineGracePeriod()
+            SessionCheckOutcome.Invalid -> {
+                // تلاش صریح برای refresh توکن در صورت انقضای access token در زمان استارتاپ اپ (I-05).
+                val refreshed = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager) != null
+                if (refreshed) {
+                    userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+                }
+                refreshed
+            }
         }
     }
 
