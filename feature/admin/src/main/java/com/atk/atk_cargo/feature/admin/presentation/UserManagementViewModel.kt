@@ -2,18 +2,17 @@ package com.atk.atk_cargo.feature.admin.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ApiServiceV2
-import com.atk.atk_cargo.api.ApiV2Routes
 import com.atk.atk_cargo.data.model.CreateUserRequest
-import com.atk.atk_cargo.data.model.DeleteUserRequest
-import com.atk.atk_cargo.data.model.ForceLogoutRequest
 import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
+import com.atk.atk_cargo.feature.admin.data.AdminOperationResult
+import com.atk.atk_cargo.feature.admin.data.AdminRepository
+import com.atk.atk_cargo.feature.admin.data.ForceLogoutResult
 import kotlinx.coroutines.launch
 
 // تماس‌های شبکه با viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند؛ نتیجه با callback به Composable برمی‌گردد
 class UserManagementViewModel(
-    private val apiServiceV2: ApiServiceV2
+    private val repository: AdminRepository
 ) : ViewModel() {
 
     fun fetchUsersWithStatus(
@@ -22,12 +21,7 @@ class UserManagementViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val response = try {
-                    apiServiceV2.getAllUsersWithStatus()
-                } catch (_: Exception) {
-                    apiServiceV2.getAllUsers()
-                }
-                onSuccess(response)
+                onSuccess(repository.fetchUsersWithStatus())
             } catch (e: Exception) {
                 onError(e.message)
             }
@@ -42,14 +36,9 @@ class UserManagementViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val response = apiServiceV2.updateUser(
-                    request = request,
-                    route = ApiV2Routes.userUpdate(request.id)
-                )
-                if (response.success) {
-                    onSuccess()
-                } else {
-                    onFailure(response.message)
+                when (val result = repository.updateUser(request)) {
+                    is AdminOperationResult.Success -> onSuccess()
+                    is AdminOperationResult.Failure -> onFailure(result.message)
                 }
             } catch (e: Exception) {
                 onError(e.message)
@@ -65,15 +54,9 @@ class UserManagementViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val request = DeleteUserRequest(userId = userId)
-                val response = apiServiceV2.deleteUser(
-                    request = request,
-                    route = ApiV2Routes.userDelete(userId)
-                )
-                if (response.success) {
-                    onSuccess()
-                } else {
-                    onFailure(response.message)
+                when (val result = repository.deleteUser(userId)) {
+                    is AdminOperationResult.Success -> onSuccess()
+                    is AdminOperationResult.Failure -> onFailure(result.message)
                 }
             } catch (e: Exception) {
                 onError(e.message)
@@ -90,22 +73,9 @@ class UserManagementViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val activeDeviceId: String = try {
-                    val sessionResponse = apiServiceV2.getActiveDeviceId(username = user.username)
-                    if (sessionResponse.isSuccessful && sessionResponse.body()?.success == true) {
-                        sessionResponse.body()?.deviceId ?: ""
-                    } else ""
-                } catch (_: Exception) { "" }
-
-                val request = ForceLogoutRequest(
-                    username = user.username,
-                    deviceId = activeDeviceId
-                )
-                val response = apiServiceV2.forceLogoutUser(request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    onSuccess("کاربر ${user.username} با موفقیت از سیستم خارج شد")
-                } else {
-                    onFailure(response.body()?.message ?: "خطا در خروج اجباری کاربر")
+                when (val result = repository.forceLogoutUser(user)) {
+                    is ForceLogoutResult.Success -> onSuccess(result.message)
+                    is ForceLogoutResult.Failure -> onFailure(result.message)
                 }
             } catch (e: Exception) {
                 onError("خطا در ارتباط با سرور: ${e.message}")
@@ -124,11 +94,9 @@ class UserManagementViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val response = apiServiceV2.createUser(request)
-                if (response.isSuccessful && response.body()?.success == true) {
-                    onSuccess()
-                } else {
-                    onFailure("خطا در ایجاد کاربر: ${response.errorBody()?.string()}")
+                when (val result = repository.createUser(request)) {
+                    is AdminOperationResult.Success -> onSuccess()
+                    is AdminOperationResult.Failure -> onFailure(result.message)
                 }
             } catch (e: Exception) {
                 onError("خطا در ارتباط: ${e.message}")
