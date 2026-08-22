@@ -8,6 +8,7 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
 import com.atk.atk_cargo.data.model.FilteredSummary
+import com.atk.atk_cargo.data.model.LoadableTonnageResponse
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaDetails
 import com.atk.atk_cargo.data.model.QuotaItem
@@ -30,6 +31,50 @@ class HttpStatusException(val statusCode: Int, message: String) : Exception(mess
 class ReportsRepository(
     private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 ) : QuotaRepository {
+    // کش تناژ قابل‌بارگیری؛ قبلاً در CargoViewModel بود و با هر بازسازی صفحه پاک می‌شد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
+    private data class LoadableTonnageCacheEntry(val response: LoadableTonnageResponse, val timestampMs: Long)
+    private val loadableTonnageCache = mutableMapOf<String, LoadableTonnageCacheEntry>()
+    private val loadableTonnageCacheTtlMs = 30_000L
+
+    override suspend fun getLoadableTonnage(
+        quotaNumber: String,
+        shippingCompany: String,
+        warehouse: String,
+        cargoType: String,
+        forceRefresh: Boolean
+    ): LoadableTonnageResponse? = withContext(Dispatchers.IO) {
+        val cacheKey = "$quotaNumber|$shippingCompany|$warehouse|$cargoType"
+        val now = System.currentTimeMillis()
+        val cached = loadableTonnageCache[cacheKey]
+        if (!forceRefresh && cached != null && now - cached.timestampMs < loadableTonnageCacheTtlMs) {
+            return@withContext cached.response
+        }
+
+        try {
+            val response = apiServiceV2.getLoadableTonnage(
+                route = ApiV2Routes.quotaLoadableTonnage(quotaNumber),
+                shippingCompany = shippingCompany,
+                warehouse = warehouse,
+                cargoType = cargoType
+            )
+            if (response.isSuccessful && response.body()?.success == true) {
+                val body = response.body()!!
+                loadableTonnageCache[cacheKey] = LoadableTonnageCacheEntry(body, now)
+                body
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override suspend fun invalidateLoadableTonnageCache() {
+        loadableTonnageCache.clear()
+    }
+
     override suspend fun getCargoInfo(
         quotaNumber: String,
         shippingCompany: String,

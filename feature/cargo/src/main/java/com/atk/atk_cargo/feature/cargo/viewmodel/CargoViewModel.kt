@@ -38,11 +38,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Response
-import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 class CargoViewModelFactory(
@@ -92,15 +90,8 @@ class CargoViewModel(
     private val _uiState = MutableStateFlow(CargoUiState())
     val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()
 
-    // ===== state داخلی که هیچ‌وقت مستقیم توسط UI مصرف نمی‌شود (بدون تغییر) =====
-    private val _loadedWeight = MutableStateFlow("")
-    private val _cargoCount = MutableStateFlow(0)
-    private val _cargoWeight = MutableStateFlow("")
-    private val _remainingWeight = MutableStateFlow("")
-    private val _averageNetWeight = MutableStateFlow("")
-    private val _remainingServices = MutableStateFlow("")
-    private val _totalServices = MutableStateFlow("")
-    private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
+    // نگهدارنده‌ی حواله‌ی در انتظار تأیید ثبت تکراری؛ چون فقط بین submitCargoInfo و confirmDuplicateCargoRegistration
+    // رد و بدل می‌شود و هیچ Composable مستقیم آن را نمی‌خواند، عمداً بیرون CargoUiState ماند
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
 
     private val snackbarQueue = CargoSnackbarQueue()
@@ -173,17 +164,9 @@ class CargoViewModel(
         snackbarQueue.showMessage(message, type)
     }
 
-    private var lastQuotaStatusCheck: Long = 0
-    private var lastLoadableTonnageUpdate: Long = 0
-    private var cachedQuotaStatus: Boolean? = null
-    private var cachedLoadableTonnage: Float? = null
-    private val loadableTonnageCacheTimeout = 30_000L
-
-    private fun clearApiCache() {
-        cachedQuotaStatus = null
-        cachedLoadableTonnage = null
-        lastQuotaStatusCheck = 0
-        lastLoadableTonnageUpdate = 0
+    // کش تناژ قابل‌بارگیری به Repository منتقل شد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)؛ اینجا فقط نامعتبرش می‌کنیم
+    private suspend fun clearApiCache() {
+        repository.invalidateLoadableTonnageCache()
     }
 
     private fun checkForDuplicateTrackingNumbers(cargoList: List<Cargo>): List<String> {
@@ -286,11 +269,8 @@ class CargoViewModel(
                     } else {
                         showErrorMessage(validationResult.message)
                     }
-                    _isQuotaActive.value = validationResult.isActive
                     return@launch
                 }
-
-                _isQuotaActive.value = true
 
                 val tempTonnageResult = quotaValidationUseCase.validateTempTonnage(initialInfo)
                 if (!tempTonnageResult.isValid) {
@@ -645,34 +625,32 @@ class CargoViewModel(
                     Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                 }
 
-                _uiState.update { it.copy(cargoInfoList = cargoList, initialInfo = result.initialInfo.toDomain()) }
-
-                _cargoWeight.value = result.initialInfo.cargoWeight.toString()
-                _uiState.update { it.copy(totalNetWeight = result.initialInfo.totalNetWeight) }
-                _remainingWeight.value = result.initialInfo.remainingWeight.toString()
-                _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
-                _remainingServices.value = result.initialInfo.remainingServices.toString()
-                _totalServices.value = result.initialInfo.totalVoucherCount.toString()
+                _uiState.update {
+                    it.copy(
+                        cargoInfoList = cargoList,
+                        initialInfo = result.initialInfo.toDomain(),
+                        totalNetWeight = result.initialInfo.totalNetWeight
+                    )
+                }
 
                 val qNumber = result.initialInfo.loadingQuotaNumber.toString()
                 val sCompany = result.initialInfo.shippingCompany
                 val wHouse = result.initialInfo.loadingWarehouse
                 val cType = result.initialInfo.cargoType
 
-                // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود
+                // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود.
+                // forceRefresh=true چون این بارگذاری اولیه‌ی یک کوتاژ است، نه یک بررسی دوره‌ای؛ همیشه باید تازه باشد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
                 launch {
                     try {
-                        val response = withContext(ioDispatcher) {
-                            apiServiceV2.getLoadableTonnage(
-                                route = ApiV2Routes.quotaLoadableTonnage(qNumber),
-                                shippingCompany = sCompany,
-                                warehouse = wHouse,
-                                cargoType = cType
-                            )
-                        }
+                        val data = repository.getLoadableTonnage(
+                            quotaNumber = qNumber,
+                            shippingCompany = sCompany,
+                            warehouse = wHouse,
+                            cargoType = cType,
+                            forceRefresh = true
+                        )
 
-                        if (response.isSuccessful && response.body()?.success == true) {
-                            val data = response.body()!!
+                        if (data != null) {
                             data.loadableTonnage?.let { tonnage ->
                                 _uiState.update { it.copy(loadableTonnage = tonnage) }
                             }
@@ -838,6 +816,9 @@ class CargoViewModel(
         }
     }
 
+    // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices)
+    // هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده
+    // نمی‌شدند — محاسبه‌ای کاملاً مرده. تنها مقدار واقعاً مصرف‌شده totalNetWeight در CargoUiState بود (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
     fun updateInfoValues() {
         viewModelScope.launch(Dispatchers.Default) {
             try {
@@ -847,21 +828,9 @@ class CargoViewModel(
                     cargo.netWeight
                 }
                 val totalNet = netWeights.fold(Kilograms.ZERO) { acc, w -> acc + w }
-                val averageNet = if (netWeights.isNotEmpty()) totalNet.value / netWeights.size else 0.0
-                val cargoWeightValue = Kilograms.parse(_cargoWeight.value) ?: run {
-                    Log.w("CargoViewModel_Log", "کوتاژ کل نامعتبر است: '${_cargoWeight.value}' — به‌عنوان ۰ در نظر گرفته شد")
-                    Kilograms.ZERO
-                }
-                val remaining = (cargoWeightValue - totalNet).coerceAtLeastZero()
-                val remainingServicesCount = if (averageNet > 0) (remaining.value / averageNet).toInt() else 0
 
                 withContext(Dispatchers.Main) {
-                    _remainingWeight.value = DecimalFormat("#,###").format(remaining.value.roundToInt())
-                    _loadedWeight.value = DecimalFormat("#,###").format(totalNet.value.roundToInt())
                     _uiState.update { it.copy(totalNetWeight = totalNet.value.toFloat()) }
-                    _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
-                    _remainingServices.value = remainingServicesCount.toString()
-                    _totalServices.value = _cargoCount.value.toString()
 
                     val state = _uiState.value
                     if (state.loadableTrucks18Wheeler == null || state.loadableTrucks10Wheeler == null) {
@@ -924,31 +893,26 @@ class CargoViewModel(
         return JalaliDateUtils.getCurrentJalaliDateString()
     }
 
+    // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود؛ حالا در Repository نگه‌داری می‌شود، پس این متد فقط forceRefresh
+    // را عبور می‌دهد و منطق تازه/کهنه‌بودن را به repository.getLoadableTonnage واگذار می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
-        val currentTime = System.currentTimeMillis()
-        if (!forceUpdate && currentTime - lastLoadableTonnageUpdate < loadableTonnageCacheTimeout && cachedLoadableTonnage != null) {
-            return
-        }
-
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 _uiState.value.initialInfo?.let { info ->
-                    val response = withContext(ioDispatcher) {
-                        apiServiceV2.getLoadableTonnage(
-                            route = ApiV2Routes.quotaLoadableTonnage(info.loadingQuotaNumber.toString()),
+                    val data = withContext(ioDispatcher) {
+                        repository.getLoadableTonnage(
+                            quotaNumber = info.loadingQuotaNumber.toString(),
                             shippingCompany = info.shippingCompany,
                             warehouse = info.loadingWarehouse,
-                            cargoType = info.cargoType
+                            cargoType = info.cargoType,
+                            forceRefresh = forceUpdate
                         )
                     }
 
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val data = response.body()!!
+                    if (data != null) {
                         withContext(Dispatchers.Main.immediate) {
                             data.loadableTonnage?.let { tonnage ->
                                 _uiState.update { it.copy(loadableTonnage = tonnage) }
-                                cachedLoadableTonnage = tonnage
-                                lastLoadableTonnageUpdate = currentTime
                             }
 
                             data.trucks18Wheeler?.let { count ->
@@ -960,7 +924,7 @@ class CargoViewModel(
                             }
                         }
                     } else {
-                        Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
+                        Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage")
                     }
                 }
             } catch (e: CancellationException) {
@@ -993,6 +957,6 @@ class CargoViewModel(
                 loadableTrucks10Wheeler = null
             )
         }
-        clearApiCache()
+        viewModelScope.launch { clearApiCache() }
     }
 }

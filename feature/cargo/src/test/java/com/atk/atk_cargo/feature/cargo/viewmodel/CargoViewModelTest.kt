@@ -3,10 +3,12 @@ package com.atk.atk_cargo.feature.cargo.viewmodel
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.data.model.LoadableTonnageResponse
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.domain.repository.QuotaRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -216,6 +218,52 @@ class CargoViewModelTest {
     fun `updateSelectedShips - replaces selection set`() {
         viewModel.updateSelectedShips(setOf("Ship-1", "Ship-2"))
         assertEquals(setOf("Ship-1", "Ship-2"), viewModel.uiState.value.selectedShipNames)
+    }
+
+    // ===== repository.getLoadableTonnage — از appServiceV2 مستقیم به Repository منتقل شد (فاز۳ #۲۲) =====
+
+    @Test
+    fun `loadCargoInfoList - applies loadable tonnage from repository with forceRefresh`() = runTest(dispatcher) {
+        stubCargoInfo(cargoInfo(id = 1))
+        coEvery {
+            repository.getLoadableTonnage(any(), any(), any(), any(), forceRefresh = true)
+        } returns LoadableTonnageResponse(
+            success = true,
+            loadableTonnage = 42f,
+            remainingTonnage = null,
+            totalTonnage = null,
+            loadedTonnage = null,
+            percentage = null,
+            isPercentageRestricted = null,
+            trucks18Wheeler = 2,
+            trucks10Wheeler = 3,
+            message = null
+        )
+
+        load()
+
+        val state = viewModel.uiState.value
+        assertEquals(42f, state.loadableTonnage)
+        assertEquals(2, state.loadableTrucks18Wheeler)
+        assertEquals(3, state.loadableTrucks10Wheeler)
+        // ViewModel همیشه initialInfo.loadingQuotaNumber (عدد) را به رشته تبدیل و صدا می‌زند، نه پارامتر رشته‌ای ورودی loadCargoInfoList
+        coVerify {
+            repository.getLoadableTonnage("1", "Co-1", "WH-1", "Type-1", forceRefresh = true)
+        }
+    }
+
+    @Test
+    fun `loadCargoInfoList - repository returning null for loadable tonnage does not crash or update state`() = runTest(dispatcher) {
+        stubCargoInfo(cargoInfo(id = 1))
+        coEvery {
+            repository.getLoadableTonnage(any(), any(), any(), any(), any())
+        } returns null
+
+        load()
+
+        val state = viewModel.uiState.value
+        assertEquals(null, state.loadableTonnage)
+        assertEquals(1, state.cargoInfoList.size)
     }
 
     @Test

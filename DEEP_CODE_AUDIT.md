@@ -3232,7 +3232,7 @@ Medium
 | # | اقدام | تلاش | وضعیت |
 |---|-------|------|:-----:|
 | ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ⏳ در انتظار |
-| ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ⏳ در انتظار |
+| ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ✅ اعمال شد |
 | ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⚠️ دامنه کاهش یافت — فقط ۶ پکیج کوچک؛ `com.atk.atk_cargo.api` (بزرگ‌ترین، سه‌طرفه) طبق تصمیم کاربر باقی ماند |
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ✅ اعمال شد |
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ✅ اعمال شد |
@@ -3342,6 +3342,18 @@ Medium
 - فایل `PHP/src/Core/AuthenticatesRequests.php` پس از تأیید صفر ارجاع باقی‌مانده (فقط دو کامنت توضیحی در `MinVersionGate.php`/یک تست، بدون وابستگی کد) حذف شد.
 - **بدون تست خودکار برای این ۵ کنترلر** (نه AuthController-style قابل mock، همه مستقیم به mysqli واقعی وصل‌اند) — تنها سپر ایمنی، بازخوانی دستی تک‌تک ۲۸ نقطه‌ی تغییر بود؛ توصیه می‌شود قبل از انتشار این تغییر روی یک نسخه‌ی staging با دیتابیس واقعی دستی تست شود (سناریوهای حیاتی: `getAllUsers` توسط کاربر غیرمدیر باید ۴۰۳ بگیرد؛ `updateUser` روی حساب دیگران بدون `manage_users` باید ۴۰۳ بگیرد؛ حذف/تأیید حواله باید نام‌کاربری واقعی را در audit log ثبت کند).
 - تأیید شد: `php -l` روی ۶ فایل تغییریافته، `vendor/bin/phpstan analyse` (بدون baseline جدید)، `vendor/bin/phpunit` (۱۰۵ تست) و بارگذاری کامل `routes/api_v2.php` (۵۷ route، بدون خطای fatal) — همه سبز.
+
+**یادداشت‌های اجرای مورد ۲۲:**
+
+- طبق تصمیم صریح کاربر («بله، فقط مورد ۲۲»)، دامنه محدود به تجزیه‌ی داخلی `CargoViewModel` ماند؛ مورد ۲۱ (حذف کامل فراخوانی مستقیم `apiServiceV2` از ViewModelها) خارج از این نشست ماند — تنها دو فراخوانی `apiServiceV2.getLoadableTonnage(...)` (همان مکانیزم کش هدف این مورد) از طریق `QuotaRepository` بازنویسی شدند، بقیه‌ی فراخوانی‌های مستقیم `apiServiceV2` در کلاس دست‌نخورده ماندند.
+- پیش از هر تغییری، هر ۹ `MutableStateFlow` «داخلی» و هر ۵ متغیر کش با grep دقیق تمام نقاط خواندن/نوشتن بررسی شدند. نتیجه: ۷ مورد کاملاً مرده بودند و حذف شدند — `_loadedWeight` (فقط نوشته می‌شد)، `_cargoCount` (هرگز نوشته نمی‌شد، همیشه ۰ بود؛ در نتیجه `_totalServices` هم همیشه بی‌صدا مقدار «۰» داشت)، `_remainingWeight`، `_averageNetWeight`، `_remainingServices`، `_totalServices`، `_isQuotaActive`. `_pendingCargoInfo` نگه داشته شد (واقعاً بین `submitCargoInfo`/`confirmDuplicateCargoRegistration` استفاده می‌شود).
+- `_cargoWeight` ابتدا قرار بود به `CargoUiState` منتقل شود، اما پس از ساده‌سازی `updateInfoValues()` (حذف زنجیره‌ی محاسبه‌ی مرده‌ای که تنها مصرف‌کننده‌اش بود) کاملاً بی‌استفاده شد و به‌جای انتقال، حذف شد — تصمیم گرفته شد state بی‌استفاده در یک data class عمومی UI باقی نماند.
+- کش تناژ قابل‌بارگیری (۳۰ ثانیه TTL) از سه فیلد پراکنده‌ی ViewModel (`lastLoadableTonnageUpdate`/`cachedLoadableTonnage`/`loadableTonnageCacheTimeout`) به `ReportsRepository` منتقل شد (پیاده‌سازی `QuotaRepository.getLoadableTonnage(forceRefresh)` جدید)؛ دو متغیر کش دیگر (`lastQuotaStatusCheck`/`cachedQuotaStatus`) هرگز عملاً استفاده نمی‌شدند و صرفاً حذف شدند. مزیت جانبی: کش حالا بین نمونه‌های مختلف ViewModel هم مشترک است، نه فقط طول عمر یک صفحه.
+- `invalidateLoadableTonnageCache()` عمداً بدون پارامتر طراحی شد (کل کش را پاک می‌کند، نه فقط یک کوتاژ خاص) — کلیدسازی دقیق نیازمند پاس‌دادن صحیح ۴ فیلد شناسایی‌کننده‌ی کوتاژ فعلی از ۴ نقطه‌ی فراخوانی مختلف بود که ریسک یک باگ واقعی (عدم ابطال کش کهنه در اثر ناهماهنگی کلید) داشت؛ چون در عمل هر لحظه فقط یک کوتاژ روی صفحه فعال است، پاک‌کردن کامل کش ساده‌تر و بی‌خطرتر پذیرفته شد.
+- `updateInfoValues()` به‌شدت ساده شد: زنجیره‌ی میانی `remainingWeight`/`averageNetWeight`/`remainingServices`/`totalServices` کاملاً مرده بود (نه UI و نه بخش دیگری از کلاس آن‌ها را می‌خواند)؛ تنها مقدار واقعاً مصرف‌شده `totalNetWeight` در `CargoUiState` بود که نگه داشته شد. ایمپورت‌های `DecimalFormat`/`roundToInt` که فقط برای این زنجیره‌ی مرده لازم بودند حذف شدند.
+- `clearApiCache()` از یک متد sync محلی به `suspend fun` تبدیل شد (چون حالا `repository.invalidateLoadableTonnageCache()` را صدا می‌زند)؛ تنها نقطه‌ی فراخوانی غیر-suspend آن (`resetCurrentSelection()`) با `viewModelScope.launch { clearApiCache() }` پوشش داده شد.
+- دو تست جدید در `CargoViewModelTest.kt` اضافه شد: یکی برای مسیر موفق (اعمال `loadableTonnage`/تعداد کامیون‌ها از `repository` با `forceRefresh=true` در بارگذاری اولیه)، یکی برای مسیر `null` (بدون کرش، بدون تغییر state). نکته‌ی ظریف کشف‌شده حین تست: `loadCargoInfoList` همیشه شماره‌ی کوتاژ را از `result.initialInfo.loadingQuotaNumber` (عدد، تبدیل‌شده به رشته) برای فراخوانی تناژ استفاده می‌کند، نه از پارامتر رشته‌ای ورودی خودِ متد — رفتار از‌قبل‌موجود ViewModel، نه چیزی که در این مورد تغییر کرد؛ `coVerify` تست مطابق آن اصلاح شد.
+- تأیید شد: `./gradlew :core:domain:compileDebugKotlin :feature:reports:compileDebugKotlin :feature:cargo:compileDebugKotlin` و کل پروژه (`compileDebugKotlin`) موفق؛ `:feature:cargo:testDebugUnitTest` ۱۲/۱۲ تست سبز؛ اجرای ترکیبی نهایی `compileDebugKotlin testDebugUnitTest` روی کل پروژه بدون خطا/شکست.
 
 ### Phase 4 — Optimization (بلندمدت)
 
