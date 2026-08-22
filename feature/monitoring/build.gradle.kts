@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.atk.atk_cargo.feature.home"
+    namespace = "com.atk.atk_cargo.feature.monitoring"
     compileSdk = 36
 
     defaultConfig {
@@ -37,13 +37,11 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
     implementation(project(":core:domain"))
-    implementation(project(":feature:cargo-workflow"))
-    implementation(project(":feature:reports"))
-    implementation(project(":feature:chat"))
-    implementation(project(":feature:auth"))
-    implementation(project(":feature:admin"))
-    implementation(project(":feature:monitoring"))
     implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+
+    implementation(libs.androidx.navigation.compose.v290)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
@@ -55,12 +53,12 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.navigation.compose.v290)
-    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

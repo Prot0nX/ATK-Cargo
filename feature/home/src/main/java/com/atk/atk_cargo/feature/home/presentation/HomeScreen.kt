@@ -106,6 +106,7 @@ import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
 import com.atk.atk_cargo.feature.home.domain.getMenuItemsForUserType
 import com.atk.atk_cargo.feature.home.presentation.components.ProfileMenu
+import com.atk.atk_cargo.feature.monitoring.navigation.navigateToMonitoring
 import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -230,7 +231,7 @@ fun HomeScreen(
     LaunchedEffect(selectedMenuItem) {
         selectedMenuItem?.let { menuItem ->
             when (menuItem.route) {
-                "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat" -> {
+                "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat", "view_monitoring" -> {
                     showGridAnimation = false
                     delay(250.milliseconds)
                     when (menuItem.route) {
@@ -239,6 +240,7 @@ fun HomeScreen(
                         "cargo_counter" -> navController.navigateToCargoCounter()
                         "manage_ships" -> navController.navigateToManageShips()
                         "admin_chat" -> navController.navigateToAdminChat()
+                        "view_monitoring" -> navController.navigateToMonitoring()
                     }
                 }
             }

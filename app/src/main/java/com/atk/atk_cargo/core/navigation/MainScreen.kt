@@ -56,6 +56,7 @@ import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
 import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
 import com.atk.atk_cargo.feature.cargo_details.navigation.cargoDetailsScreen
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
@@ -69,9 +70,11 @@ import com.atk.atk_cargo.feature.chat.presentation.ChatScreen
 import com.atk.atk_cargo.feature.home.navigation.HomeRoute
 import com.atk.atk_cargo.feature.home.navigation.homeScreen
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
+import com.atk.atk_cargo.feature.monitoring.navigation.MonitoringRoute
+import com.atk.atk_cargo.feature.monitoring.presentation.MonitoringScreen
+import com.atk.atk_cargo.feature.monitoring.presentation.MonitoringViewModel
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
 import com.atk.atk_cargo.feature.reports.presentation.ManageReportsScreen
-import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -203,6 +206,16 @@ fun MainScreen() {
                                         ) {
                                             val reportsViewModel: ReportsViewModel = koinViewModel()
                                             ManageReportsScreen(viewModel = reportsViewModel, onSessionInvalid = { navController.navigateToHome() })
+                                        }
+                                        val monitoringTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.10f)
+                                        composable<MonitoringRoute>(
+                                            enterTransition = monitoringTransitions.enter,
+                                            exitTransition = monitoringTransitions.exit,
+                                            popEnterTransition = monitoringTransitions.popEnter,
+                                            popExitTransition = monitoringTransitions.popExit
+                                        ) {
+                                            val monitoringViewModel: MonitoringViewModel = koinViewModel()
+                                            MonitoringScreen(viewModel = monitoringViewModel, onBackClick = { navController.popBackStack() })
                                         }
                                         val adminChatTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.10f)
                                         composable<AdminChatRoute>(

@@ -11,6 +11,7 @@ import com.atk.atk_cargo.feature.cargo.di.cargoModule
 import com.atk.atk_cargo.feature.cargoworkflow.di.cargoWorkflowModule
 import com.atk.atk_cargo.feature.chat.di.chatModule
 import com.atk.atk_cargo.feature.home.di.homeModule
+import com.atk.atk_cargo.feature.monitoring.di.monitoringModule
 import com.atk.atk_cargo.feature.reports.di.reportsModule
 import com.atk.atk_cargo.feature.update.di.updateModule
 import kotlinx.coroutines.CoroutineScope
@@ -54,6 +55,7 @@ class AtkCargoApplication : Application() {
                     cargoWorkflowModule,
                     homeModule,
                     adminModule,
+                    monitoringModule,
                     updateModule
                 )
             )

@@ -22,6 +22,8 @@ import com.atk.atk_cargo.data.model.LoginRequest
 import com.atk.atk_cargo.data.model.LoginResponse
 import com.atk.atk_cargo.data.model.LogoutRequest
 import com.atk.atk_cargo.data.model.LogoutResponse
+import com.atk.atk_cargo.data.model.MonitoringEventsResponse
+import com.atk.atk_cargo.data.model.MonitoringSummaryResponse
 import com.atk.atk_cargo.data.model.PermissionSyncRequest
 import com.atk.atk_cargo.data.model.PermissionSyncResponse
 import com.atk.atk_cargo.data.model.Quota
@@ -383,6 +385,26 @@ interface ApiServiceV2 {
         @Body logoutRequest: LogoutRequest,
         @Query("route") route: String = "auth/logout"
     ): Response<LogoutResponse>
+
+    // ===== MONITORING (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج) =====
+
+    @GET("api/v2/index.php")
+    suspend fun getMonitoringSummary(
+        @Query("route") route: String = "monitoring/summary"
+    ): Response<MonitoringSummaryResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun getMonitoringEvents(
+        @Query("route") route: String = "monitoring/events",
+        @Query("status") status: String = "open",
+        @Query("limit") limit: Int = 50,
+        @Query("beforeId") beforeId: Int? = null
+    ): Response<MonitoringEventsResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun acknowledgeMonitoringEvent(
+        @Query("route") route: String
+    ): Response<ApiResponse>
 }
 
 object ApiV2Routes {
@@ -401,6 +423,7 @@ object ApiV2Routes {
     fun quotaPercentageRestriction(id: Int): String = "quotas/$id/percentage-restriction"
     fun quotaTemporaryTonnage(quotaNumber: String): String = "quotas/$quotaNumber/temporary-tonnage"
     fun quotaLoadableTonnage(quotaNumber: String): String = "quotas/$quotaNumber/loadable-tonnage"
+    fun monitoringEventAcknowledge(id: Int): String = "monitoring/events/$id/acknowledge"
 }
 
 data class ApiResponse(
