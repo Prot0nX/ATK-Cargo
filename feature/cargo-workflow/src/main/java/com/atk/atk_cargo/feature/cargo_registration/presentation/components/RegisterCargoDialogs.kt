@@ -66,9 +66,11 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.atk.atk_cargo.data.model.ActiveShipInfo
 import com.atk.atk_cargo.data.model.MatchingQuota
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo_entry.presentation.components.QuotaSelectionDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadge
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadgeSize
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogButtonCornerRadius
@@ -134,8 +136,25 @@ fun QuotaEntryDialog(
     var isError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var showQuotaSelectionDialog by remember { mutableStateOf(false) }
+    var matchingQuotasForSelection by remember { mutableStateOf<List<MatchingQuota>>(emptyList()) }
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
+
+    // اعمال کوتاژ انتخاب‌شده؛ هم برای تطبیق تکی و هم انتخاب از دیالوگ کوتاژهای مشابه استفاده می‌شود
+    fun applySelectedQuota(selectedQuota: MatchingQuota) {
+        if (selectedQuota.shipName == shipName) {
+            if (selectedQuota.isActive) {
+                onConfirm(selectedQuota)
+            } else {
+                isError = true
+                errorMessage = "کوتاژ ${selectedQuota.quotaNumber} در حال حاضر غیرفعال است و قابل انتخاب نیست"
+            }
+        } else {
+            isError = true
+            errorMessage = "کوتاژ ${selectedQuota.quotaNumber} متعلق به کشتی ${selectedQuota.shipName} است"
+        }
+    }
     val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { scannedCode ->
             val processedCode = processScannedQuota(scannedCode)
@@ -165,12 +184,30 @@ fun QuotaEntryDialog(
             isError = false
             errorMessage = ""
             isLoading = false
+            showQuotaSelectionDialog = false
+            matchingQuotasForSelection = emptyList()
             delay(150.milliseconds)
             focusRequester.requestFocus()
         }
     }
 
-    if (showDialog) {
+    if (showDialog && showQuotaSelectionDialog) {
+        QuotaSelectionDialog(
+            matchingQuotas = matchingQuotasForSelection,
+            ship = ActiveShipInfo(
+                shipName = shipName,
+                loadingWarehouse = "",
+                cargoType = "",
+                shippingCompany = "",
+                loadingQuotaNumber = ""
+            ),
+            onQuotaSelected = { selectedQuota ->
+                showQuotaSelectionDialog = false
+                applySelectedQuota(selectedQuota)
+            },
+            onDismiss = { showQuotaSelectionDialog = false }
+        )
+    } else if (showDialog) {
         StandardDialogShell(
             onDismissRequest = { if (!isLoading) onDismiss() },
             dismissOnBackPress = !isLoading,
@@ -261,23 +298,19 @@ fun QuotaEntryDialog(
                                         try {
                                             val response = viewModel.checkQuotaExistenceCargo(quotaEntry, shipName)
 
-                                            if (response.exists && response.matchingQuotas.isNotEmpty()) {
-                                                val selectedQuota = response.matchingQuotas.first()
-
-                                                if (selectedQuota.shipName == shipName) {
-                                                    if (selectedQuota.isActive) {
-                                                        onConfirm(selectedQuota)
-                                                    } else {
-                                                        isError = true
-                                                        errorMessage = "کوتاژ $quotaEntry در حال حاضر غیرفعال است و قابل انتخاب نیست"
-                                                    }
-                                                } else {
+                                            when {
+                                                !response.exists || response.matchingQuotas.isEmpty() -> {
                                                     isError = true
-                                                    errorMessage = "کوتاژ $quotaEntry متعلق به کشتی ${selectedQuota.shipName} است"
+                                                    errorMessage = "کوتاژ $quotaEntry برای کشتی $shipName یافت نشد"
                                                 }
-                                            } else {
-                                                isError = true
-                                                errorMessage = "کوتاژ $quotaEntry برای کشتی $shipName یافت نشد"
+                                                response.matchingQuotas.size > 1 -> {
+                                                    // چند کوتاژ تکراری منطبق یافت شد؛ کاربر باید مورد دقیق را انتخاب کند
+                                                    matchingQuotasForSelection = response.matchingQuotas
+                                                    showQuotaSelectionDialog = true
+                                                }
+                                                else -> {
+                                                    applySelectedQuota(response.matchingQuotas.first())
+                                                }
                                             }
                                         } catch (e: Exception) {
                                             isError = true
