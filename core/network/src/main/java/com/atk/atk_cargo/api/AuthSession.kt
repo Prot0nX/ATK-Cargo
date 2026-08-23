@@ -18,7 +18,7 @@ object AuthSession {
     @Volatile
     var refreshToken: String = ""
 
-    // تا زمان پر شدن اولیه از DataStore (AtkCargoApplication.onCreate) کامل نمی‌شود؛ رفع race در cold start که درخواست‌های زودهنگام بدون هدر احراز هویت می‌رفتند (DEEP_CODE_AUDIT.md #۱۵)
+ // تا زمان پر شدن اولیه از DataStore (AtkCargoApplication.onCreate) کامل نمی‌شود؛ رفع race در cold start که درخواست‌های زودهنگام بدون هدر احراز هویت می‌رفتند
     private val readyDeferred = CompletableDeferred<Unit>()
 
     fun markReady() {

@@ -38,7 +38,7 @@ class HttpStatusException(val statusCode: Int, message: String) : Exception(mess
 class ReportsRepository(
     private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 ) : QuotaRepository {
-    // کش تناژ قابل‌بارگیری؛ قبلاً در CargoViewModel بود و با هر بازسازی صفحه پاک می‌شد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
+ // کش تناژ قابل‌بارگیری؛ قبلاً در CargoViewModel بود و با هر بازسازی صفحه پاک می‌شد
     private data class LoadableTonnageCacheEntry(val response: LoadableTonnageResponse, val timestampMs: Long)
     private val loadableTonnageCache = mutableMapOf<String, LoadableTonnageCacheEntry>()
     private val loadableTonnageCacheTtlMs = 30_000L
@@ -82,7 +82,7 @@ class ReportsRepository(
         loadableTonnageCache.clear()
     }
 
-    // ===== شش پاس‌ثرو خام برای CargoViewModel — تفسیر پاسخ در ViewModel می‌ماند (DEEP_CODE_AUDIT.md فاز۳ #۲۱) =====
+ // ===== شش پاس‌ثرو خام برای CargoViewModel — تفسیر پاسخ در ViewModel می‌ماند =====
 
     override suspend fun checkQuotaExistenceCargo(
         quotaNumber: String,

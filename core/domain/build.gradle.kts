@@ -29,11 +29,11 @@ android {
 
 dependencies {
     // مدل دامنه‌ی حواله/کوتاژ/کشتی از DTOهای شبکه (CargoInfo/InitialInfo)
-    // مپ می‌شود — DEEP_CODE_AUDIT.md #Phase3.6.
+ // مپ می‌شود
     implementation(project(":core:network"))
     // امضای چند متد QuotaRepository مستقیماً Response<T>/JsonElement را برمی‌گردانند
     // (فراخوانی‌های cargo/quota که تفسیر پاسخشان پیچیده و خاص هر متد است، بدون تغییر
-    // به Repository منتقل شدند — DEEP_CODE_AUDIT.md فاز۳ #۲۱).
+ // به Repository منتقل شدند
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     // UserPreferencesStore (مرز DI برای featureها — Phase5.12) از Flow استفاده می‌کند.

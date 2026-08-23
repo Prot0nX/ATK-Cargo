@@ -1,5 +1,5 @@
 <?php
-// PHP/Monitoring/api.php — تنها endpoint JSON داشبورد مانیتورینگ؛ MonitoringController را in-process صدا می‌زند (هم‌الگو با Lic/api.php + LicenseAdminService)، نه از طریق api/v2/monitoring/* که برای اپ/مصرف‌کننده‌های خارجی است.
+// PHP/Monitoring/api.php — تنها endpoint JSON داشبورد مانیتورینگ سیستم.
 
 declare(strict_types=1);
 

@@ -7,7 +7,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-// جایگزین قابل‌catch برای exit در Response::json() هنگام اجرای PHPUnit؛ فقط زیر TESTING_MODE فعال می‌شود (DEEP_CODE_AUDIT.md #۲۰)
+// جایگزین قابل‌catch برای exit در Response::json هنگام اجرای PHPUnit؛ فقط زیر TESTING_MODE فعال می‌شود
 class ResponseSentException extends Exception {
     private array $payload;
     private int $statusCode;

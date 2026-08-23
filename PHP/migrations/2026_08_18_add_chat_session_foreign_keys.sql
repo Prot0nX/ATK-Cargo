@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_18_add_chat_session_foreign_keys.sql
 --
--- DEEP_CODE_AUDIT.md #Phase3.9 — افزودن FK گزینشی به جداول چت
+-
 -- (admin_chat_messages، admin_chat_reads) و نشست (user_sessions) که تا امروز
 -- فقط با username/message_id خام (بدون قید ارجاعی) به Users/admin_chat_messages
 -- وصل بودند — هیچ FK ای قبلاً در schema.sql تعریف نشده بود.

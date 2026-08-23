@@ -24,7 +24,7 @@ class AnalyticsController {
     private PDO $conn;
     private Logger $logger;
     private Request $request;
-    // هویت از Router::dispatch می‌آید نه اعتبارسنجی داخلی؛ فقط برای لاگ استفاده می‌شود (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+ // هویت از Router::dispatch می‌آید نه اعتبارسنجی داخلی؛ فقط برای لاگ استفاده می‌شود
     private ?string $authenticatedUsername = null;
 
     // دو مرز زمانی عمداً متفاوت: WORKDAY_BOUNDARY_TIME برای تحلیل جامع، SHIFT_DAY_START_TIME برای شیفت روز
@@ -39,7 +39,7 @@ class AnalyticsController {
     }
 
     // مدیریت درخواست‌های realTimeLoadingData.php؛ $username از Router::dispatch می‌آید — هر ۴ route این handler
-    // از قبل permission=>'view_reports' سطح Router دارند، پس بررسی دوباره‌ی داخلی حذف شد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+ // از قبل permission=>'view_reports' سطح Router دارند، پس بررسی دوباره‌ی داخلی حذف شد
     public function handleRealTimeLoadingData(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
@@ -98,7 +98,7 @@ class AnalyticsController {
             Response::error('کوتاژ مورد نظر یافت نشد.', 404);
         }
 
-        // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ کل تاریخچه‌ی حواله‌های یک کوتاژ بدون آن نامحدود بود (DEEP_CODE_AUDIT.md #۱۱)
+ // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ کل تاریخچه‌ی حواله‌های یک کوتاژ بدون آن نامحدود بود
         $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ? ORDER BY entryTime DESC LIMIT 2000");
         $stmt2->execute([$kotazh]);
         $cargoInfo = $stmt2->fetchAll(PDO::FETCH_ASSOC);
@@ -184,7 +184,7 @@ class AnalyticsController {
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
             // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت (B-11/B-12/C-3)
-            // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود (DEEP_CODE_AUDIT.md #۷)
+ // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,
@@ -246,7 +246,7 @@ class AnalyticsController {
         // فیلتر isActive و شمارش با COUNT(DISTINCT trackingNumber) برای هم‌راستایی آمار با سایر توابع (B-6/B-7)
         $workdayBoundary = self::WORKDAY_BOUNDARY_TIME;
         $completionData = MicroCache::remember($cacheKey, $cacheTtl, function () use ($yesterdayJalaliDate, $todayJalaliDate, $workdayBoundary) {
-            // JOIN روی کلید کامل پنج‌ستونی؛ shipName هم اضافه شد وگرنه SUM/COUNT بیش‌شمار می‌شد (DEEP_CODE_AUDIT.md #۷)
+ // JOIN روی کلید کامل پنج‌ستونی؛ shipName هم اضافه شد وگرنه SUM/COUNT بیش‌شمار می‌شد
             $query = "SELECT
                         c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType,
                         SUM(c.netWeight) AS last_24h_weight, COUNT(DISTINCT c.trackingNumber) AS last_24h_vouchers

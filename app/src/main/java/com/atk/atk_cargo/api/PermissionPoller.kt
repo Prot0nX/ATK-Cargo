@@ -83,7 +83,7 @@ class PermissionPoller(
             val request  = PermissionSyncRequest(username, deviceId, sessionToken)
             val response = RetrofitClient.apiServiceV2.syncPermissions(request)
 
-            // ۴۰۱ باید پیش از isSuccessful چک شود، وگرنه پاک‌سازی نشست منقضی هرگز اجرا نمی‌شد (کد مرده، DEEP_CODE_AUDIT.md #Phase1.9)
+ // ۴۰۱ باید پیش از isSuccessful چک شود، وگرنه پاک‌سازی نشست منقضی هرگز اجرا نمی‌شد (کد مرده، #Phase1.9)
             if (response.code() == 401) {
                 Log.w(TAG, "Session expired, clearing credentials")
                 userPreferencesManager.clearUserCredentials()

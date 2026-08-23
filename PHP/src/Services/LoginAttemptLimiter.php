@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 // محدودکننده‌ی تلاش‌های ناموفق ورود، با دو شمارنده‌ی مستقل برای username و IP
-// sleep() تصاعدی قبلی حذف شد چون worker را مسدود و بستر DoS می‌کرد (DEEP_CODE_AUDIT.md #۱)
+// sleep تصاعدی قبلی حذف شد چون worker را مسدود و بستر DoS می‌کرد
 final class LoginAttemptLimiter {
     private const MAX_USER_ATTEMPTS = 5;
     private const MAX_IP_ATTEMPTS = 50;

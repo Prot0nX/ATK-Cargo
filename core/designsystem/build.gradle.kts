@@ -29,7 +29,7 @@ android {
 }
 
 dependencies {
-    // برای StatusSnackbar که MessageType را از core:network می‌خواند (فایل core/ui/components منتقل‌شده از :app، DEEP_CODE_AUDIT.md فاز۳ #۲۴)
+ // برای StatusSnackbar که MessageType را از core:network می‌خواند (فایل core/ui/components منتقل‌شده از :app، فاز۳ #۲۴)
     implementation(project(":core:network"))
 
     implementation(platform(libs.compose.bom))

@@ -42,7 +42,7 @@ class Database {
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
                 ]);
 
-                // هم‌راستا با نشست mysqli قبلی (SET NAMES نمی‌تواند در همان دستور با سایر assignmentها ترکیب شود، پس جدا اجرا می‌شود) تا مهاجرت مصرف‌کننده‌ها به PDO رفتار خاموش را تغییر ندهد (DEEP_CODE_AUDIT.md #۳۸)
+ // هم‌راستا با نشست mysqli قبلی (SET NAMES نمی‌تواند در همان دستور با سایر assignmentها ترکیب شود، پس جدا اجرا می‌شود) تا مهاجرت مصرف‌کننده‌ها به PDO رفتار خاموش را تغییر ندهد
                 $this->pdo->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'");
                 $this->pdo->exec("SET time_zone = '+03:30'");
             } catch (PDOException $e) {

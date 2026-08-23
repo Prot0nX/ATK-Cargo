@@ -28,7 +28,7 @@ android {
     }
 
     // بدون این، JVM Unit Test روی android.util.Log با "not mocked" می‌شکند
-    // (همان الگوی core:network — DEEP_CODE_AUDIT.md #Phase5.9).
+ // (همان الگوی core:network
     testOptions {
         unitTests.isReturnDefaultValues = true
     }

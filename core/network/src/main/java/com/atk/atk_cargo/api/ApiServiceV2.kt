@@ -386,7 +386,7 @@ interface ApiServiceV2 {
         @Query("route") route: String = "auth/logout"
     ): Response<LogoutResponse>
 
-    // ===== MONITORING (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج) =====
+ // ===== MONITORING =====
 
     @GET("api/v2/index.php")
     suspend fun getMonitoringSummary(

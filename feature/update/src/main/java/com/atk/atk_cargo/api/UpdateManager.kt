@@ -50,7 +50,7 @@ class UpdateManager(
 ) {
     private val appContext: Context = context.applicationContext
 
-    // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، DEEP_CODE_AUDIT.md فاز۳ #۲۷)؛
+ // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، فاز۳ #۲۷)
     // Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف پیش‌فرض OkHttp (۵ در هر هاست)
     // بدون این override بین دانلود و بقیه‌ی ترافیک هم‌زمان (API/بررسی امنیتی در startup) به اشتراک گذاشته می‌شد
     private val client = HttpStack.shared.newBuilder()
@@ -241,7 +241,7 @@ class UpdateManager(
         }
     }
 
-    // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند (DEEP_CODE_AUDIT.md #۲۰)
+ // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند
     internal fun compareVersions(version1: String, version2: String): Int {
         // پاک‌سازی و نرمال‌سازی ورودی‌ها
         val v1Clean = version1.trim().replace(Regex("[^0-9.]"), "")
@@ -287,7 +287,7 @@ class UpdateManager(
 
     // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود.
     // trustedBaseUrl پارامتر شد (پیش‌فرض همان Constants.BASE_URL قبلی) تا UpdateManagerTest بدون نیاز به
-    // کتابخانه‌ی نیتیو Secrets (که در JVM ساده در دسترس نیست) این تابع را مستقیم تست کند (DEEP_CODE_AUDIT.md #۲۰)
+ // کتابخانه‌ی نیتیو Secrets (که در JVM ساده در دسترس نیست) این تابع را مستقیم تست کند
     internal fun isTrustedDownloadUrl(url: String, trustedBaseUrl: String = Constants.BASE_URL): Boolean = runCatching {
         val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
         val trustedHost = java.net.URI(trustedBaseUrl).host ?: return false
@@ -389,7 +389,7 @@ class UpdateManager(
         }
     }
 
-    // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند (DEEP_CODE_AUDIT.md #۲۰)
+ // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند
     internal fun verifyFileSha256(file: File, expectedHash: String): Boolean {
         return try {
             val digest = java.security.MessageDigest.getInstance("SHA-256")

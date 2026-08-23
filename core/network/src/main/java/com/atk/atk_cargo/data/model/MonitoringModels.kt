@@ -2,7 +2,7 @@ package com.atk.atk_cargo.data.model
 
 import com.google.gson.annotations.SerializedName
 
-// یک ردیف از monitoring_events (فاز الف/PHP) — DEEP_CODE_AUDIT.md فاز۳ #۳۲
+// یک ردیف از monitoring_events (فاز الف/PHP)
 data class MonitoringEvent(
     val id: Int,
     val eventType: String,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-// محدودکننده‌ی نرخ اختصاصی endpoint گزارش کرش؛ برخلاف LoginAttemptLimiter سقف بالاتر دارد و به‌جای ۴۲۹ بی‌صدا drop می‌کند (DEEP_CODE_AUDIT.md #۲)
+// محدودکننده‌ی نرخ اختصاصی endpoint گزارش کرش؛ برخلاف LoginAttemptLimiter سقف بالاتر دارد و به‌جای ۴۲۹ بی‌صدا drop می‌کند
 final class CrashReportRateLimiter {
     private const MAX_REPORTS_PER_WINDOW = 60;
     private const WINDOW_SECONDS = 3600; // ۱ ساعت

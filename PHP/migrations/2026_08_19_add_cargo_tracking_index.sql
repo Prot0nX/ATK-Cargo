@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_19_add_cargo_tracking_index.sql
 --
--- DEEP_CODE_AUDIT.md — CargoRepository.php:299
+-
 -- (`WHERE trackingNumber = ? ORDER BY entryTime DESC`) و CargoRepository.php:32
 -- (`WHERE shipName = ? AND trackingNumber = ? AND updated_at >= ?`) روی
 -- CargoInfo هیچ ایندکسی که با trackingNumber شروع شود ندارند → full table

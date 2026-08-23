@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 // object سراسری بدون وابستگی به Context تا همه‌ی featureهای دارای انیمیشن بدون لبه‌ی ماژولی جدید به آن دسترسی داشته باشند
-// snapshot state (نه var ساده) تا خواندن areAnimationsEnabled در Composable با تغییر تنظیم Reduce Motion واقعاً recompose شود (DEEP_CODE_AUDIT.md #۱۴)
+// snapshot state (نه var ساده) تا خواندن areAnimationsEnabled در Composable با تغییر تنظیم Reduce Motion واقعاً recompose شود
 object AnimationManager {
     // پیش‌فرض true تا AtkCargoApplication.onCreate مقدار واقعی تنظیمات «حذف انیمیشن‌ها»ی سیستم را بخواند
     var systemAllowsAnimations: Boolean by mutableStateOf(true)

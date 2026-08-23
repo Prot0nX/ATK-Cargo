@@ -56,7 +56,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.retrofit)
     implementation(libs.kotlinx.serialization.json)
-    // برای ChatModule.kt (فیچر خودش را در Koin ثبت می‌کند، DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+ // برای ChatModule.kt (فیچر خودش را در Koin ثبت می‌کند، فاز۳ #۳۳)
     implementation(libs.koin.android)
 
     testImplementation(libs.junit)

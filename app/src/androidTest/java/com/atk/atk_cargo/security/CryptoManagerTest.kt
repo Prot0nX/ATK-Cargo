@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
-// تست instrumented (نه unit test) چون AndroidKeyStore فقط روی دستگاه/امولاتور واقعی در دسترس است (DEEP_CODE_AUDIT.md #۲۰)
+// تست instrumented (نه unit test) چون AndroidKeyStore فقط روی دستگاه/امولاتور واقعی در دسترس است
 @RunWith(AndroidJUnit4::class)
 class CryptoManagerTest {
 

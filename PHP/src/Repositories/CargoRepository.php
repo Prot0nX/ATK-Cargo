@@ -54,7 +54,7 @@ class CargoRepository {
     }
 
     public function insertCargo(array $params, string $currentTime, int $numberOfPeople): bool {
-        // initial_info_id از طریق subquery روی کلید طبیعی resolve می‌شود؛ اگر کوتاژ منطبقی نبود (نباید در جریان عادی رخ دهد) بی‌صدا NULL می‌ماند، هم‌راستا با FK اختیاری (DEEP_CODE_AUDIT.md #۳۷)
+ // initial_info_id از طریق subquery روی کلید طبیعی resolve می‌شود؛ اگر کوتاژ منطبقی نبود (نباید در جریان عادی رخ دهد) بی‌صدا NULL می‌ماند، هم‌راستا با FK اختیاری
         $query = "INSERT INTO CargoInfo (
             trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight,
             status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber,
@@ -209,7 +209,7 @@ class CargoRepository {
     }
 
     public function searchByTracking(string $tracking): array {
-        // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ فقط در برابر استفاده‌ی مکرر یک شماره حواله محافظت می‌کند (DEEP_CODE_AUDIT.md #۱۱)
+ // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ فقط در برابر استفاده‌ی مکرر یک شماره حواله محافظت می‌کند
         $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE trackingNumber = ? ORDER BY entryTime DESC LIMIT 2000";
         $stmt = $this->conn->prepare($query);
         $stmt->execute([$tracking]);

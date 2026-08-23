@@ -4,7 +4,7 @@ import com.atk.atk_cargo.data.model.CreateUserRequest
 import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
 
-// قرارداد لایه داده مدیریت کاربران که ارتباط مستقیم UserManagementViewModel با ApiServiceV2 را حذف می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۲۱)
+// قرارداد لایه داده مدیریت کاربران که ارتباط مستقیم UserManagementViewModel با ApiServiceV2 را حذف می‌کند
 interface AdminRepository {
 
     // اگر users/status در دسترس نباشد (سرور قدیمی)، به‌صورت داخلی به getAllUsers بازمی‌گردد

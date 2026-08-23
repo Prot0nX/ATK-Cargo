@@ -17,12 +17,12 @@ class DiagnosticsController {
     private Request $request;
     private CrashReportRateLimiter $rateLimiter;
 
-    // سقف حجم crash_reports.log — DEEP_CODE_AUDIT.md.
+ // سقف حجم crash_reports.log
     private const MAX_CRASH_LOG_BYTES = 50 * 1024 * 1024;
 
     public function __construct() {
         $this->request = new Request();
-        // محدودکننده‌ی اختصاصی به‌جای LoginAttemptLimiter — سقف بالاتر و غیرمسدودکننده (DEEP_CODE_AUDIT.md #۲)
+ // محدودکننده‌ی اختصاصی به‌جای LoginAttemptLimiter — سقف بالاتر و غیرمسدودکننده
         $this->rateLimiter = new CrashReportRateLimiter();
     }
 
@@ -80,7 +80,7 @@ class DiagnosticsController {
             Response::json(['success' => false, 'message' => 'روش درخواست مجاز نیست'], 405);
         }
 
-        // عبور از سقف بی‌صدا drop می‌شود (۲۰۰) نه ۴۲۹ تا کلاینت هنگام کرش پیاپی تشویق به retry نشود (DEEP_CODE_AUDIT.md #۲)
+ // عبور از سقف بی‌صدا drop می‌شود (۲۰۰) نه ۴۲۹ تا کلاینت هنگام کرش پیاپی تشویق به retry نشود
         $clientIp = $this->request->getClientIp();
         if ($this->rateLimiter->isOverLimit($clientIp)) {
             Response::json(['success' => true]);

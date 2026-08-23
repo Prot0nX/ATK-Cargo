@@ -1,7 +1,7 @@
 <?php
 // PHP/scripts/fix_double_escaped_cargo_fields.php
 //
-// یک‌بارمصرف: رفع مقادیر escape‌شده‌ای که قبل از رفع DEEP_CODE_AUDIT.md #۱۳
+// یک‌بارمصرف: رفع مقادیر escape‌شده‌ای که قبل از رفع #۱۳
 // از طریق CargoController::updateCargoInfo (PATCH cargo/update) با
 // htmlspecialchars ذخیره شده بودند. آن endpoint دیگر escape نمی‌کند، اما
 // ردیف‌هایی که قبلاً از این مسیر ویرایش شده‌اند ممکن است هنوز &amp; / &lt; /

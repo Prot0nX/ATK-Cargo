@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_22_add_initial_info_unique_key.sql
 --
--- DEEP_CODE_AUDIT.md فاز۴ #۳۷ (مرحله ۱ از ۲) — اعمال یکتایی روی کلید طبیعی
+-
 -- InitialInfo (loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany,
 -- cargoType). idx_initial_info_composite فعلی روی همین ستون‌ها غیریکتاست، پس
 -- چیزی مانع ثبت دو ردیف با کلید طبیعی یکسان نیست — دقیقاً پیش‌شرط باگ

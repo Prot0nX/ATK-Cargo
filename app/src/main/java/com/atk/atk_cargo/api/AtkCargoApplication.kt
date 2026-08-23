@@ -30,10 +30,10 @@ class AtkCargoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // باید همین ابتدا نصب شود، قبل از هر initialization دیگری که ممکن است کرش کند (Koin، RetrofitClient) تا آن کرش‌ها هم گزارش شوند (DEEP_CODE_AUDIT.md #Phase2.13)
+ // باید همین ابتدا نصب شود، قبل از هر initialization دیگری که ممکن است کرش کند (Koin، RetrofitClient) تا آن کرش‌ها هم گزارش شوند
         CrashReporter.install(this)
 
-        // تنظیم Reduce Motion سیستم قبل از اولین composition خوانده می‌شود تا هیچ Composableای مقدار پیش‌فرض را نبیند (DEEP_CODE_AUDIT.md #۱۴)
+ // تنظیم Reduce Motion سیستم قبل از اولین composition خوانده می‌شود تا هیچ Composableای مقدار پیش‌فرض را نبیند
         val animatorDurationScale = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
         AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
 
@@ -44,7 +44,7 @@ class AtkCargoApplication : Application() {
                 androidLogger()
             }
             androidContext(this@AtkCargoApplication)
-            // appModule فقط زیرساخت مشترک است؛ هر فیچر ماژول Koin خودش را جدا صادر می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+ // appModule فقط زیرساخت مشترک است؛ هر فیچر ماژول Koin خودش را جدا صادر می‌کند
             modules(
                 listOf(
                     appModule,
@@ -69,9 +69,9 @@ class AtkCargoApplication : Application() {
         // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است؛ لمس RetrofitClient (حتی فقط init())
         // کل initializer شیء را اجرا می‌کند و BASE_URL = Secrets.getBaseUrl() آنجا بی‌قید‌وشرط
         // فراخوانی می‌شد — یعنی یک UnsatisfiedLinkError غیرقابل‌بازیابی. حالا StartupViewModel
-        // این پرچم را می‌بیند و صفحه‌ی خطای صریح نشان می‌دهد (DEEP_CODE_AUDIT.md #۱۶)
+ // این پرچم را می‌بیند و صفحه‌ی خطای صریح نشان می‌دهد
         if (Secrets.isAvailable) {
-            // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد (DEEP_CODE_AUDIT.md #Phase4.2)
+ // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد
             RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
         }
 
@@ -81,7 +81,7 @@ class AtkCargoApplication : Application() {
                 AuthSession.deviceId = userPreferencesManager.deviceId.first()
                 AuthSession.sessionToken = userPreferencesManager.sessionToken.first()
             } finally {
-                // finally تضمین می‌کند حتی با خطای غیرمنتظره در خواندن DataStore، headersInterceptor برای همیشه مسدود نماند (DEEP_CODE_AUDIT.md #۱۵)
+ // finally تضمین می‌کند حتی با خطای غیرمنتظره در خواندن DataStore، headersInterceptor برای همیشه مسدود نماند
                 AuthSession.markReady()
             }
 

@@ -101,7 +101,7 @@ private fun filterEvents(events: List<MonitoringEvent>, severity: String, query:
 // صفحه‌ی نظارت — مصرف‌کننده‌ی api/v2/monitoring/* (فاز الف) با همان بازخوانی خودکار هر ۳۰ ثانیه‌ی
 // داشبورد وب (فاز ب). زبان طراحی عمداً هم‌راستا با UserManagementDialog/ComprehensiveAnalyticsDialog
 // شد (هدر با نشان آیکون، کارت‌های آماری، فیلتر segmented، کارت‌های لیست با حاشیه‌ی ظریف) نه TopAppBar
-// پیش‌فرض Material3 — تا با بقیه‌ی صفحات مدیریتی اپ یکدست باشد (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج، بازطراحی).
+// پیش‌فرض Material3 — تا با بقیه‌ی صفحات مدیریتی اپ یکدست باشد.
 @Composable
 fun MonitoringScreen(
     viewModel: MonitoringViewModel,

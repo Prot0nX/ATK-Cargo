@@ -34,7 +34,7 @@ interface QuotaRepository {
     ): CargoInfoResponse
 
     // کش TTL (۳۰ ثانیه) اینجا نگه‌داری می‌شود، نه در ViewModel — تا بین نمونه‌های مختلف ViewModel هم مشترک بماند
-    // (DEEP_CODE_AUDIT.md فاز۳ #۲۲). forceRefresh=false یعنی پاسخ کش‌شده‌ی تازه (در صورت وجود) به‌جای درخواست شبکه برگردد.
+ //. forceRefresh=false یعنی پاسخ کش‌شده‌ی تازه (در صورت وجود) به‌جای درخواست شبکه برگردد.
     suspend fun getLoadableTonnage(
         quotaNumber: String,
         shippingCompany: String,
@@ -48,7 +48,7 @@ interface QuotaRepository {
     // یک کوتاژ خاص) چون در عمل هر لحظه فقط یک کوتاژ روی صفحه فعال است؛ ساده‌تر و بی‌ریسک‌تر از کلیدسازی دقیق در هر نقطه‌ی فراخوانی.
     suspend fun invalidateLoadableTonnageCache()
 
-    // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند (DEEP_CODE_AUDIT.md فاز۳ #۲۱) =====
+ // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند =====
     // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel
     // منطق UI-محور و به‌شدت خاص هر عملیات است؛ عبور دادن Response خام کل آن منطق را دست‌نخورده نگه می‌دارد
     // و فقط منبع فراخوانی شبکه را از ApiServiceV2 مستقیم به Repository منتقل می‌کند.

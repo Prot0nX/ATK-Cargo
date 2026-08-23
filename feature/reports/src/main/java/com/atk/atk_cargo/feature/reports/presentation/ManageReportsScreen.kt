@@ -104,13 +104,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 // onSessionInvalid از بیرون (:app) پاس داده می‌شود تا این ماژول به feature:home وابسته نشود (که خودش به feature:reports
 // وابسته است و وابستگی معکوس ایجاد می‌کرد)؛ نبود آن یعنی این صفحه مستقل از گراف ناوبری اصلی میزبانی شده، پس با
-// راه‌اندازی مجدد اکتیویتی پیش‌فرض برنامه (بدون رفرنس مستقیم به MainActivity) بازیابی می‌شود (DEEP_CODE_AUDIT.md فاز۳ #۲۴)
+// راه‌اندازی مجدد اکتیویتی پیش‌فرض برنامه (بدون رفرنس مستقیم به MainActivity) بازیابی می‌شود
 @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
 @Composable
 fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Unit)? = null) {
     val context = LocalContext.current
     // UserPreferencesManager (پیاده‌سازی واقعی) در :app است؛ این ماژول از طریق اینترفیس‌های مرزی TokenStore/UserPreferencesStore
-    // به همان سینگلتون دسترسی دارد (الگوی از قبل موجود در AppModule.kt، DEEP_CODE_AUDIT.md فاز۳ #۲۴)
+ // به همان سینگلتون دسترسی دارد (الگوی از قبل موجود در AppModule.kt، فاز۳ #۲۴)
     val tokenStore = koinInject<TokenStore>()
     val userPreferencesStore = koinInject<UserPreferencesStore>()
 

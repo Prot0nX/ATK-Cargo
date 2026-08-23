@@ -8,7 +8,7 @@ namespace App\Controllers;
 use App\Exceptions\ApiException;
 use App\Repositories\MonitoringRepository;
 
-// نمایش/تایید رویدادهای مانیتورینگ (DEEP_CODE_AUDIT.md فاز۳ #۳۲، بازبینی‌شده) —
+// نمایش/تایید رویدادهای مانیتورینگ —
 // فقط REST داخلی؛ داشبورد وب/بخش اندروید مصرف‌کننده‌ی فازهای بعدی‌اند، نه بخشی از این فاز
 class MonitoringController {
     private MonitoringRepository $repository;

@@ -200,7 +200,7 @@ CREATE TABLE `licenses` (
 
 --
 -- Table structure for table `monitoring_events`
--- DEEP_CODE_AUDIT.md فاز۳ #۳۲ (بازبینی‌شده) — migrations/2026_08_22_create_monitoring_events_table.sql
+-
 -- سرور دسترسی خروجی به اینترنت ندارد؛ این جدول جایگزین هشدار Telegram است (مدل pull-based).
 --
 DROP TABLE IF EXISTS `monitoring_events`;
@@ -223,7 +223,7 @@ CREATE TABLE `monitoring_events` (
 
 --
 -- Table structure for table `role_permissions`
--- DEEP_CODE_AUDIT.md #Phase4.7 — migrations/2026_08_19_permissions_to_database.sql
+-
 --
 DROP TABLE IF EXISTS `role_permissions`;
 CREATE TABLE `role_permissions` (
@@ -236,7 +236,7 @@ CREATE TABLE `role_permissions` (
 
 --
 -- Table structure for table `user_permissions`
--- DEEP_CODE_AUDIT.md #Phase4.7 — migrations/2026_08_19_permissions_to_database.sql
+-
 --
 DROP TABLE IF EXISTS `user_permissions`;
 CREATE TABLE `user_permissions` (

@@ -2,7 +2,7 @@ package com.atk.atk_cargo.feature.home.data
 
 import com.atk.atk_cargo.data.model.User
 
-// قرارداد لایه داده صفحه‌ی پروفایل که ارتباط مستقیم ProfileViewModel با ApiServiceV2 را حذف می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۲۱)
+// قرارداد لایه داده صفحه‌ی پروفایل که ارتباط مستقیم ProfileViewModel با ApiServiceV2 را حذف می‌کند
 interface HomeRepository {
 
     suspend fun getSelfProfile(): User

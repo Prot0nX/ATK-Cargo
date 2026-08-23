@@ -42,7 +42,7 @@ class SecurityAlerter {
             // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که
             // اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
             // عمداً مستقل از cooldown تلگرام زیر: هر رخداد باید در فهرست رویدادهای
-            // داشبورد آینده دیده شود، نه فقط اولین مورد هر ۵ دقیقه (DEEP_CODE_AUDIT.md فاز۳ #۳۲).
+ // داشبورد آینده دیده شود، نه فقط اولین مورد هر ۵ دقیقه.
             MonitoringEventLogger::record(
                 $event,
                 'critical',
@@ -68,7 +68,7 @@ class SecurityAlerter {
         }
     }
 
-    // تماس شبکه به بعد از پایان اسکریپت موکول می‌شود تا مسیر بحرانی login/refresh منتظر Telegram API نماند (DEEP_CODE_AUDIT.md #۱)
+ // تماس شبکه به بعد از پایان اسکریپت موکول می‌شود تا مسیر بحرانی login/refresh منتظر Telegram API نماند
     private function sendTelegram(string $text): void {
         register_shutdown_function(function () use ($text): void {
             if (function_exists('fastcgi_finish_request')) {

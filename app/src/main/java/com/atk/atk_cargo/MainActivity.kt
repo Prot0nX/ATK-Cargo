@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
                     startupViewModel.runStartupSequenceOnce()
                 }
 
-                // تنظیم Reduce Motion حالا در AtkCargoApplication.onCreate خوانده می‌شود (DEEP_CODE_AUDIT.md #۱۴)؛
+ // تنظیم Reduce Motion حالا در AtkCargoApplication.onCreate خوانده می‌شود
                 // قبلاً اینجا با LaunchedEffect(Unit) بعد از اولین composition اعمال می‌شد و Composableهای زودتر render‌شده هرگز مقدار واقعی را نمی‌دیدند
 
                 LaunchedEffect(Unit) {
@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             is StartupState.NativeLibraryUnavailable -> {
-                                // ناسازگاری ABI (نه یک خطای گذرا)؛ عمداً onRetry ندارد (DEEP_CODE_AUDIT.md #۱۶)
+ // ناسازگاری ABI (نه یک خطای گذرا)؛ عمداً onRetry ندارد
                                 StartupErrorScreen(
                                     message = "این نسخه با دستگاه شما سازگار نیست.",
                                     onExit = { finishAndRemoveTask() }

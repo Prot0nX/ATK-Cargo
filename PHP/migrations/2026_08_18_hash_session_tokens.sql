@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_18_hash_session_tokens.sql
 --
--- DEEP_CODE_AUDIT.md #Phase2.1 — session_token/refresh_token در user_sessions
+-
 -- از این commit به بعد به‌صورت SHA-256(token) ذخیره می‌شوند، نه plaintext.
 -- ردیف‌های موجود قبل از این migration هنوز plaintext هستند و بدون این
 -- migration، هیچ نشست فعال فعلی دیگر معتبر شناخته نمی‌شود (چون کوئری‌های

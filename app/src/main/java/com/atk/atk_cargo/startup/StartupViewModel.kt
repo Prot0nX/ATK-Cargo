@@ -48,7 +48,7 @@ sealed interface StartupState {
     data object Syncing : StartupState
     data object VersionExpired : StartupState
     data class SecurityBlocked(val isLoading: Boolean, val errorType: SecurityErrorType) : StartupState
-    // ABI پشتیبانی‌نشده (libsecrets.so بارگذاری نشد)؛ بدون هیچ فراخوانی شبکه‌ای نمایش داده می‌شود (DEEP_CODE_AUDIT.md #۱۶)
+ // ABI پشتیبانی‌نشده (libsecrets.so بارگذاری نشد)؛ بدون هیچ فراخوانی شبکه‌ای نمایش داده می‌شود
     data object NativeLibraryUnavailable : StartupState
     data object Ready : StartupState
 }
@@ -81,7 +81,7 @@ class StartupViewModel(
     private val _isServerSyncing = MutableStateFlow(false)
     private val _isVersionAllowed = MutableStateFlow(true)
     private val _securityCheck = MutableStateFlow(SecurityCheckState())
-    // یک‌بار در سازنده خوانده می‌شود؛ Secrets.isAvailable هرگز پرتاب نمی‌کند (DEEP_CODE_AUDIT.md #۱۶)
+ // یک‌بار در سازنده خوانده می‌شود؛ Secrets.isAvailable هرگز پرتاب نمی‌کند
     private val _isNativeLibraryAvailable = MutableStateFlow(Secrets.isAvailable)
 
     val startupState: StateFlow<StartupState> = combine(
@@ -416,7 +416,7 @@ class StartupViewModel(
     }
 
     companion object {
-        // کاهش از ۳۸۰۰ به ۱۵۰۰ میلی‌ثانیه؛ زمان برندینگ حفظ شد ولی کف تصنعی کوتاه‌تر شد (DEEP_CODE_AUDIT.md #۵)
+ // کاهش از ۳۸۰۰ به ۱۵۰۰ میلی‌ثانیه؛ زمان برندینگ حفظ شد ولی کف تصنعی کوتاه‌تر شد
         private const val SPLASH_MIN_DURATION = 1500L
         private const val SPLASH_MAX_DURATION = 5000L
         private const val SESSION_OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز

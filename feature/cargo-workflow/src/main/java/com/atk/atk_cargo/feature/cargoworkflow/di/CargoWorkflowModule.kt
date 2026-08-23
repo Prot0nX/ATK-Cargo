@@ -7,7 +7,7 @@ import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-// وابستگی‌های فیچر ثبت/شمارش حواله؛ قبلاً در appModule متمرکز بود (DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+// وابستگی‌های فیچر ثبت/شمارش حواله؛ قبلاً در appModule متمرکز بود
 val cargoWorkflowModule = module {
     single<InitialInfoRepository> { InitialInfoRepositoryImpl(get()) }
     viewModel { InitialInfoViewModel(get()) }

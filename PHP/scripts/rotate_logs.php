@@ -2,7 +2,7 @@
 // PHP/scripts/rotate_logs.php
 //
 // جایگزین PHP/deploy/logrotate.d/atk-cargo برای هاست‌های اشتراکی که دسترسی
-// root/logrotate ندارند (DEEP_CODE_AUDIT.md #Phase4.11). Logger.php هرگز
+// root/logrotate ندارند. Logger.php هرگز
 // خودش فایل‌های logs/*.log را نمی‌چرخاند یا پاک نمی‌کند — بدون این اسکریپت
 // (یا logrotate واقعی)، این فایل‌ها تا ابد رشد می‌کنند.
 //

@@ -17,7 +17,7 @@ class UserController {
     private UserService $userService;
     private Request $request;
     private LoginAttemptLimiter $loginAttemptLimiter;
-    // از Router::dispatch پر می‌شود، نه اعتبارسنجی داخلی (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+ // از Router::dispatch پر می‌شود، نه اعتبارسنجی داخلی
     private ?string $authenticatedUsername = null;
     private ?string $authenticatedUserType = null;
 
@@ -39,7 +39,7 @@ class UserController {
 
     // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این
     // کنترلر auth=>true دارند. getAllUsers با وجود permission=>null سطح Router، تنها از طریق عضویت در
-    // ADMIN_ONLY_ACTIONS محدود می‌شود، پس این بررسی داخلی حذف نشد، فقط به ApiAuthGate منتقل شد (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+ // ADMIN_ONLY_ACTIONS محدود می‌شود، پس این بررسی داخلی حذف نشد، فقط به ApiAuthGate منتقل شد
     public function handle(?string $username, ?string $userType): void {
         $this->authenticatedUsername = $username;
         $this->authenticatedUserType = $userType;

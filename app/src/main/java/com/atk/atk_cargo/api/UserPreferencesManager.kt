@@ -82,7 +82,7 @@ class UserPreferencesManager(
     // ===== رنگ تم برنامه =====
     override val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
 
-    // ===== پیاده‌سازی TokenStore (مرز core:network — DEEP_CODE_AUDIT.md #Phase4.2) =====
+ // ===== پیاده‌سازی TokenStore (مرز core:network
     override suspend fun getUsername(): String = username.first()
     override suspend fun getDeviceId(): String = deviceId.first()
     override suspend fun getSessionToken(): String = sessionToken.first()

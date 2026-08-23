@@ -23,7 +23,7 @@ class Config {
             'lic_admin_password_hash' => self::env('LIC_ADMIN_PASSWORD_HASH', ''),
             'lic_session_idle_timeout' => (int)(self::env('LIC_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
 
-            // رمز داشبورد مانیتورینگ (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ب) — مستقل از دو رمز بالا
+ // رمز داشبورد مانیتورینگ — مستقل از دو رمز بالا
             'monitoring_admin_password_hash' => self::env('MONITORING_ADMIN_PASSWORD_HASH', ''),
             'monitoring_session_idle_timeout' => (int)(self::env('MONITORING_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
         ];

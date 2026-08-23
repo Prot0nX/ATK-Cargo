@@ -32,7 +32,7 @@ dependencies {
     // MessageType/QuotaValidationResult (core:network) نیاز دارد؛ بدون
     // Compose چون هر دو کلاس این ماژول (CargoSnackbarQueue،
     // QuotaValidationUseCase) خالص Kotlin/coroutines هستند
-    // (DEEP_CODE_AUDIT.md).
+ //.
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
     implementation(project(":core:common"))
@@ -41,7 +41,7 @@ dependencies {
     implementation(libs.retrofit.gson)
 
     implementation(libs.kotlinx.coroutines.android)
-    // برای CargoModule.kt (فیچر خودش را در Koin ثبت می‌کند، DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+ // برای CargoModule.kt (فیچر خودش را در Koin ثبت می‌کند، فاز۳ #۳۳)
     implementation(libs.koin.android)
 
     testImplementation(libs.junit)

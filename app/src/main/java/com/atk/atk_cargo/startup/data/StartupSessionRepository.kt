@@ -1,6 +1,6 @@
 package com.atk.atk_cargo.startup.data
 
-// قرارداد بررسی اعتبار نشست که ارتباط مستقیم StartupViewModel با ApiServiceV2/RetrofitClient را حذف می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۲۱)
+// قرارداد بررسی اعتبار نشست که ارتباط مستقیم StartupViewModel با ApiServiceV2/RetrofitClient را حذف می‌کند
 interface StartupSessionRepository {
     suspend fun checkSession(username: String, deviceId: String, sessionToken: String?): SessionCheckOutcome
 }

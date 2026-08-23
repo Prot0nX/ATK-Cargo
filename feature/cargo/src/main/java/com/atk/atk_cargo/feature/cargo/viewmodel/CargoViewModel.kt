@@ -162,7 +162,7 @@ class CargoViewModel(
         snackbarQueue.showMessage(message, type)
     }
 
-    // کش تناژ قابل‌بارگیری به Repository منتقل شد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)؛ اینجا فقط نامعتبرش می‌کنیم
+ // کش تناژ قابل‌بارگیری به Repository منتقل شد؛ اینجا فقط نامعتبرش می‌کنیم
     private suspend fun clearApiCache() {
         repository.invalidateLoadableTonnageCache()
     }
@@ -637,7 +637,7 @@ class CargoViewModel(
                 val cType = result.initialInfo.cargoType
 
                 // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود.
-                // forceRefresh=true چون این بارگذاری اولیه‌ی یک کوتاژ است، نه یک بررسی دوره‌ای؛ همیشه باید تازه باشد (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
+ // forceRefresh=true چون این بارگذاری اولیه‌ی یک کوتاژ است، نه یک بررسی دوره‌ای؛ همیشه باید تازه باشد
                 launch {
                     try {
                         val data = repository.getLoadableTonnage(
@@ -816,7 +816,7 @@ class CargoViewModel(
 
     // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices)
     // هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده
-    // نمی‌شدند — محاسبه‌ای کاملاً مرده. تنها مقدار واقعاً مصرف‌شده totalNetWeight در CargoUiState بود (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
+ // نمی‌شدند — محاسبه‌ای کاملاً مرده. تنها مقدار واقعاً مصرف‌شده totalNetWeight در CargoUiState بود
     fun updateInfoValues() {
         viewModelScope.launch(Dispatchers.Default) {
             try {
@@ -892,7 +892,7 @@ class CargoViewModel(
     }
 
     // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود؛ حالا در Repository نگه‌داری می‌شود، پس این متد فقط forceRefresh
-    // را عبور می‌دهد و منطق تازه/کهنه‌بودن را به repository.getLoadableTonnage واگذار می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۲۲)
+ // را عبور می‌دهد و منطق تازه/کهنه‌بودن را به repository.getLoadableTonnage واگذار می‌کند
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
         viewModelScope.launch(Dispatchers.Default) {
             try {

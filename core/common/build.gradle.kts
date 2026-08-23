@@ -24,6 +24,6 @@ android {
 }
 
 dependencies {
-    // JalaliDateUtilsTest قبلاً در app/src/test بود؛ تست باید در ماژول صاحب کلاس زندگی کند (DEEP_CODE_AUDIT.md فاز۳ #۲۳)
+ // JalaliDateUtilsTest قبلاً در app/src/test بود؛ تست باید در ماژول صاحب کلاس زندگی کند
     testImplementation(libs.junit)
 }

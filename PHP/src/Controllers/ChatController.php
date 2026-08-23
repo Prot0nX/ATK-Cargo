@@ -29,7 +29,7 @@ class ChatController {
     }
 
     // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر
-    // ورودی که رازی نیست و قابل جعل بود (S-03، DEEP_CODE_AUDIT.md فاز۳ #۲۵)
+ // ورودی که رازی نیست و قابل جعل بود (S-03، فاز۳ #۲۵)
     public function handleChatRequest(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -129,7 +129,7 @@ class ChatController {
 
     private function sendMessage(string $username, string $message): array {
         if (!$this->isAdmin($username)) {
-            // کد ۲۰۰ فقط برای کلاینت‌های قدیمی؛ هم‌راستا با ۴۰۳ صریح getMessages برای همین شرط (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+ // کد ۲۰۰ فقط برای کلاینت‌های قدیمی؛ هم‌راستا با ۴۰۳ صریح getMessages برای همین شرط
             Response::versionGatedJson(['success' => false, 'message' => 'فقط ادمین‌ها می‌توانند پیام ارسال کنند'], 200, 403);
         }
 

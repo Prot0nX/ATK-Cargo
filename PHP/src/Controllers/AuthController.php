@@ -23,7 +23,7 @@ class AuthController {
     private Request $request;
     private Logger $logger;
 
-    // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند (هم‌راستا با الگوی SessionService/CargoController، DEEP_CODE_AUDIT.md #۲۰)
+ // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند (هم‌راستا با الگوی SessionService/CargoController، #۲۰)
     public function __construct(
         ?UserService $userService = null,
         ?SessionService $sessionService = null,
@@ -220,7 +220,7 @@ class AuthController {
                 'userType' => $userType
             ]);
         } else {
-            // پاسخ برای «کاربر وجود ندارد» و «نشست نامعتبر» عمداً یکسان است تا شمارش نام کاربری بدون احراز هویت ممکن نباشد (DEEP_CODE_AUDIT.md #۱۹)
+ // پاسخ برای «کاربر وجود ندارد» و «نشست نامعتبر» عمداً یکسان است تا شمارش نام کاربری بدون احراز هویت ممکن نباشد
             Response::versionGatedJson([
                 'success' => false,
                 'message' => 'جلسه کاربر فعال نیست. لطفاً وارد شوید.',

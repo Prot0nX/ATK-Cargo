@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_19_permissions_to_database.sql
 --
--- DEEP_CODE_AUDIT.md #Phase4.7 — انتقال منبع حقیقت مجوزها از فایل
+-
 -- config/permissions.json به دو جدول دیتابیس. تا امروز هر بررسی مجوز
 -- (PermissionService::getUserPermissions) یک فایل JSON مشترک را می‌خواند —
 -- بدون تراکنش، بدون قفل ردیفی، و نوشتن هم‌زمان دو ادمین در بدترین حالت با

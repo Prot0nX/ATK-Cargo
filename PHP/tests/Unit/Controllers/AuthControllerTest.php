@@ -12,7 +12,7 @@ use App\Services\SessionService;
 use App\Services\UserService;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های AuthController::login: شکست ورود، قفل‌شدن حساب، ورود همزمان، ورود موفق (DEEP_CODE_AUDIT.md #۲۰).
+// تست‌های AuthController::login: شکست ورود، قفل‌شدن حساب، ورود همزمان، ورود موفق.
 // زیر TESTING_MODE (tests/bootstrap.php)، Response::json به‌جای exit یک ResponseSentException پرتاب می‌کند که اینجا catch می‌شود.
 // LoginAttemptLimiter/PermissionService (هر دو final، غیرقابل‌mock) به‌صورت نمونه‌ی واقعی استفاده می‌شوند —
 // هیچ‌کدام برای این تست‌ها به DB واقعی نیاز ندارند (fallback فایلی و fallback permissions.json).
@@ -107,7 +107,7 @@ final class AuthControllerTest extends TestCase {
 
         $response = $this->captureResponse($controller);
 
-        // بدون X-App-Version یعنی کلاینت قدیمی — کد باید 200 بماند تا نشکند (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+ // بدون X-App-Version یعنی کلاینت قدیمی — کد باید 200 بماند تا نشکند
         $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse($response->getPayload()['success']);
         $this->assertStringContainsString('نام کاربری یا رمز عبور اشتباه است', $response->getPayload()['message']);
@@ -239,7 +239,7 @@ final class AuthControllerTest extends TestCase {
         $this->assertSame('operator', $response->getPayload()['userType']);
     }
 
-    // تست‌های checkSession — کد HTTP وقتی نشست نامعتبر است هم پشت همان گیت نسخه است (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+ // تست‌های checkSession — کد HTTP وقتی نشست نامعتبر است هم پشت همان گیت نسخه است
 
     public function testCheckSessionForInvalidSessionStaysAt200ForOlderAppVersion(): void {
         $_POST = ['username' => 'someone', 'deviceId' => 'device-a', 'sessionToken' => 'bad-token'];

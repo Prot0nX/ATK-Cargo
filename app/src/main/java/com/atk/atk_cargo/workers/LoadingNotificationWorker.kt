@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-// جایگزین LoadingNotificationService (Foreground Service دائمی) که سقف زمانی dataSync در Android 14+ را نقض می‌کرد (DEEP_CODE_AUDIT.md #۹)
+// جایگزین LoadingNotificationService (Foreground Service دائمی) که سقف زمانی dataSync در Android 14+ را نقض می‌کرد
 class LoadingNotificationWorker(
     context: Context,
     workerParams: WorkerParameters

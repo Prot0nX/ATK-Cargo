@@ -1,6 +1,6 @@
 -- PHP/migrations/2026_08_22_add_cargo_info_initial_info_fk.sql
 --
--- DEEP_CODE_AUDIT.md فاز۴ #۳۷ (مرحله ۲ از ۲) — افزودن initial_info_id به
+-
 -- CargoInfo، backfill از روی کلید طبیعی موجود، و اعمال FK واقعی به InitialInfo.
 --
 -- ⚠️ پیش‌نیاز اجباری: 2026_08_22_add_initial_info_unique_key.sql باید قبلاً

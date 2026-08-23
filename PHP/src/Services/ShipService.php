@@ -337,7 +337,7 @@ final class ShipService {
         $stmt->execute($summaryParams);
         $summary = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن می‌توانست i.cargoOwner اشتباه یا ردیف تکراری بدهد (DEEP_CODE_AUDIT.md #۷)
+ // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن می‌توانست i.cargoOwner اشتباه یا ردیف تکراری بدهد
         $detailsQuery = "SELECT c.trackingNumber, c.entryTime, c.netWeight, c.exitTime, c.exitDate, c.scaleReceiptNumber,
             c.username, c.confirm_username, c.cargoType, c.shippingCompany, i.cargoOwner
         FROM CargoInfo c

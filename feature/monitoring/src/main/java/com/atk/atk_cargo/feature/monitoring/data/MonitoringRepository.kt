@@ -4,7 +4,6 @@ import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.data.model.MonitoringSummaryResponse
 
 // قرارداد لایه داده مانیتورینگ که ارتباط مستقیم MonitoringViewModel با ApiServiceV2 را حذف می‌کند
-// (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج، هم‌الگو با مورد ۲۱)
 interface MonitoringRepository {
 
     suspend fun getSummary(): MonitoringSummaryResponse

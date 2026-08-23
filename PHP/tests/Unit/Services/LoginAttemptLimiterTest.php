@@ -8,7 +8,7 @@ namespace App\Tests\Unit\Services;
 use App\Services\LoginAttemptLimiter;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد محدودکننده‌ی brute-force (S-06)؛ sleep() مسدودکننده حذف شد پس دیگر نیازی به تزریق sleeper نیست (DEEP_CODE_AUDIT.md #۱)
+// تست‌های واحد محدودکننده‌ی brute-force (S-06)؛ sleep مسدودکننده حذف شد پس دیگر نیازی به تزریق sleeper نیست
 final class LoginAttemptLimiterTest extends TestCase {
     private LoginAttemptLimiter $limiter;
 
@@ -105,7 +105,7 @@ final class LoginAttemptLimiterTest extends TestCase {
     }
 
     public function testRegisterFailedAttemptDoesNotBlockTheCallingThread(): void {
-        // تست رگرسیون: نسخه‌ی قبلی بعد از هر تلاش ناموفق تا ۸ ثانیه sleep() می‌زد (DEEP_CODE_AUDIT.md #۱)
+ // تست رگرسیون: نسخه‌ی قبلی بعد از هر تلاش ناموفق تا ۸ ثانیه sleep می‌زد
         $username = $this->uniqueUsername();
         $ip = $this->uniqueIp();
 

@@ -11,7 +11,7 @@ use App\Repositories\MonitoringRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد منطق MonitoringController با ریپازیتوری mock شده (DEEP_CODE_AUDIT.md فاز۳ #۳۲)
+// تست‌های واحد منطق MonitoringController با ریپازیتوری mock شده
 final class MonitoringControllerTest extends TestCase {
     /** @var MonitoringRepository&MockObject */
     private $repository;

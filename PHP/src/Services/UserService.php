@@ -186,7 +186,7 @@ class UserService {
 
         $this->userRepository->update($id, $updates);
 
-        // فقط تغییرات امنیتی (رمز/نوع کاربری/نام کاربری) نشست‌ها را باطل می‌کنند؛ ویرایش صرفاً fullName کاربر را بی‌دلیل بیرون نمی‌اندازد (DEEP_CODE_AUDIT.md #۱۷)
+ // فقط تغییرات امنیتی (رمز/نوع کاربری/نام کاربری) نشست‌ها را باطل می‌کنند؛ ویرایش صرفاً fullName کاربر را بی‌دلیل بیرون نمی‌اندازد
         $securitySensitiveFields = array_intersect(array_keys($updates), ['password', 'userType', 'username']);
         if (!empty($securitySensitiveFields)) {
             $sessionRepo = new \App\Repositories\SessionRepository();

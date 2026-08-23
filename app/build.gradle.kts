@@ -13,7 +13,7 @@ plugins {
 // امضای release از طریق keystore.properties (خارج از git، الگو در
 // keystore.properties.example) یا متغیرهای محیطی CI — چون این اپ خودش را از
 // downloads/app-release.apk به‌روز می‌کند و امضا در SecurityVerifier به‌عنوان
-// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار (DEEP_CODE_AUDIT.md).
+// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار.
 // اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود
 // (برای لینت/کامپایل محلی کافی است) اما قابل نصب/توزیع نخواهد بود.
 val keystoreProperties = Properties().apply {
@@ -37,7 +37,7 @@ android {
         applicationId = "com.atk.atk_cargo"
         minSdk = 28
         targetSdk = 34
-        // ۴.۱.۰: آستانه‌ی گیت کدهای HTTP معنادار در Response::HTTP_CODES_MIN_APP_VERSION (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+ // ۴.۱.۰: آستانه‌ی گیت کدهای HTTP معنادار در Response::HTTP_CODES_MIN_APP_VERSION
         versionCode = 12
         versionName = "4.1.0"
 

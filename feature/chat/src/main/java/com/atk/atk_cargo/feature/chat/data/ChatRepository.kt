@@ -23,7 +23,7 @@ class ChatRepository(
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
 
     // برای کد HTTP غیر ۲xx، Retrofit پیام سرور را در body() نمی‌گذارد بلکه در errorBody() — بدون این، پیام‌های واقعی
-    // سرور (مثلاً «دسترسی غیرمجاز») از نسخه‌ی ۴.۱.۰ به بعد که سرور کد واقعی HTTP می‌فرستد گم می‌شدند (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+ // سرور (مثلاً «دسترسی غیرمجاز») از نسخه‌ی ۴.۱.۰ به بعد که سرور کد واقعی HTTP می‌فرستد گم می‌شدند
     private fun <T> extractErrorMessage(response: retrofit2.Response<T>, fallback: String): String {
         return try {
             response.errorBody()?.string()?.let { raw ->

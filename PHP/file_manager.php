@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// باید با پارامترهای کوکی PermissionManager.php هم‌راستا باشد چون همان نشست را می‌خواند (DEEP_CODE_AUDIT.md #Phase1.6)
+// باید با پارامترهای کوکی PermissionManager.php هم‌راستا باشد چون همان نشست را می‌خواند
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',

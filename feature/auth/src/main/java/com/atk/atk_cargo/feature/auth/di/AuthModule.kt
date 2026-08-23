@@ -9,7 +9,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-// وابستگی‌های فیچر ورود؛ قبلاً در appModule متمرکز بود (DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+// وابستگی‌های فیچر ورود؛ قبلاً در appModule متمرکز بود
 val authModule = module {
     single<AuthRepository> {
         AuthRepositoryImpl(
