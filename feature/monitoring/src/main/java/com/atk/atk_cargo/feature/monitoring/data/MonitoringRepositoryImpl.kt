@@ -3,6 +3,7 @@ package com.atk.atk_cargo.feature.monitoring.data
 import com.atk.atk_cargo.api.ApiResponse
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.ApiV2Routes
+import com.atk.atk_cargo.data.model.AuditLogEntry
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.data.model.MonitoringSummaryResponse
 import com.google.gson.Gson
@@ -52,6 +53,16 @@ class MonitoringRepositoryImpl(
             AcknowledgeResult.Failure("خطا در ارتباط با سرور: ${e.message}")
         }
     }
+
+    override suspend fun getAuditLogs(limit: Int, beforeId: Long?): List<AuditLogEntry> =
+        withContext(Dispatchers.IO) {
+            val response = apiServiceV2.getAuditLogs(limit = limit, beforeId = beforeId)
+            if (response.isSuccessful) {
+                response.body()?.logs ?: emptyList()
+            } else {
+                throw Exception("خطا در دریافت لاگ تغییرات: کد ${response.code()}")
+            }
+        }
 
     private fun parseErrorMessage(errorBody: String?): String? {
         if (errorBody.isNullOrBlank()) return null

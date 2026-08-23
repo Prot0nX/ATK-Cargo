@@ -17,11 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
@@ -36,19 +38,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.core.ui.components.EmptyState
 import com.atk.atk_cargo.core.ui.components.ErrorState
 import com.atk.atk_cargo.core.ui.components.LoadingOverlay
+import com.atk.atk_cargo.data.model.AuditLogEntry
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.utils.JalaliDateUtils
@@ -110,11 +118,19 @@ fun MonitoringScreen(
     }
 
     var selectedEvent by remember { mutableStateOf<MonitoringEvent?>(null) }
+    var selectedAuditLog by remember { mutableStateOf<AuditLogEntry?>(null) }
     var severityTab by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
+    var topTab by rememberSaveable { mutableIntStateOf(0) }
 
     val filteredEvents = remember(uiState.events, severityTab, searchQuery) {
         filterEvents(uiState.events, severityTab, searchQuery)
+    }
+
+    LaunchedEffect(topTab) {
+        if (topTab == 1) {
+            viewModel.loadAuditLogsIfNeeded()
+        }
     }
 
     Scaffold { padding ->
@@ -124,64 +140,82 @@ fun MonitoringScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            MonitoringHeader(onBackClick = onBackClick, onRefreshClick = { viewModel.refreshNow() })
+            MonitoringHeader(onBackClick = onBackClick, onRefreshClick = {
+                if (topTab == 0) viewModel.refreshNow() else viewModel.refreshAuditLogs()
+            })
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f))
 
-            KpiSection(uiState)
-
-            SearchField(query = searchQuery, onQueryChange = { searchQuery = it })
-
-            SeverityTabRow(
-                events = uiState.events,
-                selected = severityTab,
-                onSelect = { severityTab = it }
+            MonitoringTopTabSelector(
+                selectedTabIndex = topTab,
+                onTabSelected = { topTab = it },
+                eventsCount = uiState.events.size,
+                auditLogsCount = uiState.auditLogs.size
             )
 
-            StatusFilterRow(
-                selected = uiState.statusFilter,
-                onSelect = { viewModel.setStatusFilter(it) }
-            )
+            if (topTab == 0) {
+                KpiSection(uiState)
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading && uiState.events.isEmpty() && uiState.errorMessage == null -> {
-                        LoadingOverlay(isLoading = true)
-                    }
-                    uiState.errorMessage != null && uiState.events.isEmpty() -> {
-                        ErrorState(
-                            message = uiState.errorMessage ?: "خطایی رخ داده است.",
-                            onRetryClick = { viewModel.refreshNow() }
-                        )
-                    }
-                    filteredEvents.isEmpty() -> {
-                        EmptyState(
-                            message = if (uiState.events.isEmpty()) "رویدادی برای نمایش وجود ندارد." else "رویدادی مطابق فیلتر یافت نشد."
-                        )
-                    }
-                    else -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            LazyColumn(
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(
-                                    start = ATKCargoTheme.spacing.l,
-                                    end = ATKCargoTheme.spacing.l,
-                                    top = ATKCargoTheme.spacing.s,
-                                    bottom = ATKCargoTheme.spacing.l
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
-                            ) {
-                                items(filteredEvents, key = { it.id }) { event ->
-                                    EventCard(
-                                        event = event,
-                                        onClick = { selectedEvent = event },
-                                        onAcknowledge = { viewModel.acknowledge(event.id) }
-                                    )
+                SearchField(query = searchQuery, onQueryChange = { searchQuery = it })
+
+                SeverityTabRow(
+                    events = uiState.events,
+                    selected = severityTab,
+                    onSelect = { severityTab = it }
+                )
+
+                StatusFilterRow(
+                    selected = uiState.statusFilter,
+                    onSelect = { viewModel.setStatusFilter(it) }
+                )
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        uiState.isLoading && uiState.events.isEmpty() && uiState.errorMessage == null -> {
+                            LoadingOverlay(isLoading = true)
+                        }
+                        uiState.errorMessage != null && uiState.events.isEmpty() -> {
+                            ErrorState(
+                                message = uiState.errorMessage ?: "خطایی رخ داده است.",
+                                onRetryClick = { viewModel.refreshNow() }
+                            )
+                        }
+                        filteredEvents.isEmpty() -> {
+                            EmptyState(
+                                message = if (uiState.events.isEmpty()) "رویدادی برای نمایش وجود ندارد." else "رویدادی مطابق فیلتر یافت نشد."
+                            )
+                        }
+                        else -> {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                LazyColumn(
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(
+                                        start = ATKCargoTheme.spacing.l,
+                                        end = ATKCargoTheme.spacing.l,
+                                        top = ATKCargoTheme.spacing.s,
+                                        bottom = ATKCargoTheme.spacing.l
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+                                ) {
+                                    items(filteredEvents, key = { it.id }) { event ->
+                                        EventCard(
+                                            event = event,
+                                            onClick = { selectedEvent = event },
+                                            onAcknowledge = { viewModel.acknowledge(event.id) }
+                                        )
+                                    }
                                 }
+                                RefreshHint()
                             }
-                            RefreshHint()
                         }
                     }
                 }
+            } else {
+                AuditLogListSection(
+                    uiState = uiState,
+                    onLogClick = { selectedAuditLog = it },
+                    onRetryClick = { viewModel.refreshAuditLogs() },
+                    onLoadMoreClick = { viewModel.loadMoreAuditLogs() }
+                )
             }
         }
     }
@@ -196,7 +230,99 @@ fun MonitoringScreen(
             onDismiss = { selectedEvent = null }
         )
     }
+
+    selectedAuditLog?.let { log ->
+        AuditLogDetailsDialog(
+            log = log,
+            onDismiss = { selectedAuditLog = null }
+        )
+    }
 }
+
+// تب‌سلکتور سطح بالای صفحه — کپی دقیق ظاهر ShipsTabSelector (feature/reports/.../ships/ShipsListScreen.kt) برای یکدستی طراحی
+@Composable
+private fun MonitoringTopTabSelector(
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    eventsCount: Int,
+    auditLogsCount: Int
+) {
+    val tabs = remember(eventsCount, auditLogsCount) {
+        listOf(
+            ShipsTabItem("مانیتورینگ لاگ‌ها", Icons.Default.Sensors, eventsCount),
+            ShipsTabItem("لاگ تغییرات", Icons.AutoMirrored.Filled.ListAlt, auditLogsCount)
+        )
+    }
+    val accentColor = MaterialTheme.colorScheme.primary
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.s),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                val isSelected = selectedTabIndex == index
+                val tabColor = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onTabSelected(index) }
+                        ),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    shadowElevation = if (isSelected) 1.dp else 0.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = null,
+                            tint = tabColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = tab.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = tabColor
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) accentColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "${tab.count}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = tabColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class ShipsTabItem(val title: String, val icon: ImageVector, val count: Int)
 
 // هم‌الگوی AnalyticsHeaderCard در ComprehensiveAnalyticsDialog: دکمه‌ی بازگشت دایره‌ای + نشان آیکون مربعی + عنوان/زیرعنوان
 @Composable
@@ -660,4 +786,180 @@ private fun DetailRow(label: String, value: String) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = value, style = MaterialTheme.typography.bodyMedium)
     }
+}
+
+// رنگ نشان بر اساس نوع عملیات audit_log — create/update/delete با همان الگوی رنگی success/warning/error شدت رویدادها
+@Composable
+private fun actionColor(action: String): Color = when {
+    action.contains("delete", ignoreCase = true) -> MaterialTheme.colorScheme.error
+    action.contains("update", ignoreCase = true) || action.contains("edit", ignoreCase = true) ||
+        action.contains("toggle", ignoreCase = true) -> ATKCargoTheme.semanticColors.warning
+    action.contains("create", ignoreCase = true) || action.contains("activate", ignoreCase = true) -> ATKCargoTheme.semanticColors.success
+    else -> ATKCargoTheme.semanticColors.info
+}
+
+@Composable
+private fun actionContainerColor(action: String): Color = when {
+    action.contains("delete", ignoreCase = true) -> MaterialTheme.colorScheme.errorContainer
+    action.contains("update", ignoreCase = true) || action.contains("edit", ignoreCase = true) ||
+        action.contains("toggle", ignoreCase = true) -> ATKCargoTheme.semanticColors.warningContainer
+    action.contains("create", ignoreCase = true) || action.contains("activate", ignoreCase = true) -> ATKCargoTheme.semanticColors.successContainer
+    else -> ATKCargoTheme.semanticColors.infoContainer
+}
+
+// بخش تب «لاگ تغییرات» — هم‌الگوی بخش لیست رویدادها (LoadingOverlay/ErrorState/EmptyState + LazyColumn)، به‌علاوه دکمه‌ی «بارگذاری بیشتر» با cursor pagination
+@Composable
+private fun AuditLogListSection(
+    uiState: MonitoringUiState,
+    onLogClick: (AuditLogEntry) -> Unit,
+    onRetryClick: () -> Unit,
+    onLoadMoreClick: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            uiState.auditLogsLoading && uiState.auditLogs.isEmpty() && uiState.auditLogsError == null -> {
+                LoadingOverlay(isLoading = true)
+            }
+            uiState.auditLogsError != null && uiState.auditLogs.isEmpty() -> {
+                ErrorState(
+                    message = uiState.auditLogsError ?: "خطایی رخ داده است.",
+                    onRetryClick = onRetryClick
+                )
+            }
+            uiState.auditLogsLoaded && uiState.auditLogs.isEmpty() -> {
+                EmptyState(message = "لاگ تغییری برای نمایش وجود ندارد.")
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = ATKCargoTheme.spacing.l,
+                        end = ATKCargoTheme.spacing.l,
+                        top = ATKCargoTheme.spacing.s,
+                        bottom = ATKCargoTheme.spacing.l
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+                ) {
+                    items(uiState.auditLogs, key = { it.id }) { log ->
+                        AuditLogCard(log = log, onClick = { onLogClick(log) })
+                    }
+                    if (uiState.auditLogsHasMore) {
+                        item {
+                            LoadMoreRow(isLoading = uiState.auditLogsLoading, onClick = onLoadMoreClick)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadMoreRow(isLoading: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = ATKCargoTheme.spacing.s),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        TextButton(onClick = onClick, enabled = !isLoading) {
+            Text(if (isLoading) "در حال بارگذاری…" else "بارگذاری بیشتر")
+        }
+    }
+}
+
+// کارت یک ردیف audit_log — هم‌الگوی EventCard: نشان رنگی، ردیف بالا با شارژ عملیات، ردیف meta با تاریخ شمسی
+@Composable
+private fun AuditLogCard(log: AuditLogEntry, onClick: () -> Unit) {
+    val color = actionColor(log.action)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(ATKCargoTheme.spacing.m)
+    ) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(actionContainerColor(log.action), RoundedCornerShape(9.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ListAlt,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = log.action,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                    Text(
+                        text = log.entityType,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = "کاربر: ${log.username}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "شناسه مورد: ${log.entityId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xs))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f))
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxs))
+
+                MetaItem(icon = Icons.Default.Schedule, text = formatJalaliDateTime(log.createdAt))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuditLogDetailsDialog(log: AuditLogEntry, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = ATKCargoTheme.appShapes.dialog,
+        title = { Text(log.action, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                DetailRow("کاربر", log.username)
+                DetailRow("نوع مورد", log.entityType)
+                DetailRow("شناسه مورد", log.entityId)
+                DetailRow("زمان ثبت", formatJalaliDateTime(log.createdAt))
+                log.details?.let {
+                    DetailRow("جزئیات", com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(it))
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("بستن")
+            }
+        }
+    )
 }

@@ -39,3 +39,19 @@ data class MonitoringSummaryResponse(
     val openAlerts: MonitoringOpenAlertCounts,
     val health: MonitoringHealthStatus
 )
+
+// یک ردیف از audit_log (تب «لاگ تغییرات» صفحه مانیتورینگ)
+data class AuditLogEntry(
+    val id: Long,
+    val username: String,
+    val action: String,
+    val entityType: String,
+    val entityId: String,
+    val details: com.google.gson.JsonElement? = null,
+    val createdAt: String
+)
+
+data class AuditLogResponse(
+    val success: Boolean,
+    val logs: List<AuditLogEntry> = emptyList()
+)

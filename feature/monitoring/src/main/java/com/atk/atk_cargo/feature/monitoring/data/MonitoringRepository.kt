@@ -1,5 +1,6 @@
 package com.atk.atk_cargo.feature.monitoring.data
 
+import com.atk.atk_cargo.data.model.AuditLogEntry
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.data.model.MonitoringSummaryResponse
 
@@ -12,6 +13,8 @@ interface MonitoringRepository {
     suspend fun getEvents(status: String, limit: Int = 100, beforeId: Int? = null): List<MonitoringEvent>
 
     suspend fun acknowledgeEvent(id: Int): AcknowledgeResult
+
+    suspend fun getAuditLogs(limit: Int = 100, beforeId: Long? = null): List<AuditLogEntry>
 }
 
 sealed class AcknowledgeResult {

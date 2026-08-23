@@ -2,6 +2,7 @@ package com.atk.atk_cargo.feature.monitoring.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atk.atk_cargo.data.model.AuditLogEntry
 import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.data.model.MonitoringHealthStatus
 import com.atk.atk_cargo.data.model.MonitoringOpenAlertCounts
@@ -24,7 +25,12 @@ data class MonitoringUiState(
     val statusFilter: String = "open",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val lastUpdatedAtMillis: Long? = null
+    val lastUpdatedAtMillis: Long? = null,
+    val auditLogs: List<AuditLogEntry> = emptyList(),
+    val auditLogsLoaded: Boolean = false,
+    val auditLogsLoading: Boolean = false,
+    val auditLogsError: String? = null,
+    val auditLogsHasMore: Boolean = true
 )
 
 // بازخوانی خودکار هر ۳۰ ثانیه، هم‌الگو با داشبورد وب (PHP/Monitoring/assets/app.js) — کل هدف فاز الف یک مدل pull-based بود، پس بازخوانی دوره‌ای اینجا هم لازم است.
@@ -96,6 +102,65 @@ class MonitoringViewModel(
         }
     }
 
+    // بارگذاری تنبل — فقط اولین بار ورود به تب «لاگ تغییرات» صدا زده می‌شود؛ برخلاف رویدادها بخشی از حلقه‌ی ۳۰ثانیه‌ای نیست چون audit_log پرحجم‌تر و کم‌تغییرتر است
+    fun loadAuditLogsIfNeeded() {
+        if (_uiState.value.auditLogsLoaded || _uiState.value.auditLogsLoading) return
+        loadAuditLogs()
+    }
+
+    fun refreshAuditLogs() {
+        loadAuditLogs()
+    }
+
+    private fun loadAuditLogs() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(auditLogsLoading = true, auditLogsError = null) }
+            try {
+                val logs = repository.getAuditLogs(limit = AUDIT_LOG_PAGE_SIZE)
+                _uiState.update {
+                    it.copy(
+                        auditLogs = logs,
+                        auditLogsLoaded = true,
+                        auditLogsLoading = false,
+                        auditLogsHasMore = logs.size >= AUDIT_LOG_PAGE_SIZE
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(auditLogsLoading = false, auditLogsError = e.message ?: "خطا در دریافت لاگ تغییرات")
+                }
+            }
+        }
+    }
+
+    fun loadMoreAuditLogs() {
+        val current = _uiState.value
+        if (current.auditLogsLoading || !current.auditLogsHasMore) return
+        val lastId = current.auditLogs.lastOrNull()?.id ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(auditLogsLoading = true, auditLogsError = null) }
+            try {
+                val more = repository.getAuditLogs(limit = AUDIT_LOG_PAGE_SIZE, beforeId = lastId)
+                _uiState.update {
+                    it.copy(
+                        auditLogs = it.auditLogs + more,
+                        auditLogsLoading = false,
+                        auditLogsHasMore = more.size >= AUDIT_LOG_PAGE_SIZE
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(auditLogsLoading = false, auditLogsError = e.message ?: "خطا در دریافت لاگ تغییرات")
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
@@ -103,5 +168,6 @@ class MonitoringViewModel(
 
     companion object {
         private const val REFRESH_INTERVAL_MS = 30_000L
+        private const val AUDIT_LOG_PAGE_SIZE = 100
     }
 }

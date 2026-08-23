@@ -2,6 +2,7 @@ package com.atk.atk_cargo.api
 
 import com.atk.atk_cargo.data.model.ActiveSessionResponse
 import com.atk.atk_cargo.data.model.ActiveShipInfo
+import com.atk.atk_cargo.data.model.AuditLogResponse
 import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
@@ -405,6 +406,15 @@ interface ApiServiceV2 {
     suspend fun acknowledgeMonitoringEvent(
         @Query("route") route: String
     ): Response<ApiResponse>
+
+    // ===== AUDIT LOG =====
+
+    @GET("api/v2/index.php")
+    suspend fun getAuditLogs(
+        @Query("route") route: String = "audit-log",
+        @Query("limit") limit: Int = 50,
+        @Query("beforeId") beforeId: Long? = null
+    ): Response<AuditLogResponse>
 }
 
 object ApiV2Routes {

@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AnalyticsController;
+use App\Controllers\AuditLogController;
 use App\Controllers\AuthController;
 use App\Controllers\CargoController;
 use App\Controllers\ChatController;
@@ -565,6 +566,22 @@ return [
         'handler' => function () use ($safeCall): void {
             $safeCall(function () {
                 Response::json(['success' => true] + (new MonitoringController())->summary());
+            });
+        },
+    ],
+
+    // ===== AUDIT LOG — تب «لاگ تغییرات» صفحه مانیتورینگ؛ فقط خواندن، نوشتن از App\Services\AuditLogger::log() انجام می‌شود؛ همان مجوز view_monitoring چون بخشی از همان صفحه است =====
+    [
+        'method' => 'GET', 'path' => 'audit-log', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
+                $limit = max(1, min((int)$request->get('limit', 50), 200));
+                $beforeIdRaw = $request->get('beforeId');
+                $beforeId = $beforeIdRaw !== null ? (int)$beforeIdRaw : null;
+                $username = $request->get('username');
+                $entityType = $request->get('entityType');
+                $logs = (new AuditLogController())->listLogs($limit, $beforeId, $username, $entityType);
+                Response::json(['success' => true, 'logs' => $logs]);
             });
         },
     ],
