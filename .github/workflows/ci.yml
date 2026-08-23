@@ -70,9 +70,7 @@ jobs:
       - name: Compile (debug)
         run: ./gradlew :app:compileDebugKotlin --console=plain
 
-      # بدون qualifier ماژول اجرا می‌شود تا تست‌های core:network
-      # (TokenAuthenticatorTest، TokenRefresherTest — منطق چرخش توکن) هم
-      # پوشش داده شوند، نه فقط app (DEEP_CODE_AUDIT.md).
+      # اجرای تست‌های واحد سراسر ماژول‌ها شامل app و ماژول‌های core و feature.
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --console=plain
 
@@ -84,9 +82,7 @@ jobs:
           path: '**/build/reports/tests/'
           retention-days: 14
 
-      # checkReleaseBuilds=true در app/build.gradle.kts یعنی lintRelease هم
-      # به‌طور خودکار بخشی از assembleRelease است؛ اینجا هر دو variant را
-      # صریح اجرا می‌کنیم تا گزارش هرکدام جدا در لاگ CI دیده شود.
+      # بررسی قوانین Lint برای نسخه‌های debug و release.
       - name: Lint (debug)
         run: ./gradlew :app:lintDebug --console=plain
 
@@ -101,7 +97,7 @@ jobs:
           path: app/build/reports/lint-results-*.html
           retention-days: 14
 
-      # lintRelease فقط قوانین Lint را بررسی می‌کند؛ اجرای واقعی R8/ProGuard غایب بود (DEEP_CODE_AUDIT.md #۴)
+      # بیلد نسخه نهایی و اعمال قوانین R8/ProGuard.
       - name: Assemble release (R8 gate)
         run: ./gradlew :app:assembleRelease --console=plain
 

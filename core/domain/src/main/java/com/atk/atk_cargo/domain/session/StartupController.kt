@@ -13,4 +13,8 @@ interface StartupController {
     fun stopLoadingNotificationService()
     fun startChatNotificationWorker()
     fun stopChatNotificationService()
+    // وقتی یک صفحه در میانه‌ی کار متوجه می‌شود نشست واقعاً باطل شده: پیام را نمایش می‌دهد و کاربر را به صفحه‌ی ورود برمی‌گرداند
+    fun notifySessionExpired()
+    // نمایش یک پیام گذرا (مثلاً خطای شبکه) بدون تغییر وضعیت نشست؛ با Toast سطح Activity نمایش داده می‌شود تا با ناوبری صفحه از بین نرود
+    fun showMessage(message: String)
 }

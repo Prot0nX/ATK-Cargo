@@ -49,8 +49,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ApiServiceV2
+import com.atk.atk_cargo.api.SessionValidationOutcome
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.core.ui.components.ColorSelector
 import com.atk.atk_cargo.core.ui.components.cardColors
 import com.atk.atk_cargo.data.model.ActiveShipInfo
@@ -238,22 +240,27 @@ fun CargoCounterScreen(
 ) {
     val context = LocalContext.current
     val userPreferencesManager = koinInject<TokenStore>()
+    val startupViewModel = LocalStartupViewModel.current
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(userPreferencesManager)
-            result.fold(
-                onSuccess = {
-                    // Session معتبر است، ادامه می‌دهد
-                },
-                onFailure = {
+            when (validateServerSession(userPreferencesManager)) {
+                SessionValidationOutcome.Valid -> {
+                    // نشست معتبر است، ادامه می‌دهد
+                }
+                SessionValidationOutcome.Invalid -> {
+                    startupViewModel.notifySessionExpired()
+                }
+                SessionValidationOutcome.NetworkError -> {
+                    startupViewModel.showMessage("خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.")
                     onSessionInvalid()
                 }
-            )
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("CargoCounterScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            startupViewModel.showMessage("خطا در بررسی وضعیت ورود. لطفاً دوباره تلاش کنید.")
             onSessionInvalid()
             return@LaunchedEffect
         }

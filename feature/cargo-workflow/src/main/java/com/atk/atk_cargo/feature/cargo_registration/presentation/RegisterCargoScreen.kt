@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -106,6 +107,40 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val AUTO_REFRESH_INTERVAL_SECONDS = 60
+
+@Composable
+private fun FabMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    palette: RegisterPalette,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = palette.cardBg,
+        border = BorderStroke(1.dp, palette.cardBorder)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = palette.mutedText
+            )
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
 
 private class RegisterPalette(
     val accent: Color,
@@ -175,6 +210,7 @@ fun RegisterCargoScreen(
     val duplicateTrackingNumbers = (cargoUiState.dialog as? CargoDialog.Duplicates)?.trackingNumbers ?: emptyList()
     val isSubmitting = cargoUiState.isSubmitting
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
+    var showFabMenu by remember { mutableStateOf(false) }
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -239,31 +275,66 @@ fun RegisterCargoScreen(
             .navigationBarsPadding(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            Card(
-                modifier = Modifier
-                    .size(56.dp)
-                    .scale(scale)
-                    .clickable(
-                        interactionSource = fabInteractionSource,
-                        indication = null
-                    ) { showQuotaEntryDialog = true },
-                shape = CircleShape,
-                colors = CardDefaults.cardColors(
-                    containerColor = palette.accent
-                ),
-                border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            Column(horizontalAlignment = Alignment.End) {
+                AnimatedVisibility(
+                    visible = showFabMenu,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ConfirmationNumber,
-                        contentDescription = "تغییر کشتی",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    ) {
+                        FabMenuItem(
+                            icon = Icons.Default.ConfirmationNumber,
+                            label = "تغییر کوتاژ",
+                            palette = palette,
+                            onClick = {
+                                showFabMenu = false
+                                showQuotaEntryDialog = true
+                            }
+                        )
+                        if (onChangeSelectionClick != null) {
+                            FabMenuItem(
+                                icon = Icons.Default.LocalShipping,
+                                label = "تغییر کشتی",
+                                palette = palette,
+                                onClick = {
+                                    showFabMenu = false
+                                    onChangeSelectionClick()
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .scale(scale)
+                        .clickable(
+                            interactionSource = fabInteractionSource,
+                            indication = null
+                        ) { showFabMenu = !showFabMenu },
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = palette.accent
+                    ),
+                    border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (showFabMenu) Icons.Default.Close else Icons.Default.ConfirmationNumber,
+                            contentDescription = if (showFabMenu) "بستن" else "گزینه‌ها",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
         }
@@ -299,8 +370,7 @@ fun RegisterCargoScreen(
                     onToggleVisibility = { isInfoVisible = !isInfoVisible },
                     loadableTonnage = loadableTonnage,
                     loadableTrucks18Wheeler = loadableTrucks18Wheeler,
-                    loadableTrucks10Wheeler = loadableTrucks10Wheeler,
-                    onChangeSelectionClick = onChangeSelectionClick
+                    loadableTrucks10Wheeler = loadableTrucks10Wheeler
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))

@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.AddChart
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.ChangeCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.ContentCopy
@@ -80,8 +79,7 @@ fun ShipInfoSection(
     onToggleVisibility: () -> Unit,
     loadableTonnage: Float?,
     loadableTrucks18Wheeler: Int?,
-    loadableTrucks10Wheeler: Int?,
-    onChangeSelectionClick: (() -> Unit)? = null
+    loadableTrucks10Wheeler: Int?
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
         try {
@@ -119,8 +117,7 @@ fun ShipInfoSection(
                 isExpanded = isInfoVisible,
                 tempTonnageStatus = shipInfo.tempTonnageStatus,
                 tempTonnageAmount = shipInfo.tempTonnageAmount,
-                cargoOwner = shipInfo.cargoOwner,
-                onChangeSelectionClick = onChangeSelectionClick
+                cargoOwner = shipInfo.cargoOwner
             )
 
             // محتوای قابل گسترش
@@ -150,8 +147,7 @@ private fun TopHeader(
     isExpanded: Boolean,
     tempTonnageStatus: Boolean = false,
     tempTonnageAmount: Float? = null,
-    cargoOwner: String = "",
-    onChangeSelectionClick: (() -> Unit)? = null
+    cargoOwner: String = ""
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -280,117 +276,80 @@ private fun TopHeader(
                     )
                 }
 
-                // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی) + دکمه تغییر کوتاژ
+                // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی)
                 val truck10Color = Color(0xFFD97706) // زرد / امبر (Golden Yellow)
                 val truck18Color = Color(0xFF2563EB) // آبی (Vibrant Blue)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // کامیون ۱۰ چرخ (اختصاصی - زرد)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // کامیون ۱۰ چرخ (اختصاصی - زرد)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_truck_10_wheeler),
-                                contentDescription = "کامیون ۱۰ چرخ",
-                                tint = truck10Color,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = truck10Color.copy(alpha = 0.12f)
-                            ) {
-                                Text(
-                                    text = "10",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Black,
-                                    color = truck10Color,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                            Text(
-                                text = "= ${loadableTrucks10Wheeler ?: 0}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = truck10Color
-                            )
-                        }
-
-                        Text(
-                            text = "|",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Icon(
+                            painter = painterResource(R.drawable.ic_truck_10_wheeler),
+                            contentDescription = "کامیون ۱۰ چرخ",
+                            tint = truck10Color,
+                            modifier = Modifier.size(22.dp)
                         )
-
-                        // تریلی ۱۸ چرخ (اختصاصی - آبی)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = truck10Color.copy(alpha = 0.12f)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_truck_18_wheeler),
-                                contentDescription = "تریلی ۱۸ چرخ",
-                                tint = truck18Color,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = truck18Color.copy(alpha = 0.12f)
-                            ) {
-                                Text(
-                                    text = "18",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Black,
-                                    color = truck18Color,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
                             Text(
-                                text = "= ${loadableTrucks18Wheeler ?: 0}",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = truck18Color
+                                text = "10",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = truck10Color,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }
+                        Text(
+                            text = "= ${loadableTrucks10Wheeler ?: 0}",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = truck10Color
+                        )
                     }
 
-                    // دکمه مینیمال تغییر کوتاژ در سطر ۳ سمت چپ
-                    onChangeSelectionClick?.let { onClick ->
+                    Text(
+                        text = "|",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // تریلی ۱۸ چرخ (اختصاصی - آبی)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_truck_18_wheeler),
+                            contentDescription = "تریلی ۱۸ چرخ",
+                            tint = truck18Color,
+                            modifier = Modifier.size(24.dp)
+                        )
                         Surface(
-                            modifier = Modifier.clickable { onClick() },
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            shape = RoundedCornerShape(4.dp),
+                            color = truck18Color.copy(alpha = 0.12f)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ChangeCircle,
-                                    contentDescription = "تغییر کشتی",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "تغییر کشتی",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                            Text(
+                                text = "18",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Black,
+                                color = truck18Color,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
                         }
+                        Text(
+                            text = "= ${loadableTrucks18Wheeler ?: 0}",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = truck18Color
+                        )
                     }
                 }
             }

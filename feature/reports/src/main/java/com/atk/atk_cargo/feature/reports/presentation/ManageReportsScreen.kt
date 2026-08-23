@@ -73,8 +73,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.atk.atk_cargo.api.SessionValidationOutcome
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.core.ui.components.PersianDatePickerDialog
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
@@ -110,6 +112,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
     // UserPreferencesManager (پیاده‌سازی واقعی) در :app است.
     val tokenStore = koinInject<TokenStore>()
     val userPreferencesStore = koinInject<UserPreferencesStore>()
+    val startupViewModel = LocalStartupViewModel.current
 
     fun relaunchApp() {
         if (onSessionInvalid != null) {
@@ -124,17 +127,23 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(tokenStore)
-            result.fold(
-                onSuccess = {
-                    // Session معتبر است، ادامه می‌دهد
-                },
-                onFailure = { relaunchApp() }
-            )
+            when (validateServerSession(tokenStore)) {
+                SessionValidationOutcome.Valid -> {
+                    // نشست معتبر است، ادامه می‌دهد
+                }
+                SessionValidationOutcome.Invalid -> {
+                    startupViewModel.notifySessionExpired()
+                }
+                SessionValidationOutcome.NetworkError -> {
+                    startupViewModel.showMessage("خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.")
+                    relaunchApp()
+                }
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            startupViewModel.showMessage("خطا در بررسی وضعیت ورود. لطفاً دوباره تلاش کنید.")
             relaunchApp()
         }
     }

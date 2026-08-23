@@ -207,6 +207,21 @@ class StartupViewModel(
         _isSessionValid.value = isValid
     }
 
+    // اطلاع‌رسانی انقضای نشست و نمایش پیام ورود مجدد به کاربر.
+    override fun notifySessionExpired() {
+        viewModelScope.launch {
+            userPreferencesManager.clearUserCredentials()
+            _isSessionValid.value = false
+            _events.send(StartupEvent.ShowMessage("نشست شما منقضی شده است؛ لطفاً دوباره وارد شوید."))
+        }
+    }
+
+    override fun showMessage(message: String) {
+        viewModelScope.launch {
+            _events.send(StartupEvent.ShowMessage(message))
+        }
+    }
+
     override fun consumePendingNavigation() {
         _pendingNavigationDestination.value = null
     }

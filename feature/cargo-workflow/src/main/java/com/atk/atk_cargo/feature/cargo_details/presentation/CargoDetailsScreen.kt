@@ -53,8 +53,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.atk.atk_cargo.api.SessionValidationOutcome
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.model.Cargo
@@ -108,6 +110,7 @@ fun CargoDetailsScreen(
     val context = LocalContext.current
     val userPreferencesManager = koinInject<UserPreferencesStore>()
     val tokenStore = koinInject<TokenStore>()
+    val startupViewModel = LocalStartupViewModel.current
     val effectiveRepository = remember(repository) {
         repository ?: ReportsRepository()
     }
@@ -149,17 +152,21 @@ fun CargoDetailsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(tokenStore)
-            result.fold(
-                onSuccess = {
-                    // Session معتبر است، ادامه می‌دهد
-                },
-                onFailure = {
+            when (validateServerSession(tokenStore)) {
+                SessionValidationOutcome.Valid -> {
+                    // نشست معتبر است، ادامه می‌دهد
+                }
+                SessionValidationOutcome.Invalid -> {
+                    startupViewModel.notifySessionExpired()
+                }
+                SessionValidationOutcome.NetworkError -> {
+                    startupViewModel.showMessage("خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.")
                     onSessionInvalid()
                 }
-            )
+            }
         } catch (e: Exception) {
             Log.e("CargoDetailsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            startupViewModel.showMessage("خطا در بررسی وضعیت ورود. لطفاً دوباره تلاش کنید.")
             onSessionInvalid()
         }
     }

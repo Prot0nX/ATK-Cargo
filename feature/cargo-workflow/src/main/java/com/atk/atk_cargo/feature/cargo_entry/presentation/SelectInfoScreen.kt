@@ -50,8 +50,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import com.atk.atk_cargo.api.SessionValidationOutcome
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.core.ui.components.ColorSelector
 import com.atk.atk_cargo.core.ui.components.adjustColorForTheme
 import com.atk.atk_cargo.core.ui.components.cardColors
@@ -122,22 +124,28 @@ fun SelectInfoScreenContent(
 ) {
     val context = LocalContext.current
     val userPreferencesManager = koinInject<TokenStore>()
+    val startupViewModel = LocalStartupViewModel.current
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(userPreferencesManager)
-            result.fold(
-                onSuccess = {
-                    // Session معتبر است، ادامه می‌دهد
-                },
-                onFailure = {
+            when (validateServerSession(userPreferencesManager)) {
+                SessionValidationOutcome.Valid -> {
+                    // نشست معتبر است، ادامه می‌دهد
+                }
+                SessionValidationOutcome.Invalid -> {
+                    // نشست واقعاً باطل شده؛ پیام نمایش داده می‌شود و کاربر به صفحه‌ی ورود بازمی‌گردد
+                    startupViewModel.notifySessionExpired()
+                }
+                SessionValidationOutcome.NetworkError -> {
+                    startupViewModel.showMessage("خطا در برقراری ارتباط با سرور. لطفاً دوباره تلاش کنید.")
                     onSessionInvalid()
                 }
-            )
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("SelectInfoScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            startupViewModel.showMessage("خطا در بررسی وضعیت ورود. لطفاً دوباره تلاش کنید.")
             onSessionInvalid()
         }
     }
@@ -165,6 +173,8 @@ fun SelectInfoScreenContent(
     var showActiveQuotasDialog by remember { mutableStateOf(false) }
     var isQuotaEntryDialogOpen by remember { mutableStateOf(false) }
     var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
+    // وقتی از دیالوگ «انتخاب و مدیریت کشتی‌ها» فقط یک کشتی انتخاب و تأیید شود، دیالوگ ورود کوتاژ همان کشتی به‌صورت خودکار باز می‌شود
+    var autoOpenQuotaEntryForShip by remember { mutableStateOf<String?>(null) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
         colorSelector.reset()
@@ -446,7 +456,9 @@ fun SelectInfoScreenContent(
                         shipColorMap = shipColorMap.value,
                         onDialogStateChange = { isOpen ->
                             isQuotaEntryDialogOpen = isOpen
-                        }
+                        },
+                        autoOpenShipName = autoOpenQuotaEntryForShip,
+                        onAutoOpenConsumed = { autoOpenQuotaEntryForShip = null }
                     )
                 }
             }
@@ -462,6 +474,8 @@ fun SelectInfoScreenContent(
                     selectedShipNames = selectedShipNames,
                     onSelectShip = { selectedShips ->
                         viewModel.updateSelectedShips(selectedShips)
+                        // فقط وقتی دقیقاً یک کشتی انتخاب شده، دیالوگ ورود کوتاژ آن به‌صورت خودکار باز می‌شود
+                        autoOpenQuotaEntryForShip = selectedShips.singleOrNull()
                     },
                     onDismiss = { showShipSelectionDialog = false }
                 )
@@ -499,7 +513,9 @@ private fun GroupedShipList(
     realTimeDataList: List<RealTimeLoadingData>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     shipColorMap: Map<String, Color>,
-    onDialogStateChange: (Boolean) -> Unit
+    onDialogStateChange: (Boolean) -> Unit,
+    autoOpenShipName: String? = null,
+    onAutoOpenConsumed: () -> Unit = {}
 ) {
     var isDialogOpen by remember { mutableStateOf(false) }
 
@@ -524,7 +540,9 @@ private fun GroupedShipList(
                         onDialogStateChange = { isOpen ->
                             isDialogOpen = isOpen
                             onDialogStateChange(isOpen)
-                        }
+                        },
+                        autoOpen = autoOpenShipName == shipName,
+                        onAutoOpenConsumed = onAutoOpenConsumed
                     )
                 } else {
                     // استفاده از داده‌های معمولی
@@ -536,7 +554,9 @@ private fun GroupedShipList(
                         onDialogStateChange = { isOpen ->
                             isDialogOpen = isOpen
                             onDialogStateChange(isOpen)
-                        }
+                        },
+                        autoOpen = autoOpenShipName == shipName,
+                        onAutoOpenConsumed = onAutoOpenConsumed
                     )
                 }
             }
@@ -550,13 +570,23 @@ private fun ShipGroup(
     ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     color: Color,
-    onDialogStateChange: (Boolean) -> Unit
+    onDialogStateChange: (Boolean) -> Unit,
+    autoOpen: Boolean = false,
+    onAutoOpenConsumed: () -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     // Update dialog state
     LaunchedEffect(showDialog) {
         onDialogStateChange(showDialog)
+    }
+
+    // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
+    LaunchedEffect(autoOpen) {
+        if (autoOpen) {
+            showDialog = true
+            onAutoOpenConsumed()
+        }
     }
 
     val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
@@ -599,12 +629,22 @@ private fun ShipGroupWithRealTimeData(
     ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     color: Color,
-    onDialogStateChange: (Boolean) -> Unit
+    onDialogStateChange: (Boolean) -> Unit,
+    autoOpen: Boolean = false,
+    onAutoOpenConsumed: () -> Unit = {}
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showDialog) {
         onDialogStateChange(showDialog)
+    }
+
+    // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
+    LaunchedEffect(autoOpen) {
+        if (autoOpen) {
+            showDialog = true
+            onAutoOpenConsumed()
+        }
     }
 
     val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }

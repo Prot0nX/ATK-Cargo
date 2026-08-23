@@ -1,7 +1,6 @@
 package com.atk.atk_cargo.security
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
