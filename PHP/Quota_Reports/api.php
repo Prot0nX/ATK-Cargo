@@ -39,9 +39,23 @@ try {
     $cargoRepository = new CargoRepository();
 
     switch ($action) {
-        // داشبورد اصلی: خلاصه‌ی همه‌ی کوتاژهای فعال
+        // داشبورد اصلی: خلاصه‌ی همه‌ی کوتاژهای فعال (فقط با مرتب‌سازی سراسری صدا زده می‌شود)
         case 'summary':
             Response::success('', ['quotas' => $quotaService->getQuotasSummary()]);
+            break;
+
+        // بارگذاری اولیه‌ی داشبورد: فهرست سبک همه‌ی کوتاژها بدون محاسبات تناژ/درصد/حواله
+        case 'groups':
+            Response::success('', ['quotas' => $quotaService->getQuotaGroupsSummary()]);
+            break;
+
+        // محاسبات فقط برای یک کشتی — زمانی صدا زده می‌شود که دسته‌بندی همان کشتی در داشبورد باز شود
+        case 'shipStats':
+            $shipName = trim((string)$request->get('shipName', ''));
+            if ($shipName === '') {
+                throw new ApiException('نام کشتی نمی‌تواند خالی باشد.', 422);
+            }
+            Response::success('', ['quotas' => $quotaService->getQuotaStatsForShip($shipName)]);
             break;
 
         // نمای جزئیات یک کوتاژ: کارت‌های خلاصه (از دیتابیس، نه محاسبه‌ی کلاینت) + جدول حواله‌ها

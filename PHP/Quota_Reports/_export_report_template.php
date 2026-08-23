@@ -8,14 +8,14 @@ declare(strict_types=1);
 <meta charset="UTF-8">
 <title>گزارش کوتاژ <?= e($kotazh) ?></title>
 <style>
-    body { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; direction: rtl; color: #16191d; font-size: 12px; }
+    body { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; direction: rtl; color: #14171c; font-size: 12px; }
     h1 { font-size: 16px; margin: 0 0 4px; }
-    p.muted { color: #6b727c; margin: 0 0 16px; font-size: 11px; }
+    p.muted { color: #656d79; margin: 0 0 16px; font-size: 11px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    td, th { padding: 5px 8px; border: 1px solid #ccd1d8; text-align: right; }
-    .summary td:first-child { font-weight: bold; background: #f2f4f7; width: 40%; }
-    thead th { background: #eaf0fe; font-weight: bold; }
-    tbody tr:nth-child(even) { background: #f7f8fa; }
+    td, th { padding: 5px 8px; border: 1px solid #c8cdd6; text-align: right; }
+    .summary td:first-child { font-weight: bold; background: #f1f3f6; width: 40%; }
+    thead th { background: #eaf1fe; font-weight: bold; }
+    tbody tr:nth-child(even) { background: #f6f7f9; }
 </style>
 </head>
 <body>
@@ -41,7 +41,7 @@ declare(strict_types=1);
         </thead>
         <tbody>
             <?php if (empty($tableRows)): ?>
-            <tr><td colspan="<?= count($tableHeaders) ?>" style="text-align:center; color:#6b727c;">حواله‌ای برای این کوتاژ ثبت نشده است.</td></tr>
+            <tr><td colspan="<?= count($tableHeaders) ?>" style="text-align:center; color:#656d79;">حواله‌ای برای این کوتاژ ثبت نشده است.</td></tr>
             <?php else: ?>
                 <?php foreach ($tableRows as $dataRow): ?>
                 <tr>

@@ -67,7 +67,9 @@ $theme = qr_theme();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ورود — گزارش آماری کوتاژ ATK</title>
     <link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="preload" href="../assets/ui/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../assets/ui/core.css?v=<?= filemtime(__DIR__ . '/../assets/ui/core.css') ?>">
+    <link rel="stylesheet" href="assets/app.css?v=<?= filemtime(__DIR__ . '/assets/app.css') ?>">
 </head>
 
 <body class="page-centered">
@@ -106,7 +108,7 @@ $theme = qr_theme();
         </form>
     </main>
 
-    <script src="assets/login.js"></script>
+    <script src="assets/login.js" defer></script>
 </body>
 
 </html>

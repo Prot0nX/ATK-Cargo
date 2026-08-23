@@ -19,6 +19,13 @@
         sortField: null,
         sortDir: 'asc',
         openShip: null,
+        // آمار محاسبه‌شده‌ی هر کشتی (تناژ/درصد/تعداد حواله) فقط پس از باز شدن دسته‌بندی همان کشتی اینجا کش می‌شود؛
+        // نه در بارگذاری اولیه‌ی داشبورد. state.quotas همیشه فهرست سبک بدون این محاسبات است.
+        shipStats: {},
+        shipStatsPromises: {},
+        // فهرست کامل و سنگین (با محاسبات) فقط وقتی مرتب‌سازی سراسری فعال شود یک‌بار گرفته می‌شود.
+        fullQuotas: null,
+        fullQuotasPromise: null,
         currentKotazh: null,
         cargoInfo: [],
         filteredCargo: [],
@@ -203,6 +210,17 @@
         return tr;
     }
 
+    // ردیف موقت زیر یک دسته‌بندی تازه‌بازشده، تا زمانی که آمار محاسبه‌شده‌ی همان کشتی از سرور برسد.
+    function buildGroupLoadingRow() {
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.colSpan = DASHBOARD_COLUMN_COUNT;
+        td.className = 'table-state';
+        td.textContent = 'در حال محاسبه‌ی آمار این کشتی...';
+        tr.appendChild(td);
+        return tr;
+    }
+
     function compareValues(a, b, type) {
         if (type === 'number') { return (Number(a) || 0) - (Number(b) || 0); }
         if (type === 'bool') { return (a ? 1 : 0) - (b ? 1 : 0); }
@@ -228,40 +246,116 @@
 
         var fragment = document.createDocumentFragment();
 
+        // مرتب‌سازی سراسری روی ستون‌های محاسبه‌شده (تناژ/درصد/حواله) نیاز به فهرست کامل و سنگین دارد؛
+        // این فهرست فقط همین‌جا و فقط یک‌بار (تا رفرش بعدی) لود می‌شود، نه در بارگذاری اولیه‌ی داشبورد.
         if (state.sortField) {
+            if (!state.fullQuotas) {
+                fragment.appendChild(buildGroupLoadingRow());
+                el.quotasBody.appendChild(fragment);
+                loadFullQuotas().then(renderDashboard);
+                return;
+            }
+
+            var statsByNumber = {};
+            state.fullQuotas.forEach(function (q) { statsByNumber[q.number] = q; });
+
             var field = state.sortField;
             var type = SORT_TYPES[field];
             var dir = state.sortDir === 'desc' ? -1 : 1;
-            rows.slice().sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
+            rows.map(function (q) { return statsByNumber[q.number] || q; })
+                .sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
                 .forEach(function (quota) { fragment.appendChild(buildQuotaRow(quota)); });
         } else {
             var shipCounts = {};
-            rows.forEach(function (q) { shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1; });
+            var shipsInOrder = [];
+            rows.forEach(function (q) {
+                shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1;
+                if (shipsInOrder.indexOf(q.shipName) === -1) { shipsInOrder.push(q.shipName); }
+            });
 
             if (state.openShip !== null && !(state.openShip in shipCounts)) {
                 state.openShip = null;
             }
 
-            var currentShip = null;
-            rows.forEach(function (quota) {
-                if (quota.shipName !== currentShip) {
-                    currentShip = quota.shipName;
-                    fragment.appendChild(buildGroupHeaderRow(currentShip, shipCounts[currentShip], currentShip === state.openShip));
+            shipsInOrder.forEach(function (shipName) {
+                var isOpen = shipName === state.openShip;
+                fragment.appendChild(buildGroupHeaderRow(shipName, shipCounts[shipName], isOpen));
+
+                if (!isOpen) { return; }
+
+                // محاسبات این کشتی فقط اینجا و فقط برای همین یک کشتی درخواست می‌شود، نه برای بقیه‌ی کشتی‌ها.
+                var shipStats = state.shipStats[shipName];
+                if (!shipStats) {
+                    fragment.appendChild(buildGroupLoadingRow());
+                    return;
                 }
-                if (quota.shipName === state.openShip) {
-                    fragment.appendChild(buildQuotaRow(quota));
-                }
+
+                var statsByNumberForShip = {};
+                shipStats.forEach(function (q) { statsByNumberForShip[q.number] = q; });
+
+                rows.filter(function (q) { return q.shipName === shipName; })
+                    .forEach(function (q) { fragment.appendChild(buildQuotaRow(statsByNumberForShip[q.number] || q)); });
             });
         }
 
         el.quotasBody.appendChild(fragment);
     }
 
+    // آمار محاسبه‌شده‌ی فقط یک کشتی؛ صدا زده می‌شود وقتی دسته‌بندی همان کشتی باز می‌شود. نتیجه کش می‌شود تا
+    // باز/بسته کردن دوباره‌ی همان کشتی دوباره محاسبه نکند؛ رفرش دستی داشبورد این کش را پاک می‌کند.
+    function loadShipStats(shipName) {
+        if (state.shipStats[shipName]) { return Promise.resolve(); }
+        if (state.shipStatsPromises[shipName]) { return state.shipStatsPromises[shipName]; }
+
+        var promise = request('shipStats', { shipName: shipName })
+            .then(function (data) {
+                state.shipStats[shipName] = data.quotas;
+                if (state.openShip === shipName) { renderDashboard(); }
+            })
+            .catch(function (error) {
+                if (error.message !== 'unauthenticated') { toast(error.message, 'error'); }
+                if (state.openShip === shipName) { state.openShip = null; renderDashboard(); }
+            })
+            .finally(function () {
+                delete state.shipStatsPromises[shipName];
+            });
+
+        state.shipStatsPromises[shipName] = promise;
+        return promise;
+    }
+
+    // فهرست کامل و سنگین (همه‌ی کشتی‌ها با محاسبات) فقط وقتی مرتب‌سازی سراسری فعال شود لود می‌شود.
+    function loadFullQuotas() {
+        if (state.fullQuotas) { return Promise.resolve(); }
+        if (state.fullQuotasPromise) { return state.fullQuotasPromise; }
+
+        state.fullQuotasPromise = request('summary', null)
+            .then(function (data) {
+                state.fullQuotas = data.quotas;
+            })
+            .catch(function (error) {
+                if (error.message !== 'unauthenticated') { toast(error.message, 'error'); }
+                state.sortField = null;
+            })
+            .finally(function () {
+                state.fullQuotasPromise = null;
+            });
+
+        return state.fullQuotasPromise;
+    }
+
     function loadDashboard() {
         el.dashboardLoading.classList.remove('is-hidden');
         el.dashboardEmpty.classList.add('is-hidden');
 
-        return request('summary', null)
+        // داده‌های سنگین کش‌شده متعلق به بار قبلی‌اند؛ با رفرش دستی داشبورد باید دوباره (تنبل) محاسبه شوند.
+        state.shipStats = {};
+        state.shipStatsPromises = {};
+        state.fullQuotas = null;
+        state.fullQuotasPromise = null;
+
+        // بارگذاری اولیه فقط فهرست سبک را می‌گیرد؛ محاسبات تناژ/درصد/حواله اینجا انجام نمی‌شود.
+        return request('groups', null)
             .then(function (data) {
                 state.quotas = data.quotas;
                 renderDashboard();
@@ -601,6 +695,7 @@
         if (groupHeader) {
             state.openShip = state.openShip === groupHeader.dataset.ship ? null : groupHeader.dataset.ship;
             renderDashboard();
+            if (state.openShip) { loadShipStats(state.openShip); }
             return;
         }
 

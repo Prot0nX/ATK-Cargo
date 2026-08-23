@@ -199,6 +199,7 @@ final class QuotaService {
     }
 
  // خلاصه‌ی همه‌ی کوتاژها (فعال و غیرفعال) برای داشبورد گزارش — همان الگوی JOIN اثبات‌شده‌ی getQuotaDetails، بدون فیلتر تک‌کوتاژ
+ // فقط زمانی صدا زده می‌شود که کاربر مرتب‌سازی سراسری را فعال کند؛ بارگذاری اولیه‌ی داشبورد از getQuotaGroupsSummary (سبک) استفاده می‌کند
     public function getQuotasSummary(): array {
         return MicroCache::remember('quota_reports_summary', 10, fn() => $this->fetchQuotasSummary());
     }
@@ -225,13 +226,57 @@ final class QuotaService {
 
         $quotas = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $totalTonnage = floatval($row['totalTonnage']);
-            $loadedTonnage = floatval($row['loadedTonnage']);
-            $remainingTonnage = $totalTonnage - $loadedTonnage;
-            $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
-            $isPercentageRestricted = (bool)$row['is_enabled'];
-            $exitVoucherCount = intval($row['exitVoucherCount']);
+            $quotas[] = $this->mapQuotaStatsRow($row);
+        }
+        return $quotas;
+    }
 
+ // نگاشت مشترک یک ردیف نتیجه‌ی exit_data-join به همان شکل خروجی که داشبورد و گروه‌های باز‌شده هر دو انتظار دارند
+    private function mapQuotaStatsRow(array $row): array {
+        $totalTonnage = floatval($row['totalTonnage']);
+        $loadedTonnage = floatval($row['loadedTonnage']);
+        $remainingTonnage = $totalTonnage - $loadedTonnage;
+        $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
+        $isPercentageRestricted = (bool)$row['is_enabled'];
+        $exitVoucherCount = intval($row['exitVoucherCount']);
+
+        return [
+            'number' => $row['number'],
+            'shipName' => $row['shipName'] ?? '',
+            'warehouse' => $row['loadingWarehouse'] ?? '',
+            'cargoType' => $row['cargoType'] ?? '',
+            'shippingCompany' => $row['shippingCompany'] ?? '',
+            'cargoOwner' => $row['cargoOwner'] ?? 'نامشخص',
+            'totalTonnage' => $totalTonnage,
+            'remainingTonnage' => $remainingTonnage,
+            'loadedTonnage' => $loadedTonnage,
+            'percentageLoaded' => $totalTonnage > 0 ? round(($loadedTonnage / $totalTonnage) * 100, 2) : 0,
+            'exitVoucherCount' => $exitVoucherCount,
+            'percentage' => $percentage,
+            'isPercentageRestricted' => $isPercentageRestricted,
+            'isActive' => (bool)$row['isActive'],
+        ];
+    }
+
+ // فهرست سبک همه‌ی کوتاژها برای بارگذاری اولیه‌ی داشبورد: فقط ستون‌های خود InitialInfo، بدون JOIN/تجمیع روی CargoInfo.
+ // محاسبات سنگین (تناژ بارگیری‌شده، درصد، تعداد حواله) عمداً اینجا نیستند؛ فقط با باز شدن دسته‌بندی هر کشتی و از طریق
+ // getQuotaStatsForShip برای همان یک کشتی انجام می‌شوند.
+    public function getQuotaGroupsSummary(): array {
+        return MicroCache::remember('quota_reports_groups_summary', 10, fn() => $this->fetchQuotaGroupsSummary());
+    }
+
+    private function fetchQuotaGroupsSummary(): array {
+        $query = "SELECT
+            i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
+            i.cargoWeight as totalTonnage, i.isActive
+        FROM InitialInfo i
+        ORDER BY i.shipName ASC, i.isActive DESC, i.loadingQuotaNumber ASC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+
+        $quotas = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $quotas[] = [
                 'number' => $row['number'],
                 'shipName' => $row['shipName'] ?? '',
@@ -239,15 +284,44 @@ final class QuotaService {
                 'cargoType' => $row['cargoType'] ?? '',
                 'shippingCompany' => $row['shippingCompany'] ?? '',
                 'cargoOwner' => $row['cargoOwner'] ?? 'نامشخص',
-                'totalTonnage' => $totalTonnage,
-                'remainingTonnage' => $remainingTonnage,
-                'loadedTonnage' => $loadedTonnage,
-                'percentageLoaded' => $totalTonnage > 0 ? round(($loadedTonnage / $totalTonnage) * 100, 2) : 0,
-                'exitVoucherCount' => $exitVoucherCount,
-                'percentage' => $percentage,
-                'isPercentageRestricted' => $isPercentageRestricted,
+                'totalTonnage' => floatval($row['totalTonnage']),
                 'isActive' => (bool)$row['isActive'],
             ];
+        }
+        return $quotas;
+    }
+
+ // آمار محاسبه‌شده (تناژ بارگیری‌شده/باقی‌مانده، درصد، تعداد حواله) فقط برای کوتاژهای یک کشتی — دقیقاً همان شکل
+ // خروجی fetchQuotasSummary اما با WHERE shipName، تا داشبورد بدون تغییر منطق رندر بتواند از آن استفاده کند.
+    public function getQuotaStatsForShip(string $shipName): array {
+        $shipName = InputValidator::validateIdentifier($shipName);
+        return MicroCache::remember('quota_reports_ship_stats_' . $shipName, 10, fn() => $this->fetchQuotaStatsForShip($shipName));
+    }
+
+    private function fetchQuotaStatsForShip(string $shipName): array {
+        $query = "SELECT
+            i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
+            i.cargoWeight as totalTonnage, i.percentage, i.is_enabled, i.isActive,
+            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount
+        FROM InitialInfo i
+        LEFT JOIN (
+            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
+                SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "' AND c.shipName = ?
+            GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+        ) exit_data ON
+            exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
+            AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
+            AND exit_data.cargoType = i.cargoType
+        WHERE i.shipName = ?
+        ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute([$shipName, $shipName]);
+
+        $quotas = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $quotas[] = $this->mapQuotaStatsRow($row);
         }
         return $quotas;
     }

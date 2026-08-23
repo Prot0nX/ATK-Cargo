@@ -24,7 +24,9 @@ $plans = LicenseAdminService::PLANS;
     <meta name="csrf-token" content="<?= e($csrfToken) ?>">
     <title>مدیریت لایسنس — ATK Cargo</title>
     <link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="preload" href="../assets/ui/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../assets/ui/core.css?v=<?= filemtime(__DIR__ . '/../assets/ui/core.css') ?>">
+    <link rel="stylesheet" href="assets/app.css?v=<?= filemtime(__DIR__ . '/assets/app.css') ?>">
 </head>
 
 <body>
@@ -222,7 +224,7 @@ $plans = LicenseAdminService::PLANS;
 
     <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
-    <script src="assets/app.js"></script>
+    <script src="assets/app.js" defer></script>
 </body>
 
 </html>

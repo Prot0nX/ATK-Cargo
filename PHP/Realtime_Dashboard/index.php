@@ -18,7 +18,9 @@ $theme = rtd_theme();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>داشبورد لحظه‌ای بارگیری — ATK Cargo</title>
     <link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
-    <link rel="stylesheet" href="assets/app.css">
+    <link rel="preload" href="../assets/ui/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="../assets/ui/core.css?v=<?= filemtime(__DIR__ . '/../assets/ui/core.css') ?>">
+    <link rel="stylesheet" href="assets/app.css?v=<?= filemtime(__DIR__ . '/assets/app.css') ?>">
 </head>
 
 <body>
@@ -188,7 +190,7 @@ $theme = rtd_theme();
 
     <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
 
-    <script src="assets/app.js"></script>
+    <script src="assets/app.js" defer></script>
 </body>
 
 </html>
