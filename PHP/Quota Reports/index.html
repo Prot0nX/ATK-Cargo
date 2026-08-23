@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد مدیریت اطلاعات بارگیری</title>
+	<link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="assets/img/fav.ico">
+    <link rel="apple-touch-icon" href="assets/img/fav.ico">
+	
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+	<link href="css/output.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        vazir: ['Vazirmatn', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <link rel="stylesheet" href="css/custom-styles.css">
+
+</head>
+<body class="h-full font-vazir bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-slate-900 text-gray-900 dark:text-white min-h-screen">
+
+	<div id="overlay" class="fixed inset-0 bg-black opacity-50 z-40 hidden"></div>
+	
+	<!-- نوار پیشرفت بروزرسانی -->
+	<div id="updateProgressBar" class="fixed top-0 left-0 right-0 z-60 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 transform scale-x-0 origin-right transition-transform duration-300 ease-linear hidden"></div>
+	
+	<!-- هدر مدرن جدید -->
+	<header class="fixed top-0.5 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+		<div class="container mx-auto px-4 py-3">
+			<div class="flex items-center justify-between">
+				<!-- لوگو و عنوان -->
+				<div class="flex items-center space-x-4 space-x-reverse">
+					<div class="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl shadow-lg">
+						<svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+						</svg>
+					</div>
+					<div>
+						<h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+							داشبورد مدیریت بارگیری
+						</h1>
+						<p class="text-sm text-gray-500 dark:text-gray-400">سیستم جامع مدیریت اطلاعات</p>
+					</div>
+				</div>
+
+				<!-- جستجوی کوتاژ در هدر -->
+				<div class="hidden md:flex items-center space-x-4 space-x-reverse">
+					<div class="relative">
+						<form id="kotazhForm" class="flex items-center space-x-2 space-x-reverse">
+							<div class="relative">
+								<input type="number" id="kotazhNumber" placeholder="شماره کوتاژ" required 
+									class="w-48 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+								<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+								</svg>
+							</div>
+							<button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+								جستجو
+							</button>
+						</form>
+					</div>
+				</div>
+
+				<!-- دکمه‌های کنترل -->
+				<div class="flex items-center space-x-2 space-x-reverse">
+					<!-- دکمه داشبورد لحظه‌ای -->
+					<a href="../realtime-dashboard/" class="p-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" title="داشبورد بارگیری لحظه‌ای">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+						</svg>
+					</a>
+					
+					<!-- دکمه جستجوی پیشرفته -->
+					<button id="floatingSearchButton" class="p-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+						</svg>
+					</button>
+					
+					<!-- دکمه تنظیم مدت زمان بروزرسانی -->
+					<button id="updateIntervalButton" class="p-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative" title="تنظیم مدت زمان بروزرسانی">
+						<!-- آیکن ساعت (حالت عادی) -->
+						<svg id="clockIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<!-- آیکن pause (مخفی در ابتدا) -->
+						<svg id="pauseIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<span id="intervalDisplay" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1 min-w-[20px] h-5 flex items-center justify-center font-bold">30</span>
+					</button>
+					
+					<!-- دکمه حالت تاریک -->
+					<button id="darkModeToggle" class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+						</svg>
+					</button>
+					
+					<!-- دکمه خروج -->
+					<button id="logoutButton" class="p-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" title="خروج از سیستم">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+						</svg>
+					</button>
+
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<!-- مودال جستجو -->
+	<div id="searchModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+		<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+			<h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">جستجوی پیشرفته</h2>
+			<form id="advancedSearchForm">
+				<div class="mb-4">
+					<label for="searchReceipt" class="block text-sm font-medium text-gray-300 mb-1">شماره قبض باسکول</label>
+					<input type="number" id="searchReceipt" name="searchReceipt" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white" placeholder="">
+				</div>
+				<div class="flex justify-end space-x-2 space-x-reverse">
+					<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">جستجو</button>
+					<button type="button" id="closeSearchModal" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">انصراف</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+	<main class="container mx-auto px-4 pt-24 pb-8">
+		<!-- جستجوی کوتاژ موبایل -->
+		<section class="md:hidden bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl shadow-xl p-6 mb-8 border border-gray-200/50 dark:border-gray-700/50">
+			<h2 class="text-lg font-semibold mb-4 flex items-center space-x-3 space-x-reverse text-gray-800 dark:text-gray-200">
+				<div class="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
+					<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+					</svg>
+				</div>
+				<span>جستجوی کوتاژ</span>
+			</h2>
+			<form class="flex flex-col sm:flex-row gap-3">
+				<div class="relative flex-grow">
+					<input type="number" placeholder="شماره کوتاژ را وارد کنید" required 
+						class="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
+					<svg class="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+					</svg>
+				</div>
+				<button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium">
+					جستجو
+				</button>
+			</form>
+		</section>
+
+		<!-- بخش اطلاعات کوتاژ -->
+		<section id="kotazhInfo" class="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl shadow-xl p-8 mb-8 hidden border border-gray-200/50 dark:border-gray-700/50" aria-label="اطلاعات کوتاژ">
+			<div class="flex items-center justify-between mb-8">
+				<div class="flex items-center space-x-4 space-x-reverse">
+					<div class="bg-gradient-to-r from-emerald-500 to-teal-500 p-3 rounded-xl shadow-lg">
+						<svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+						</svg>
+					</div>
+					<div>
+						<h2 class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+							<span>اطلاعات کوتاژ</span>
+						</h2>
+						<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">جزئیات کامل بارگیری</p>
+					</div>
+				</div>
+			</div>
+			
+			<!-- کارت‌های اطلاعات کوتاژ بازطراحی شده -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+				<!-- کارت اطلاعات کشتی و انبار -->
+				<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center space-x-3 space-x-reverse">
+							<div class="bg-gradient-to-r from-blue-500 to-indigo-500 p-3 rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-300">
+								<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+								</svg>
+							</div>
+						</div>
+					</div>
+					<div class="space-y-4">
+						<div>
+							<h3 class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">اطلاعات کشتی</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">مشخصات کشتی و انبار</p>
+						</div>
+						<div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200/30 dark:border-blue-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">نام کشتی</span>
+								<div class="bg-blue-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+									</svg>
+								</div>
+							</div>
+							<p id="shipName" class="text-lg font-bold text-gray-900 dark:text-white"></p>
+						</div>
+						<div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">انبار بارگیری</span>
+								<div class="bg-emerald-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+									</svg>
+								</div>
+							</div>
+							<p id="loadingWarehouse" class="text-lg font-bold text-gray-900 dark:text-white"></p>
+						</div>
+					</div>
+				</div>
+
+				<!-- کارت اطلاعات کالا و باربری -->
+				<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center space-x-3 space-x-reverse">
+							<div class="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-300">
+								<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+								</svg>
+							</div>
+						</div>
+					</div>
+					<div class="space-y-4">
+						<div>
+							<h3 class="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">اطلاعات کالا</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">نوع کالا و شرکت باربری</p>
+						</div>
+						<div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-200/30 dark:border-purple-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">نوع کالا</span>
+								<div class="bg-purple-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+									</svg>
+								</div>
+							</div>
+							<p id="cargoType" class="text-lg font-bold text-gray-900 dark:text-white"></p>
+						</div>
+						<div class="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-4 border border-orange-200/30 dark:border-orange-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">شرکت باربری</span>
+								<div class="bg-orange-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+									</svg>
+								</div>
+							</div>
+							<p id="shippingCompany" class="text-lg font-bold text-gray-900 dark:text-white"></p>
+						</div>
+					</div>
+				</div>
+
+				<!-- کارت آمار تناژ -->
+				<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center space-x-3 space-x-reverse">
+							<div class="bg-gradient-to-r from-cyan-500 to-blue-500 p-3 rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-300">
+								<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+								</svg>
+							</div>
+						</div>
+					</div>
+					<div class="space-y-4">
+						<div>
+							<h3 class="text-lg font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent mb-2">آمار تناژ</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">تناژ و حواله‌های مانده</p>
+						</div>
+						<div class="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl p-4 border border-yellow-200/30 dark:border-yellow-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">تناژ مانده</span>
+								<div class="bg-yellow-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+									</svg>
+								</div>
+							</div>
+							<p id="remainingTonnage" class="text-xl font-bold text-gray-900 dark:text-white"></p>
+						</div>
+						<div class="bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-rose-200/30 dark:border-rose-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">حواله‌های مانده</span>
+								<div class="bg-rose-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+									</svg>
+								</div>
+							</div>
+							<p id="remainingVouchers" class="text-xl font-bold text-gray-900 dark:text-white"></p>
+						</div>
+					</div>
+				</div>
+
+				<!-- کارت تناژ کل -->
+				<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
+					<div class="flex items-center justify-between mb-6">
+						<div class="flex items-center space-x-3 space-x-reverse">
+							<div class="bg-gradient-to-r from-emerald-500 to-teal-500 p-3 rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-300">
+								<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+								</svg>
+							</div>
+						</div>
+					</div>
+					<div class="space-y-4">
+						<div>
+							<h3 class="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">تناژ کل</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">تناژ کل و بارگیری شده</p>
+						</div>
+						<div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">تناژ کل</span>
+								<div class="bg-emerald-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+									</svg>
+								</div>
+							</div>
+							<p id="cargoWeight" class="text-2xl font-bold text-gray-900 dark:text-white"></p>
+						</div>
+						<div class="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl p-4 border border-cyan-200/30 dark:border-cyan-700/30">
+							<div class="flex items-center justify-between mb-2">
+								<span class="text-sm font-medium text-gray-600 dark:text-gray-400">تناژ بارگیری شده</span>
+								<div class="bg-cyan-500/10 p-1.5 rounded-lg">
+									<svg class="h-4 w-4 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+									</svg>
+								</div>
+							</div>
+							<p id="loadedTonnage" class="text-xl font-bold text-gray-900 dark:text-white"></p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- بخش جدول اطلاعات حواله‌ها بازطراحی شده -->
+		<section id="cargoInfoTable" class="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg rounded-2xl shadow-xl p-8 mb-8 hidden border border-gray-200/50 dark:border-gray-700/50" aria-label="جدول اطلاعات حواله‌ها">
+			<div class="flex items-center justify-between mb-8">
+				<div class="flex items-center space-x-4 space-x-reverse">
+					<div class="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-xl shadow-lg">
+						<svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+						</svg>
+					</div>
+					<div>
+						<h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+							<span>اطلاعات حواله‌ها</span>
+						</h2>
+						<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">مدیریت و نمایش حواله‌های بارگیری</p>
+					</div>
+				</div>
+
+			</div>
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+				<!-- کارت فیلترها و خلاصه آمار بازطراحی شده -->
+				<div class="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-indigo-200/50 dark:border-indigo-700/50 shadow-lg">
+					<div class="flex items-center space-x-4 space-x-reverse mb-6">
+						<div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-3 rounded-xl shadow-lg">
+							<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+								فیلترها و آمار
+							</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">خلاصه اطلاعات حواله‌ها</p>
+						</div>
+					</div>
+					<div class="space-y-4">
+
+
+					</div>
+					<div class="mt-6 p-4 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700/20">
+						<h4 class="text-sm font-semibold mb-3 flex items-center space-x-2 space-x-reverse text-gray-700 dark:text-gray-300">
+							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+							</svg>
+							<span>فیلترهای داده ها</span>
+						</h4>
+						<div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="فیلترهای نمایش حواله‌ها">
+							<button id="filterAll" class="filter-btn px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors text-sm" aria-pressed="true">همه</button>
+							<button id="filterEnter" class="filter-btn px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition-colors text-sm" aria-pressed="false">ورود</button>
+							<button id="filterExitAll" class="filter-btn px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition-colors text-sm" aria-pressed="false">خروج (کلی)</button>
+						</div>
+						<div class="flex flex-wrap gap-2 items-center">
+							<div class="relative">
+								<select id="startDate" class="appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white py-1.5 px-3 pr-6 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 transition-colors text-sm">
+									<option value="">از تاریخ</option>
+								</select>
+								<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+									<svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+								</div>
+							</div>
+							<div class="relative">
+								<select id="endDate" class="appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white py-1.5 px-3 pr-6 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 transition-colors text-sm" disabled>
+									<option value="">تا تاریخ</option>
+								</select>
+								<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+									<svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+								</div>
+							</div>
+							<button id="filterapplydatefilter" class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors text-sm">اعمال فیلتر</button>
+						</div>
+					</div>
+					<div aria-label="خلاصه آمار" class="mt-6 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-white/20 dark:border-gray-700/20 p-4">
+						<h4 class="text-sm font-semibold mb-4 flex items-center space-x-2 space-x-reverse text-gray-700 dark:text-gray-300">
+							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+							</svg>
+							<span>خلاصه آمار</span>
+						</h4>
+						<div class="grid grid-cols-2 gap-3">
+							<div class="stat-card p-3 bg-green-50 dark:bg-green-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">کل حواله‌ها</h5>
+									<p id="totalVouchersStats" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+							<div class="stat-card p-3 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">جمع وزن خالص</h5>
+									<p id="totalNetWeight" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+							<div class="stat-card p-3 bg-yellow-50 dark:bg-yellow-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">حواله‌های روز</h5>
+									<p id="dayShiftVouchers" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+							<div class="stat-card p-3 bg-red-50 dark:bg-red-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">جمع تناژ (روز)</h5>
+									<p id="dayShiftTonnage" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+							<div class="stat-card p-3 bg-purple-50 dark:bg-purple-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">حواله‌های شب</h5>
+									<p id="nightShiftVouchers" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+							<div class="stat-card p-3 bg-indigo-50 dark:bg-indigo-900/50 rounded-lg">
+								<div class="stat-card-content text-center">
+									<h5 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">جمع تناژ (شب)</h5>
+									<p id="nightShiftTonnage" class="text-sm font-semibold text-gray-900 dark:text-white animate-value">0</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- کارت نمودار بازطراحی شده -->
+				<div class="bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-2xl p-6 border border-teal-200/50 dark:border-teal-700/50 shadow-lg">
+					<div class="flex items-center space-x-4 space-x-reverse mb-6">
+						<div class="bg-gradient-to-r from-teal-500 to-cyan-500 p-3 rounded-xl shadow-lg">
+							<svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+								نمودار خروج حواله‌ها
+							</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">تحلیل بصری داده‌ها</p>
+						</div>
+					</div>
+					<div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-6 border border-white/20 dark:border-gray-700/20" style="height: 400px;">
+						<canvas id="exitChartCanvas"></canvas>
+					</div>
+				</div>
+			</div>
+
+			<!-- کارت جدول بازطراحی شده -->
+			<div class="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-900/50 dark:to-gray-900/50 rounded-2xl p-8 border border-slate-200/50 dark:border-slate-700/50 shadow-xl backdrop-blur-sm">
+				<!-- هدر جدول -->
+				<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+					<div class="flex items-center space-x-4 space-x-reverse">
+						<div class="bg-gradient-to-r from-slate-500 to-gray-500 p-3 rounded-xl shadow-lg">
+							<svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+							</svg>
+						</div>
+						<div>
+							<h3 class="text-2xl font-bold bg-gradient-to-r from-slate-600 to-gray-600 bg-clip-text text-transparent">
+								جدول اطلاعات حواله‌ها
+							</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">مشاهده و مدیریت تمام حواله‌های بارگیری</p>
+						</div>
+					</div>
+					
+					<!-- دکمه‌های اکسپورت -->
+					<div class="flex flex-wrap gap-3 w-full lg:w-auto">
+						<button onclick="exportTableData('excel')" class="export-button-excel group flex-1 lg:flex-none px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-opacity-50 shadow-md">
+							<span class="flex items-center justify-center space-x-2 space-x-reverse">
+								<svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+								</svg>
+								<span class="font-medium">Excel</span>
+							</span>
+						</button>
+						<button onclick="exportTableData('csv')" class="export-button-csv group flex-1 lg:flex-none px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 shadow-md">
+							<span class="flex items-center justify-center space-x-2 space-x-reverse">
+								<svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+								</svg>
+								<span class="font-medium">CSV</span>
+							</span>
+						</button>
+						<button onclick="exportTableData('pdf')" class="export-button-pdf group flex-1 lg:flex-none px-4 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl hover:from-red-600 hover:to-rose-600 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50 shadow-md">
+							<span class="flex items-center justify-center space-x-2 space-x-reverse">
+								<svg class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+								</svg>
+								<span class="font-medium">PDF</span>
+							</span>
+						</button>
+					</div>
+				</div>
+				
+				<!-- بخش جستجو -->
+				<div class="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-6 mb-6 border border-white/20 dark:border-gray-700/20">
+					<div class="flex items-center space-x-3 space-x-reverse mb-4">
+						<div class="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-lg">
+							<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+							</svg>
+						</div>
+						<h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300">جستجوی پیشرفته</h4>
+					</div>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div class="relative group">
+							<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none z-10">
+								<svg class="h-5 w-5 text-blue-400 group-focus-within:text-blue-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+								</svg>
+							</div>
+							<input type="text" id="voucherSearch" placeholder="شماره حواله..." class="w-full pr-14 pl-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-300 hover:shadow-md bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 text-right">
+						</div>
+						<div class="relative group">
+							<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none z-10">
+								<svg class="h-5 w-5 text-purple-400 group-focus-within:text-purple-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+								</svg>
+							</div>
+							<input type="text" id="receiptSearch" placeholder="شماره قبض باسکول..." class="w-full pr-14 pl-4 py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white transition-all duration-300 hover:shadow-md bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 text-right">
+						</div>
+					</div>
+				</div>
+				
+				<!-- جدول اصلی -->
+				<div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-white/30 dark:border-gray-700/30 shadow-lg overflow-hidden">
+					<div class="overflow-x-auto">
+						<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+							<thead class="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-700 dark:to-slate-700">
+								<tr>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-1.414.586H7a4 4 0 01-4-4V7a4 4 0 014-4z" />
+											</svg>
+											<span>شماره حواله</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+											</svg>
+											<span>ساعت ورود</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16l3-3m-3 3l-3-3" />
+											</svg>
+											<span>وزن خالص</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+											</svg>
+											<span>قبض باسکول</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+											</svg>
+											<span>کسری بار</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+											</svg>
+											<span>اضافه بار</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
+										<div class="flex items-center space-x-2 space-x-reverse">
+											<svg class="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+											</svg>
+											<span>ساعت خروج</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 sortable cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-sort="exitDate">
+										<div class="flex items-center justify-between group">
+											<div class="flex items-center space-x-2 space-x-reverse">
+												<svg class="h-4 w-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+												</svg>
+												<span>تاریخ خروج</span>
+											</div>
+											<span class="sort-icons opacity-60 group-hover:opacity-100 transition-opacity">
+												<svg class="sort-icon sort-asc w-3 h-3 text-blue-500" viewBox="0 0 10 5" fill="currentColor">
+													<path d="M0 5L5 0L10 5H0Z"/>
+												</svg>
+												<svg class="sort-icon sort-desc w-3 h-3 text-blue-500" viewBox="0 0 10 5" fill="currentColor">
+													<path d="M0 0L5 5L10 0H0Z"/>
+												</svg>
+											</span>
+										</div>
+									</th>
+									<th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 sortable cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-sort="status">
+										<div class="flex items-center justify-between group">
+											<div class="flex items-center space-x-2 space-x-reverse">
+												<svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+												</svg>
+												<span>وضعیت حواله</span>
+											</div>
+											<span class="sort-icons opacity-60 group-hover:opacity-100 transition-opacity">
+												<svg class="sort-icon sort-asc w-3 h-3 text-blue-500" viewBox="0 0 10 5" fill="currentColor">
+													<path d="M0 5L5 0L10 5H0Z"/>
+												</svg>
+												<svg class="sort-icon sort-desc w-3 h-3 text-blue-500" viewBox="0 0 10 5" fill="currentColor">
+													<path d="M0 0L5 5L10 0H0Z"/>
+												</svg>
+											</span>
+										</div>
+									</th>
+								</tr>
+							</thead>
+							<tbody id="cargoInfoBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+								<!-- اطلاعات حواله‌ها به صورت پویا اینجا اضافه می‌شوند -->
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+	
+	<div id="loadingOverlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+		<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg">
+			<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto"></div>
+			<p class="mt-2 text-gray-700 dark:text-gray-300">در حال بارگذاری...</p>
+		</div>
+	</div>
+
+	<div id="notification" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-md shadow-lg transform translate-y-full opacity-0 transition-all duration-300 ease-in-out z-50" role="alert" aria-live="assertive" aria-hidden="true">
+		<div class="flex items-center">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+				<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+			</svg>
+			<p>اطلاعات با موفقیت به‌روزرسانی شدند</p>
+		</div>
+	</div>
+	
+	<div class="bg-gray-800 text-white mt-8">
+		<div class="container mx-auto px-4 text-center">
+			<div class="flex flex-col md:flex-row justify-between items-center py-3">
+				<p class="text-sm">&copy; 2025 سیستم مدیریت بارگیری</p>
+				<p class="text-sm mt-2 md:mt-0">ساخته شده با <span style="color: red;">❤</span> توسط <a href="#" id="contact-link">Prot0nX</a></p>
+			</div>
+		</div>
+	</div>
+
+	<!-- Dialog -->
+	<div id="contact-dialog" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+		<div class="bg-white p-8 rounded-lg shadow-lg w-80 text-gray-800">
+			<h3 class="text-xl font-bold mb-4">تماس با ما</h3>
+			<p><strong>آدرس:</strong> خوزستان - مجتمع بندری بندرامام خمینی (ره) - شرکت بین المللی نیاکوزرین</p>
+			<button id="close-dialog" class="mt-4 bg-gray-800 text-white py-2 px-4 rounded">بستن</button>
+		</div>
+	</div>
+	
+	<button id="scrollToTopBtn" aria-label="بازگشت به بالای صفحه">
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+		</svg>
+	</button>
+	
+    <script defer src="js/script.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script defer src="https://unpkg.com/moment-jalaali@0.9.2/build/moment-jalaali.js"></script>
+	
+</body>
+</html>
