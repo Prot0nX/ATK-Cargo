@@ -200,6 +200,10 @@ final class QuotaService {
 
  // خلاصه‌ی همه‌ی کوتاژها (فعال و غیرفعال) برای داشبورد گزارش — همان الگوی JOIN اثبات‌شده‌ی getQuotaDetails، بدون فیلتر تک‌کوتاژ
     public function getQuotasSummary(): array {
+        return MicroCache::remember('quota_reports_summary', 10, fn() => $this->fetchQuotasSummary());
+    }
+
+    private function fetchQuotasSummary(): array {
         $query = "SELECT
             i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
             i.cargoWeight as totalTonnage, i.percentage, i.is_enabled, i.isActive,

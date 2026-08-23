@@ -1371,6 +1371,11 @@ parameters:
 			path: src/Services/QuotaService.php
 
 		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:fetchQuotasSummary\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
 			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getQuotasSummary\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Services/QuotaService.php
