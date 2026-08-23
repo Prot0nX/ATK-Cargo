@@ -12,5 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Csrf::validate($_POST['csrf_token']
     qr_destroy_session();
 }
 
-header('Location: login.php');
+// اگر خروج از پنل دیگری (مثلاً Realtime_Dashboard) درخواست شده، بعد از ورود مجدد باید به همان‌جا
+// برگردیم — همان return که آن پنل در فرم خروج جاسازی کرده، به login.php منتقل می‌شود.
+$returnTo = qr_sanitize_return($_POST['return'] ?? null);
+header('Location: login.php' . ($returnTo !== null ? ('?return=' . urlencode($returnTo)) : ''));
 exit;

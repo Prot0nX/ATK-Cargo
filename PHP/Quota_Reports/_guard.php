@@ -100,3 +100,17 @@ function qr_theme(): string {
 function e(?string $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+// اعتبارسنجی مسیر بازگشت بعد از ورود/خروج مشترک نشست (مثلاً وقتی Realtime_Dashboard کاربر را به این
+// صفحه می‌فرستد و می‌خواهد بعد از ورود/خروج به همان‌جا برگردد). فقط index.php همین پنل یا index.php
+// یک پنل خواهرِ هم‌سطح (../SomeDir/index.php) مجاز است؛ هر چیز دیگر (URL مطلق، //، querystring، ..\)
+// رد می‌شود تا این پارامتر مسیر open redirect نشود.
+function qr_sanitize_return(?string $raw): ?string {
+    if ($raw === null || $raw === '') {
+        return null;
+    }
+    if ($raw === 'index.php' || preg_match('#^\.\./[A-Za-z0-9_]+/index\.php$#', $raw) === 1) {
+        return $raw;
+    }
+    return null;
+}

@@ -13,8 +13,12 @@ use App\Services\LoginAttemptLimiter;
 
 qr_send_page_headers();
 
+// اگر پنل دیگری (مثلاً Realtime_Dashboard) کاربر را برای ورود به این‌جا فرستاده، بعد از ورود باید
+// به همان‌جا برگردیم، نه همیشه به index.php همین پنل — قبلاً این پارامتر اصلاً در نظر گرفته نمی‌شد.
+$returnTo = qr_sanitize_return($_GET['return'] ?? ($_POST['return'] ?? null)) ?? 'index.php';
+
 if (qr_is_authenticated()) {
-    header('Location: index.php');
+    header('Location: ' . $returnTo);
     exit;
 }
 
@@ -43,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Csrf::token();
 
         $logger->security("Quota Reports panel login successful from {$clientIp}");
-        header('Location: index.php');
+        header('Location: ' . $returnTo);
         exit;
     } else {
         $limiter->registerFailedAttempt(QR_ACTOR, $clientIp);
@@ -84,6 +88,7 @@ $theme = qr_theme();
 
         <form method="post" action="login.php" autocomplete="off">
             <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
+            <input type="hidden" name="return" value="<?= e($returnTo) ?>">
 
             <label class="field">
                 <span class="field-label">رمز عبور</span>
