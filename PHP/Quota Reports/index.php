@@ -75,6 +75,10 @@ $theme = qr_theme();
                         <svg class="icon" aria-hidden="true"><use href="#refresh"></use></svg>
                         <span>بازخوانی</span>
                     </button>
+                    <a class="btn btn-ghost" id="exportSummaryExcel" href="export.php?format=excel&amp;scope=summary">
+                        <svg class="icon" aria-hidden="true"><use href="#file-excel"></use></svg>
+                        <span>خروجی کامل داشبورد</span>
+                    </a>
                 </div>
             </section>
 
