@@ -1,0 +1,877 @@
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('../assets/fonts/vazirmatn.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Light mode colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --border-glass: rgba(226, 232, 240, 0.5);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    
+    /* Legacy variables for compatibility */
+    --primary-color: #4f46e5;
+    --primary-hover-color: #4338ca;
+    --secondary-color: #6b7280;
+    --background-color: #f3f4f6;
+    --card-background: #ffffff;
+    --text-color: #1f2937;
+    --button-text-color: #ffffff;
+    --table-header-bg: #f9fafb;
+    --table-row-hover: #f3f4f6;
+    --sidebar-width: 20rem;
+    --dark-bg-color: #111827;
+    --dark-card-bg: #1f2937;
+    --dark-text-color: #f9fafb;
+    --dark-border-color: #374151;
+    --dark-table-header-bg: #374151;
+    --dark-table-row-hover: #2c3440;
+}
+
+/* ---------- تنظیمات حالت تاریک ---------- */
+.dark {
+    --primary-color: #6366f1;
+    --primary-hover-color: #4f46e5;
+    --secondary-color: #9ca3af;
+    --background-color: var(--dark-bg-color);
+    --card-background: var(--dark-card-bg);
+    --text-color: var(--dark-text-color);
+    --border-color: var(--dark-border-color);
+    --table-header-bg: var(--dark-table-header-bg);
+    --table-row-hover: var(--dark-table-row-hover);
+}
+
+[data-theme="dark"] {
+	/* Dark mode colors */
+	--bg-primary: #1f2937;
+	--bg-secondary: #111827;
+	--bg-tertiary: #0f172a;
+	--bg-glass: rgba(31, 41, 55, 0.7);
+	--text-primary: #f8fafc;
+	--text-secondary: #cbd5e1;
+	--text-muted: #64748b;
+	--border-color: #374151;
+	--border-glass: rgba(55, 65, 81, 0.5);
+	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+	--shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+	--gradient-primary: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%);
+	--gradient-secondary: linear-gradient(135deg, #7c2d12 0%, #991b1b 100%);
+	--gradient-success: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+}
+
+/* ---------- استایل‌های پایه ---------- */
+html, body {
+	height: 100%;
+}
+
+body {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: var(--text-primary);
+	font-family: 'Vazir', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	transition: all 0.3s ease;
+	margin: 0;
+	padding: 0;
+	min-height: 100vh;
+	direction: rtl;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+
+body::before {
+	content: '';
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: 
+		radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+		radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+		radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+	pointer-events: none;
+	z-index: -1;
+}
+
+[data-theme="dark"] body {
+	background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%);
+}
+
+[data-theme="dark"] body::before {
+	background: 
+		radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.2) 0%, transparent 50%),
+		radial-gradient(circle at 80% 20%, rgba(139, 69, 19, 0.2) 0%, transparent 50%),
+		radial-gradient(circle at 40% 40%, rgba(6, 95, 70, 0.15) 0%, transparent 50%);
+}
+
+/* اسکرول‌بار سفارشی */
+::-webkit-scrollbar {
+	width: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--bg-secondary);
+	border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb {
+	background: linear-gradient(135deg, #667eea, #764ba2);
+	border-radius: var(--radius-md);
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(135deg, #5a67d8, #6b46c1);
+}
+
+/* ---------- کامپوننت‌های اصلی ---------- */
+#sidebar, main section, .table-container {
+    background-color: var(--card-background);
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.main-section {
+	padding: 2rem;
+	min-height: 100vh;
+	transition: all 0.3s ease;
+	position: relative;
+}
+
+/* ---------- استایل‌های سایدبار ---------- */
+#sidebarContainer {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: auto;
+    width: 100%;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 50;
+}
+
+#sidebarContainer.open {
+    transform: translateY(0);
+}
+
+#sidebar {
+    width: 100%;
+    height: auto;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+#sidebarToggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1001;
+    padding: 0.5rem;
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#sidebarToggle:hover {
+    background-color: var(--primary-hover-color);
+}
+
+#sidebarTitle {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+#updateTime {
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+#sidebarContent {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--background-color);
+}
+
+#sidebarContent::-webkit-scrollbar {
+    height: 8px;
+}
+
+#sidebarContent::-webkit-scrollbar-track {
+    background: var(--background-color);
+}
+
+#sidebarContent::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 20px;
+    border: 3px solid var(--background-color);
+}
+
+/* ---------- استایل‌های کارت آمار ---------- */
+.stat-card {
+    background-color: var(--card-background);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background-color: var(--background-color);
+}
+
+.stat-card-content {
+    text-align: center;
+}
+
+.stat-card h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+/* ---------- استایل‌های فرم و دکمه ---------- */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select,
+.filter-btn,
+button {
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+    color: var(--text-color);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    outline: none;
+}
+
+button, .filter-btn {
+    background-color: var(--primary-color);
+    color: var(--button-text-color);
+    cursor: pointer;
+}
+
+button:hover, .filter-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+
+/* ---------- استایل‌های جدول ---------- */
+.table-container {
+	overflow-x: auto;
+	border-radius: var(--radius-2xl);
+	box-shadow: var(--shadow-xl);
+	background: var(--bg-glass);
+	border: 1px solid var(--border-glass);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+}
+
+.data-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: transparent;
+}
+
+.data-table th {
+	background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+	color: var(--text-primary);
+	padding: 1.25rem;
+	text-align: right;
+	font-weight: 700;
+	border-bottom: 2px solid var(--border-glass);
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	font-size: 0.875rem;
+	letter-spacing: 0.025em;
+}
+
+.data-table td {
+	padding: 1rem 1.25rem;
+	border-bottom: 1px solid var(--border-glass);
+	color: var(--text-secondary);
+	transition: all 0.3s ease;
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.data-table tr:hover td {
+	background: rgba(99, 102, 241, 0.05);
+	transform: scale(1.001);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.data-table tr:last-child td {
+	border-bottom: none;
+}
+
+[data-theme="dark"] .data-table th {
+	background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(139, 92, 246, 0.2));
+}
+
+[data-theme="dark"] .data-table td {
+	background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .data-table tr:hover td {
+	background: rgba(79, 70, 229, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: right;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    background-color: var(--table-header-bg);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+tbody tr {
+    transition: background-color 0.3s ease;
+}
+
+tbody tr:hover {
+    background-color: var(--table-row-hover);
+}
+
+/* ---------- انیمیشن‌ها و افکت‌های مدرن ---------- */
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(30px) scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%) rotateY(15deg);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0) rotateY(0deg);
+		opacity: 1;
+	}
+}
+
+@keyframes pulse {
+	0%, 100% {
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+	}
+	50% {
+		transform: scale(1.02);
+		box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+	}
+}
+
+@keyframes float {
+	0%, 100% {
+		transform: translateY(0px);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -200px 0;
+	}
+	100% {
+		background-position: calc(200px + 100%) 0;
+	}
+}
+
+@keyframes gradientShift {
+	0%, 100% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+}
+
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+	animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-in {
+	animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-pulse {
+	animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+	animation: float 6s ease-in-out infinite;
+}
+
+.animate-count-up {
+	animation: countUp 0.8s ease-out forwards;
+	transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-shimmer {
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+	background-size: 200px 100%;
+	animation: shimmer 2s infinite;
+}
+
+.animate-gradient {
+	background-size: 200% 200%;
+	animation: gradientShift 4s ease infinite;
+}
+
+/* افکت‌های hover مدرن */
+.hover-lift {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+	transform: translateY(-8px) scale(1.02);
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow {
+	transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+	box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+/* افکت glass morphism */
+.glass-effect {
+	background: rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .glass-effect {
+	background: rgba(0, 0, 0, 0.2);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.export-button-pdf:hover,
+.export-button-csv:hover,
+.export-button-excel:hover {
+    animation: pulse 2s infinite;
+}
+
+ #scrollToTopBtn {
+	display: none;
+	position: fixed;
+	bottom: 10px;
+	left: 10px;
+	z-index: 99;
+	border: none;
+	outline: none;
+	background-color: rgba(59, 130, 246, 0.5);
+	color: white;
+	cursor: pointer;
+	padding: 10px;
+	border-radius: 50%;
+	font-size: 18px;
+	transition: background-color 0.3s, opacity 0.5s, visibility 0.5s;
+}
+
+#scrollToTopBtn:hover {
+	background-color: rgba(59, 130, 246, 0.8);
+}
+		
+/* ---------- استایل‌های واکنش‌گرا ---------- */
+@media (min-width: 1024px) {
+    #sidebarContainer {
+        width: var(--sidebar-width);
+        height: 100%;
+        transform: translateX(0);
+        right: 0;
+        left: auto;
+    }
+
+    #sidebar {
+        height: 100%;
+    }
+
+    main {
+        margin-right: var(--sidebar-width);
+    }
+
+    #sidebarToggle {
+        display: none;
+    }
+
+    #sidebarContent {
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: calc(100vh - 120px);
+    }
+
+    #sidebarContent::-webkit-scrollbar {
+        width: 8px;
+        height: auto;
+    }
+
+    #sidebarContent > div {
+        width: calc(100% - 0.3rem);
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 1023px) {
+    body.sidebar-open {
+        overflow: hidden;
+    }
+
+    #sidebarToggle {
+        display: block;
+    }
+    
+    #sidebarContainer {
+        padding-top: 1rem;
+    }
+
+    #sidebar {
+        padding-top: 0.4rem;
+    }
+    
+    #sidebarContent > div:not(:last-child) {
+        margin-right: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    th, td {
+        padding: 0.75rem;
+    }
+
+    .stat-card h3 {
+        font-size: 0.75rem;
+    }
+
+    .stat-card p {
+        font-size: 1rem;
+    }
+
+    #topBar .container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #topBar .flex {
+        justify-content: space-between;
+        margin-top: 0.5rem;
+    }
+
+    .top-bar-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ---------- کلاس‌های کمکی ---------- */
+.hidden {
+    display: none;
+}
+
+.sr-only, .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ---------- استایل‌های دسترسی‌پذیری ---------- */
+a:focus, button:focus, input:focus, select:focus, :focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ---------- استایل‌های چاپ ---------- */
+@media print {
+    @page {
+        margin: 0.5cm;
+    }
+
+    body {
+        font: 12pt Georgia, "Times New Roman", Times, serif;
+        line-height: 1.3;
+        background-color: white;
+        color: black;
+    }
+
+    h1 {
+        font-size: 24pt;
+    }
+
+    h2 {
+        font-size: 14pt;
+        margin-top: 25px;
+    }
+
+    #sidebarContainer, #sidebarToggle, #topBar {
+        display: none;
+    }
+
+    main {
+        margin: 0;
+        padding: 0;
+    }
+
+    .table-container {
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+	#scrollToTopBtn {
+		background-color: rgba(96, 165, 250, 0.5);
+	}
+	#scrollToTopBtn:hover {
+		background-color: rgba(96, 165, 250, 0.8);
+	}
+}
+
+/* ---------- تنوع رنگ برای کارت‌های آمار ---------- */
+.bg-blue-50 { background-color: rgba(239, 246, 255, 0.6); }
+.bg-green-50 { background-color: rgba(236, 253, 245, 0.6); }
+.bg-yellow-50 { background-color: rgba(254, 252, 232, 0.6); }
+.bg-red-50 { background-color: rgba(254, 242, 242, 0.6); }
+.bg-purple-50 { background-color: rgba(250, 245, 255, 0.6); }
+.bg-indigo-50 { background-color: rgba(238, 242, 255, 0.6); }
+
+.dark .bg-blue-900 { background-color: rgba(30, 58, 138, 0.6); }
+.dark .bg-green-900 { background-color: rgba(6, 78, 59, 0.6); }
+.dark .bg-yellow-900 { background-color: rgba(120, 53, 15, 0.6); }
+.dark .bg-red-900 { background-color: rgba(127, 29, 29, 0.6); }
+.dark .bg-purple-900 { background-color: rgba(76, 29, 149, 0.6); }
+.dark .bg-indigo-900 { background-color: rgba(49, 46, 129, 0.6); }
+
+/* ---------- استایل‌های Top Bar ---------- */
+#topBar {
+    transition: background-color 0.3s ease, color 0.3s ease;
+    padding: 0.5rem 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.top-bar-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    transition: all 0.3s ease;
+}
+
+.top-bar-btn:not(#logoutButton) {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.top-bar-btn:hover:not(#logoutButton) {
+    background-color: var(--table-row-hover);
+}
+
+#logoutButton {
+    background-color: #ef4444;
+    color: white;
+}
+
+#logoutButton:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Adjust main content to account for top bar */
+main {
+    padding-top: 4rem; /* Adjust this value based on the height of your top bar */
+    flex: 1 0 auto; /* This makes the main content take up all available space */
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- استایل‌های مودال جستجو ---------- */
+#searchModal {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#searchModal .bg-white {
+    background-color: var(--card-background);
+}
+
+#searchModal input[type="number"] {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+/* ---------- استایل‌های نوتیفیکیشن ---------- */
+#notification {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* ---------- استایل‌های Loading Overlay ---------- */
+#loadingOverlay {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#loadingOverlay .bg-white {
+    background-color: var(--card-background);
+}
+
+/* ---------- بهبود خوانایی در حالت تاریک ---------- */
+.dark body {
+    color-scheme: dark;
+}
+
+/* ---------- استایل‌های فوتر ---------- */
+footer, .bg-gray-800 {
+    position: relative; /* تغییر از sticky به relative */
+    width: 100%;
+    margin-top: 2rem; /* فاصله از محتوای بالایی */
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.95));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(75, 85, 99, 0.3);
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem 0; /* کاهش پدینگ برای مینیمال‌تر شدن */
+}
+
+/* استایل‌های فوتر در حالت روشن */
+body:not(.dark) .bg-gray-800 {
+    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.7), rgba(79, 70, 229, 0.9));
+    border-top: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+/* استایل‌های لینک‌های فوتر */
+.bg-gray-800 a {
+    color: rgba(219, 234, 254, 0.8);
+    transition: color 0.3s ease, transform 0.3s ease;
+    display: inline-block;
+}
+
+.bg-gray-800 a:hover {
+    color: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- بهبود عملکرد انیمیشن‌ها ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ---------- استایل‌های اضافی برای بهبود ظاهر در مرورگرهای قدیمی ---------- */
+@supports not (display: grid) {
+    .grid-fallback {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .grid-fallback > * {
+        flex: 1 1 200px;
+        margin: 10px;
+    }
+}
