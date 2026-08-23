@@ -26,6 +26,10 @@ class Config {
  // رمز داشبورد مانیتورینگ — مستقل از دو رمز بالا
             'monitoring_admin_password_hash' => self::env('MONITORING_ADMIN_PASSWORD_HASH', ''),
             'monitoring_session_idle_timeout' => (int)(self::env('MONITORING_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
+
+ // رمز پنل گزارش آماری کوتاژ — مستقل از سه رمز بالا
+            'quota_reports_admin_password_hash' => self::env('QUOTA_REPORTS_ADMIN_PASSWORD_HASH', ''),
+            'quota_reports_session_idle_timeout' => (int)(self::env('QUOTA_REPORTS_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
         ];
 
     }

@@ -237,4 +237,12 @@ class CargoRepository {
         $stmt->execute([$receipt]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+
+ // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی، هم‌راستا با searchByTracking
+    public function findByQuotaNumber(string $quota): array {
+        $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE loadingQuotaNumber = ? ORDER BY entryTime DESC LIMIT 2000";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([$quota]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

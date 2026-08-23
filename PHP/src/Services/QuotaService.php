@@ -198,6 +198,56 @@ final class QuotaService {
         return null;
     }
 
+ // خلاصه‌ی همه‌ی کوتاژها (فعال و غیرفعال) برای داشبورد گزارش — همان الگوی JOIN اثبات‌شده‌ی getQuotaDetails، بدون فیلتر تک‌کوتاژ
+    public function getQuotasSummary(): array {
+        $query = "SELECT
+            i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
+            i.cargoWeight as totalTonnage, i.percentage, i.is_enabled, i.isActive,
+            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount
+        FROM InitialInfo i
+        LEFT JOIN (
+            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
+                SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "'
+            GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+        ) exit_data ON
+            exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
+            AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
+            AND exit_data.cargoType = i.cargoType
+        ORDER BY i.shipName ASC, i.isActive DESC, i.loadingQuotaNumber ASC";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+
+        $quotas = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $totalTonnage = floatval($row['totalTonnage']);
+            $loadedTonnage = floatval($row['loadedTonnage']);
+            $remainingTonnage = $totalTonnage - $loadedTonnage;
+            $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
+            $isPercentageRestricted = (bool)$row['is_enabled'];
+            $exitVoucherCount = intval($row['exitVoucherCount']);
+
+            $quotas[] = [
+                'number' => $row['number'],
+                'shipName' => $row['shipName'] ?? '',
+                'warehouse' => $row['loadingWarehouse'] ?? '',
+                'cargoType' => $row['cargoType'] ?? '',
+                'shippingCompany' => $row['shippingCompany'] ?? '',
+                'cargoOwner' => $row['cargoOwner'] ?? 'نامشخص',
+                'totalTonnage' => $totalTonnage,
+                'remainingTonnage' => $remainingTonnage,
+                'loadedTonnage' => $loadedTonnage,
+                'percentageLoaded' => $totalTonnage > 0 ? round(($loadedTonnage / $totalTonnage) * 100, 2) : 0,
+                'exitVoucherCount' => $exitVoucherCount,
+                'percentage' => $percentage,
+                'isPercentageRestricted' => $isPercentageRestricted,
+                'isActive' => (bool)$row['isActive'],
+            ];
+        }
+        return $quotas;
+    }
+
  // LIMIT 2000 یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی؛ فقط محافظ در برابر رشد غیرمنتظره
     public function getFilteredQuotas(string $shipName, string $startDateTime, string $endDateTime): array {
         $shipName = InputValidator::validateIdentifier($shipName);

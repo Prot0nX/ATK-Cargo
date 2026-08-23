@@ -1171,6 +1171,11 @@ parameters:
 			path: src/Repositories/CargoRepository.php
 
 		-
+			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:findByQuotaNumber\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Repositories/CargoRepository.php
+
+		-
 			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:searchByTracking\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Repositories/CargoRepository.php
@@ -1362,6 +1367,11 @@ parameters:
 
 		-
 			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:computeQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Services/QuotaService.php
+
+		-
+			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getQuotasSummary\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Services/QuotaService.php
 
