@@ -562,6 +562,16 @@ return [
         },
     ],
     [
+        // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
+        'method' => 'DELETE', 'path' => 'monitoring/events/{id}/delete', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                (new MonitoringController())->delete((int)$params['id']);
+                Response::json(['success' => true]);
+            });
+        },
+    ],
+    [
         'method' => 'GET', 'path' => 'monitoring/summary', 'auth' => true, 'permission' => 'view_monitoring',
         'handler' => function () use ($safeCall): void {
             $safeCall(function () {
@@ -582,6 +592,16 @@ return [
                 $entityType = $request->get('entityType');
                 $logs = (new AuditLogController())->listLogs($limit, $beforeId, $username, $entityType);
                 Response::json(['success' => true, 'logs' => $logs]);
+            });
+        },
+    ],
+    [
+        // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
+        'method' => 'DELETE', 'path' => 'audit-log/{id}/delete', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                (new AuditLogController())->delete((int)$params['id']);
+                Response::json(['success' => true]);
             });
         },
     ],

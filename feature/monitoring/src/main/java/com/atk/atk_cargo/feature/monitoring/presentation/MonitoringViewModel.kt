@@ -7,6 +7,7 @@ import com.atk.atk_cargo.data.model.MonitoringEvent
 import com.atk.atk_cargo.data.model.MonitoringHealthStatus
 import com.atk.atk_cargo.data.model.MonitoringOpenAlertCounts
 import com.atk.atk_cargo.feature.monitoring.data.AcknowledgeResult
+import com.atk.atk_cargo.feature.monitoring.data.DeleteResult
 import com.atk.atk_cargo.feature.monitoring.data.MonitoringRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -98,6 +99,30 @@ class MonitoringViewModel(
                     onResult(null)
                 }
                 is AcknowledgeResult.Failure -> onResult(result.message)
+            }
+        }
+    }
+
+    fun deleteEvent(id: Int, onResult: (errorMessage: String?) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val result = repository.deleteEvent(id)) {
+                is DeleteResult.Success -> {
+                    _uiState.update { it.copy(events = it.events.filterNot { event -> event.id == id }) }
+                    onResult(null)
+                }
+                is DeleteResult.Failure -> onResult(result.message)
+            }
+        }
+    }
+
+    fun deleteAuditLog(id: Long, onResult: (errorMessage: String?) -> Unit = {}) {
+        viewModelScope.launch {
+            when (val result = repository.deleteAuditLog(id)) {
+                is DeleteResult.Success -> {
+                    _uiState.update { it.copy(auditLogs = it.auditLogs.filterNot { log -> log.id == id }) }
+                    onResult(null)
+                }
+                is DeleteResult.Failure -> onResult(result.message)
             }
         }
     }

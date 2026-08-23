@@ -67,6 +67,13 @@ class MonitoringRepository {
         return $stmt->rowCount() > 0;
     }
 
+    // حذف دائمی یک رویداد؛ rowCount()===0 یعنی رویداد از قبل وجود نداشته
+    public function delete(int $id): bool {
+        $stmt = $this->db->prepare('DELETE FROM monitoring_events WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount() > 0;
+    }
+
     /** @return array{open_total:int, open_critical:int, open_warning:int, open_info:int} */
     public function openCounts(): array {
         $sql = "SELECT

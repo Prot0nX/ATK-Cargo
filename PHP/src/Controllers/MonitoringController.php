@@ -33,6 +33,12 @@ class MonitoringController {
         $this->repository->acknowledge($id, $username);
     }
 
+    public function delete(int $id): void {
+        if (!$this->repository->delete($id)) {
+            throw new ApiException('رویداد مورد نظر یافت نشد', 404);
+        }
+    }
+
     /** @return array<string,mixed> */
     public function summary(): array {
         // خودِ وضعیت سلامت زنده محاسبه می‌شود (همان evaluateHealth که health_monitor.php هم صدا می‌زند) نه از یک ردیف ذخیره‌شده، تا جدول monitoring_events با heartbeat هر ۵ دقیقه شلوغ نشود.

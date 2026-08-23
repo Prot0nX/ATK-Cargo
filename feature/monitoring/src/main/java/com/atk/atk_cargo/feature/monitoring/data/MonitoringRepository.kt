@@ -14,10 +14,19 @@ interface MonitoringRepository {
 
     suspend fun acknowledgeEvent(id: Int): AcknowledgeResult
 
+    suspend fun deleteEvent(id: Int): DeleteResult
+
     suspend fun getAuditLogs(limit: Int = 100, beforeId: Long? = null): List<AuditLogEntry>
+
+    suspend fun deleteAuditLog(id: Long): DeleteResult
 }
 
 sealed class AcknowledgeResult {
     data object Success : AcknowledgeResult()
     data class Failure(val message: String) : AcknowledgeResult()
+}
+
+sealed class DeleteResult {
+    data object Success : DeleteResult()
+    data class Failure(val message: String) : DeleteResult()
 }

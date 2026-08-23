@@ -47,6 +47,7 @@ import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
 import retrofit2.http.Header
@@ -407,6 +408,11 @@ interface ApiServiceV2 {
         @Query("route") route: String
     ): Response<ApiResponse>
 
+    @DELETE("api/v2/index.php")
+    suspend fun deleteMonitoringEvent(
+        @Query("route") route: String
+    ): Response<ApiResponse>
+
     // ===== AUDIT LOG =====
 
     @GET("api/v2/index.php")
@@ -415,6 +421,11 @@ interface ApiServiceV2 {
         @Query("limit") limit: Int = 50,
         @Query("beforeId") beforeId: Long? = null
     ): Response<AuditLogResponse>
+
+    @DELETE("api/v2/index.php")
+    suspend fun deleteAuditLog(
+        @Query("route") route: String
+    ): Response<ApiResponse>
 }
 
 object ApiV2Routes {
@@ -434,6 +445,8 @@ object ApiV2Routes {
     fun quotaTemporaryTonnage(quotaNumber: String): String = "quotas/$quotaNumber/temporary-tonnage"
     fun quotaLoadableTonnage(quotaNumber: String): String = "quotas/$quotaNumber/loadable-tonnage"
     fun monitoringEventAcknowledge(id: Int): String = "monitoring/events/$id/acknowledge"
+    fun monitoringEventDelete(id: Int): String = "monitoring/events/$id/delete"
+    fun auditLogDelete(id: Long): String = "audit-log/$id/delete"
 }
 
 data class ApiResponse(

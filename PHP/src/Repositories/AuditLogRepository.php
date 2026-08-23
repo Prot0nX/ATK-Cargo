@@ -52,4 +52,11 @@ class AuditLogRepository {
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
+
+    // حذف دائمی یک ردیف لاگ تغییرات؛ rowCount()===0 یعنی از قبل وجود نداشته
+    public function delete(int $id): bool {
+        $stmt = $this->db->prepare('DELETE FROM audit_log WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount() > 0;
+    }
 }

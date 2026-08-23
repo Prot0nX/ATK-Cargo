@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
@@ -119,6 +120,8 @@ fun MonitoringScreen(
 
     var selectedEvent by remember { mutableStateOf<MonitoringEvent?>(null) }
     var selectedAuditLog by remember { mutableStateOf<AuditLogEntry?>(null) }
+    var eventPendingDelete by remember { mutableStateOf<MonitoringEvent?>(null) }
+    var auditLogPendingDelete by remember { mutableStateOf<AuditLogEntry?>(null) }
     var severityTab by remember { mutableStateOf("all") }
     var searchQuery by remember { mutableStateOf("") }
     var topTab by rememberSaveable { mutableIntStateOf(0) }
@@ -200,7 +203,8 @@ fun MonitoringScreen(
                                         EventCard(
                                             event = event,
                                             onClick = { selectedEvent = event },
-                                            onAcknowledge = { viewModel.acknowledge(event.id) }
+                                            onAcknowledge = { viewModel.acknowledge(event.id) },
+                                            onDeleteClick = { eventPendingDelete = event }
                                         )
                                     }
                                 }
@@ -214,7 +218,8 @@ fun MonitoringScreen(
                     uiState = uiState,
                     onLogClick = { selectedAuditLog = it },
                     onRetryClick = { viewModel.refreshAuditLogs() },
-                    onLoadMoreClick = { viewModel.loadMoreAuditLogs() }
+                    onLoadMoreClick = { viewModel.loadMoreAuditLogs() },
+                    onDeleteClick = { auditLogPendingDelete = it }
                 )
             }
         }
@@ -227,6 +232,10 @@ fun MonitoringScreen(
                 viewModel.acknowledge(event.id)
                 selectedEvent = null
             },
+            onDeleteClick = {
+                selectedEvent = null
+                eventPendingDelete = event
+            },
             onDismiss = { selectedEvent = null }
         )
     }
@@ -234,9 +243,61 @@ fun MonitoringScreen(
     selectedAuditLog?.let { log ->
         AuditLogDetailsDialog(
             log = log,
+            onDeleteClick = {
+                selectedAuditLog = null
+                auditLogPendingDelete = log
+            },
             onDismiss = { selectedAuditLog = null }
         )
     }
+
+    eventPendingDelete?.let { event ->
+        ConfirmDeleteDialog(
+            title = "حذف رویداد",
+            message = "آیا از حذف این رویداد مطمئن هستید؟ این عملیات غیرقابل بازگشت است.",
+            onConfirm = {
+                viewModel.deleteEvent(event.id)
+                eventPendingDelete = null
+            },
+            onDismiss = { eventPendingDelete = null }
+        )
+    }
+
+    auditLogPendingDelete?.let { log ->
+        ConfirmDeleteDialog(
+            title = "حذف لاگ",
+            message = "آیا از حذف این لاگ مطمئن هستید؟ این عملیات غیرقابل بازگشت است.",
+            onConfirm = {
+                viewModel.deleteAuditLog(log.id)
+                auditLogPendingDelete = null
+            },
+            onDismiss = { auditLogPendingDelete = null }
+        )
+    }
+}
+
+// دیالوگ تایید حذف مشترک بین هر دو تب — چون حذف غیرقابل بازگشت است، بدون تاییدیه فراخوانی نمی‌شود
+@Composable
+private fun ConfirmDeleteDialog(title: String, message: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = ATKCargoTheme.appShapes.dialog,
+        title = { Text(title, fontWeight = FontWeight.Bold) },
+        text = { Text(message) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("حذف")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("انصراف")
+            }
+        }
+    )
 }
 
 // تب‌سلکتور سطح بالای صفحه — کپی دقیق ظاهر ShipsTabSelector (feature/reports/.../ships/ShipsListScreen.kt) برای یکدستی طراحی
@@ -594,7 +655,8 @@ private fun severityIcon(severity: String): ImageVector = when (severity) {
 private fun EventCard(
     event: MonitoringEvent,
     onClick: () -> Unit,
-    onAcknowledge: () -> Unit
+    onAcknowledge: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val color = severityColor(event.severity)
     val isOpen = event.acknowledgedAt == null
@@ -665,6 +727,7 @@ private fun EventCard(
                         if (isOpen) {
                             AcknowledgeChip(onClick = onAcknowledge)
                         }
+                        DeleteChip(onClick = onDeleteClick)
                     }
                 }
             }
@@ -718,6 +781,24 @@ private fun AcknowledgeChip(onClick: () -> Unit) {
 }
 
 @Composable
+private fun DeleteChip(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.errorContainer, CircleShape)
+            .clickable(onClick = onClick)
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "حذف",
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
+
+@Composable
 private fun RefreshHint() {
     Row(
         modifier = Modifier
@@ -745,6 +826,7 @@ private fun RefreshHint() {
 private fun EventDetailsDialog(
     event: MonitoringEvent,
     onAcknowledge: () -> Unit,
+    onDeleteClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
     androidx.compose.material3.AlertDialog(
@@ -773,8 +855,13 @@ private fun EventDetailsDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("بستن")
+            Row {
+                TextButton(onClick = onDeleteClick) {
+                    Text("حذف", color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("بستن")
+                }
             }
         }
     )
@@ -813,7 +900,8 @@ private fun AuditLogListSection(
     uiState: MonitoringUiState,
     onLogClick: (AuditLogEntry) -> Unit,
     onRetryClick: () -> Unit,
-    onLoadMoreClick: () -> Unit
+    onLoadMoreClick: () -> Unit,
+    onDeleteClick: (AuditLogEntry) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -841,7 +929,7 @@ private fun AuditLogListSection(
                     verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
                 ) {
                     items(uiState.auditLogs, key = { it.id }) { log ->
-                        AuditLogCard(log = log, onClick = { onLogClick(log) })
+                        AuditLogCard(log = log, onClick = { onLogClick(log) }, onDeleteClick = { onDeleteClick(log) })
                     }
                     if (uiState.auditLogsHasMore) {
                         item {
@@ -870,7 +958,7 @@ private fun LoadMoreRow(isLoading: Boolean, onClick: () -> Unit) {
 
 // کارت یک ردیف audit_log — هم‌الگوی EventCard: نشان رنگی، ردیف بالا با شارژ عملیات، ردیف meta با تاریخ شمسی
 @Composable
-private fun AuditLogCard(log: AuditLogEntry, onClick: () -> Unit) {
+private fun AuditLogCard(log: AuditLogEntry, onClick: () -> Unit, onDeleteClick: () -> Unit) {
     val color = actionColor(log.action)
 
     Column(
@@ -932,14 +1020,21 @@ private fun AuditLogCard(log: AuditLogEntry, onClick: () -> Unit) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f))
                 Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxs))
 
-                MetaItem(icon = Icons.Default.Schedule, text = formatJalaliDateTime(log.createdAt))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MetaItem(icon = Icons.Default.Schedule, text = formatJalaliDateTime(log.createdAt))
+                    DeleteChip(onClick = onDeleteClick)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AuditLogDetailsDialog(log: AuditLogEntry, onDismiss: () -> Unit) {
+private fun AuditLogDetailsDialog(log: AuditLogEntry, onDeleteClick: () -> Unit, onDismiss: () -> Unit) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         shape = ATKCargoTheme.appShapes.dialog,
@@ -957,8 +1052,13 @@ private fun AuditLogDetailsDialog(log: AuditLogEntry, onDismiss: () -> Unit) {
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("بستن")
+            Row {
+                TextButton(onClick = onDeleteClick) {
+                    Text("حذف", color = MaterialTheme.colorScheme.error)
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("بستن")
+                }
             }
         }
     )

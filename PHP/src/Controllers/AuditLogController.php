@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Exceptions\ApiException;
 use App\Repositories\AuditLogRepository;
 
 // نمایش لاگ تغییرات (audit_log) — فقط REST خواندن؛ نوشتن از App\Services\AuditLogger::log() انجام می‌شود
@@ -18,6 +19,12 @@ class AuditLogController {
     /** @return array<int,array<string,mixed>> */
     public function listLogs(int $limit, ?int $beforeId, ?string $username, ?string $entityType): array {
         return array_map([$this, 'presentLog'], $this->repository->listLogs($limit, $beforeId, $username, $entityType));
+    }
+
+    public function delete(int $id): void {
+        if (!$this->repository->delete($id)) {
+            throw new ApiException('لاگ مورد نظر یافت نشد', 404);
+        }
     }
 
     /**

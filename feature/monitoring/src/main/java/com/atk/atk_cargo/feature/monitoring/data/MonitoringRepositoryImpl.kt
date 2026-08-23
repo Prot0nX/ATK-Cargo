@@ -64,6 +64,42 @@ class MonitoringRepositoryImpl(
             }
         }
 
+    override suspend fun deleteEvent(id: Int): DeleteResult = withContext(Dispatchers.IO) {
+        try {
+            val response = apiServiceV2.deleteMonitoringEvent(route = ApiV2Routes.monitoringEventDelete(id))
+            if (response.isSuccessful && response.body()?.success == true) {
+                DeleteResult.Success
+            } else {
+                val message = parseErrorMessage(response.errorBody()?.string())
+                    ?: response.body()?.message
+                    ?: "خطا در حذف رویداد"
+                DeleteResult.Failure(message)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DeleteResult.Failure("خطا در ارتباط با سرور: ${e.message}")
+        }
+    }
+
+    override suspend fun deleteAuditLog(id: Long): DeleteResult = withContext(Dispatchers.IO) {
+        try {
+            val response = apiServiceV2.deleteAuditLog(route = ApiV2Routes.auditLogDelete(id))
+            if (response.isSuccessful && response.body()?.success == true) {
+                DeleteResult.Success
+            } else {
+                val message = parseErrorMessage(response.errorBody()?.string())
+                    ?: response.body()?.message
+                    ?: "خطا در حذف لاگ"
+                DeleteResult.Failure(message)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            DeleteResult.Failure("خطا در ارتباط با سرور: ${e.message}")
+        }
+    }
+
     private fun parseErrorMessage(errorBody: String?): String? {
         if (errorBody.isNullOrBlank()) return null
         return try {
