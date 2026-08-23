@@ -14,18 +14,16 @@
 
     var state = {
         view: 'dashboard',
+        // فهرست سبک همه‌ی کوتاژها (بدون محاسبات تناژ/درصد/حواله)؛ فقط برای پر کردن دراپ‌داون کشتی/کالا استفاده می‌شود.
         quotas: [],
         dashboardSearch: '',
         sortField: null,
         sortDir: 'asc',
-        openShip: null,
-        // آمار محاسبه‌شده‌ی هر کشتی (تناژ/درصد/تعداد حواله) فقط پس از باز شدن دسته‌بندی همان کشتی اینجا کش می‌شود؛
-        // نه در بارگذاری اولیه‌ی داشبورد. state.quotas همیشه فهرست سبک بدون این محاسبات است.
-        shipStats: {},
-        shipStatsPromises: {},
-        // فهرست کامل و سنگین (با محاسبات) فقط وقتی مرتب‌سازی سراسری فعال شود یک‌بار گرفته می‌شود.
-        fullQuotas: null,
-        fullQuotasPromise: null,
+        // ترکیب کشتی + نوع کالای انتخاب‌شده از دراپ‌داون. تا وقتی انتخاب نشده، هیچ محاسبه‌ای انجام نمی‌شود.
+        selectedShip: null,
+        selectedCargoType: null,
+        // آمار محاسبه‌شده (تناژ/درصد/تعداد حواله) فقط برای همین یک ترکیب کشتی+کالا؛ با هر انتخاب جدید جایگزین می‌شود.
+        selectionQuotas: [],
         currentKotazh: null,
         cargoInfo: [],
         filteredCargo: [],
@@ -41,6 +39,7 @@
         dashboardView: document.getElementById('dashboardView'),
         detailView: document.getElementById('detailView'),
 
+        shipCargoSelect: document.getElementById('shipCargoSelect'),
         kotazhForm: document.getElementById('kotazhSearchForm'),
         kotazhInput: document.getElementById('kotazhInput'),
         quotasHeaderRow: document.getElementById('quotasHeaderRow'),
@@ -185,38 +184,52 @@
 
     var DASHBOARD_COLUMN_COUNT = 9;
 
-    function buildGroupHeaderRow(shipName, count, isOpen) {
+    // سرستون دسته‌بندی سطح اول (انبار). غیرقابل‌کلیک است؛ فقط برای گروه‌بندی بصری کوتاژهای همان انبار.
+    function buildWarehouseHeaderRow(warehouseName, count) {
         var tr = document.createElement('tr');
-        tr.className = 'group-header' + (isOpen ? ' is-open' : '');
-        tr.dataset.ship = shipName || '';
-
+        tr.className = 'group-header is-static';
         var td = document.createElement('td');
         td.colSpan = DASHBOARD_COLUMN_COUNT;
-
-        var content = document.createElement('span');
-        content.className = 'group-header-content';
-
-        var chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        chevron.setAttribute('class', 'icon group-header-chevron');
-        chevron.setAttribute('aria-hidden', 'true');
-        var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttribute('href', '#chevron-down');
-        chevron.appendChild(use);
-
-        content.appendChild(chevron);
-        content.appendChild(document.createTextNode((shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ'));
-        td.appendChild(content);
+        td.textContent = (warehouseName || 'نامشخص');
         tr.appendChild(td);
         return tr;
     }
 
-    // ردیف موقت زیر یک دسته‌بندی تازه‌بازشده، تا زمانی که آمار محاسبه‌شده‌ی همان کشتی از سرور برسد.
-    function buildGroupLoadingRow() {
+    // سرستون دسته‌بندی سطح دوم (صاحب کالا)، تودرتوی سرستون انبار؛ نام وسط‌چین با خط‌چین در دو طرف تا عرض کامل.
+    // فلکس عمداً روی یک div داخل td است، نه خودِ td: بعضی موتورهای مرورگر display:flex را روی سلول جدول
+    // (که یک جعبه‌ی داخلی جدول است) نادیده می‌گیرند و به table-cell معمولی برمی‌گردند.
+    function buildCargoOwnerHeaderRow(ownerName, count) {
+        var tr = document.createElement('tr');
+        tr.className = 'subgroup-header';
+        var td = document.createElement('td');
+        td.colSpan = DASHBOARD_COLUMN_COUNT;
+
+        var inner = document.createElement('div');
+        inner.className = 'subgroup-header-inner';
+
+        var lineStart = document.createElement('span');
+        lineStart.className = 'subgroup-header-line';
+        var label = document.createElement('span');
+        label.className = 'subgroup-header-label';
+        label.textContent = ownerName || 'نامشخص';
+        var lineEnd = document.createElement('span');
+        lineEnd.className = 'subgroup-header-line';
+
+        inner.appendChild(lineStart);
+        inner.appendChild(label);
+        inner.appendChild(lineEnd);
+        td.appendChild(inner);
+        tr.appendChild(td);
+        return tr;
+    }
+
+    // ردیف وضعیت زیر جدول، برای حالت انتخاب‌نشده/در حال بارگذاری/بدون نتیجه.
+    function buildStateRow(message) {
         var tr = document.createElement('tr');
         var td = document.createElement('td');
         td.colSpan = DASHBOARD_COLUMN_COUNT;
         td.className = 'table-state';
-        td.textContent = 'در حال محاسبه‌ی آمار این کشتی...';
+        td.textContent = message;
         tr.appendChild(td);
         return tr;
     }
@@ -227,18 +240,70 @@
         return (a || '').toString().localeCompare((b || '').toString(), 'fa');
     }
 
+    // فهرست کشتی+کالاهای موجود در فهرست سبک را برای دراپ‌داون آماده می‌کند؛ خودِ این فهرست هیچ محاسبه‌ای ندارد.
+    function populateShipCargoSelect() {
+        var previousValue = el.shipCargoSelect.value;
+        var seenKeys = {};
+        var shipOrder = [];
+        var optionsByShip = {};
+
+        state.quotas.forEach(function (q) {
+            var ship = q.shipName || 'بدون نام کشتی';
+            var cargoType = q.cargoType || '';
+            var key = ship + '|||' + cargoType;
+
+            if (seenKeys[key]) { seenKeys[key].count += 1; return; }
+            seenKeys[key] = { ship: ship, cargoType: cargoType, count: 1 };
+
+            if (!optionsByShip[ship]) { optionsByShip[ship] = []; shipOrder.push(ship); }
+            optionsByShip[ship].push(seenKeys[key]);
+        });
+
+        el.shipCargoSelect.replaceChildren();
+
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '— انتخاب کشتی و کالا —';
+        el.shipCargoSelect.appendChild(placeholder);
+
+        shipOrder.forEach(function (ship) {
+            var optgroup = document.createElement('optgroup');
+            optgroup.label = ship;
+            optionsByShip[ship].forEach(function (entry) {
+                var option = document.createElement('option');
+                option.value = entry.ship + '|||' + entry.cargoType;
+                option.textContent = (entry.cargoType || 'بدون نوع کالا') + ' (' + entry.count + ' کوتاژ)';
+                optgroup.appendChild(option);
+            });
+            el.shipCargoSelect.appendChild(optgroup);
+        });
+
+        if (previousValue && seenKeys[previousValue]) {
+            el.shipCargoSelect.value = previousValue;
+        }
+    }
+
     function renderDashboard() {
+        el.quotasBody.replaceChildren();
+
+        if (!state.selectedShip) {
+            el.dashboardCount.textContent = '';
+            el.dashboardEmpty.textContent = 'برای نمایش کوتاژها، یک کشتی و کالا از فهرست بالا انتخاب کنید.';
+            el.dashboardEmpty.classList.remove('is-hidden');
+            return;
+        }
+
         var term = state.dashboardSearch.trim().toLowerCase();
-        var rows = state.quotas.filter(function (q) {
+        var rows = state.selectionQuotas.filter(function (q) {
             if (!term) { return true; }
-            return [q.number, q.shipName, q.warehouse, q.shippingCompany, q.cargoType]
+            return [q.number, q.warehouse, q.shippingCompany, q.cargoOwner]
                 .some(function (value) { return (value || '').toString().toLowerCase().indexOf(term) !== -1; });
         });
 
-        el.quotasBody.replaceChildren();
-        el.dashboardCount.textContent = rows.length + ' از ' + state.quotas.length + ' کوتاژ';
+        el.dashboardCount.textContent = rows.length + ' از ' + state.selectionQuotas.length + ' کوتاژ';
 
         if (rows.length === 0) {
+            el.dashboardEmpty.textContent = 'کوتاژی برای این انتخاب یافت نشد.';
             el.dashboardEmpty.classList.remove('is-hidden');
             return;
         }
@@ -246,118 +311,99 @@
 
         var fragment = document.createDocumentFragment();
 
-        // مرتب‌سازی سراسری روی ستون‌های محاسبه‌شده (تناژ/درصد/حواله) نیاز به فهرست کامل و سنگین دارد؛
-        // این فهرست فقط همین‌جا و فقط یک‌بار (تا رفرش بعدی) لود می‌شود، نه در بارگذاری اولیه‌ی داشبورد.
         if (state.sortField) {
-            if (!state.fullQuotas) {
-                fragment.appendChild(buildGroupLoadingRow());
-                el.quotasBody.appendChild(fragment);
-                loadFullQuotas().then(renderDashboard);
-                return;
-            }
-
-            var statsByNumber = {};
-            state.fullQuotas.forEach(function (q) { statsByNumber[q.number] = q; });
-
+            // مرتب‌سازی سراسری هم فقط روی همین کشتی/کالای انتخاب‌شده اعمال می‌شود، نه کل کشتی‌ها.
             var field = state.sortField;
             var type = SORT_TYPES[field];
             var dir = state.sortDir === 'desc' ? -1 : 1;
-            rows.map(function (q) { return statsByNumber[q.number] || q; })
-                .sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
+            rows.slice().sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
                 .forEach(function (quota) { fragment.appendChild(buildQuotaRow(quota)); });
         } else {
-            var shipCounts = {};
-            var shipsInOrder = [];
+            // نمایش دسته‌بندی‌شده‌ی پیش‌فرض: انبار → صاحب کالا → کوتاژها.
+            var warehouseOrder = [];
+            var byWarehouse = {};
             rows.forEach(function (q) {
-                shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1;
-                if (shipsInOrder.indexOf(q.shipName) === -1) { shipsInOrder.push(q.shipName); }
+                var wh = q.warehouse || 'نامشخص';
+                if (!byWarehouse[wh]) { byWarehouse[wh] = []; warehouseOrder.push(wh); }
+                byWarehouse[wh].push(q);
             });
 
-            if (state.openShip !== null && !(state.openShip in shipCounts)) {
-                state.openShip = null;
-            }
+            warehouseOrder.forEach(function (warehouseName) {
+                var warehouseRows = byWarehouse[warehouseName];
+                fragment.appendChild(buildWarehouseHeaderRow(warehouseName, warehouseRows.length));
 
-            shipsInOrder.forEach(function (shipName) {
-                var isOpen = shipName === state.openShip;
-                fragment.appendChild(buildGroupHeaderRow(shipName, shipCounts[shipName], isOpen));
+                var ownerOrder = [];
+                var byOwner = {};
+                warehouseRows.forEach(function (q) {
+                    var owner = q.cargoOwner || 'نامشخص';
+                    if (!byOwner[owner]) { byOwner[owner] = []; ownerOrder.push(owner); }
+                    byOwner[owner].push(q);
+                });
 
-                if (!isOpen) { return; }
-
-                // محاسبات این کشتی فقط اینجا و فقط برای همین یک کشتی درخواست می‌شود، نه برای بقیه‌ی کشتی‌ها.
-                var shipStats = state.shipStats[shipName];
-                if (!shipStats) {
-                    fragment.appendChild(buildGroupLoadingRow());
-                    return;
-                }
-
-                var statsByNumberForShip = {};
-                shipStats.forEach(function (q) { statsByNumberForShip[q.number] = q; });
-
-                rows.filter(function (q) { return q.shipName === shipName; })
-                    .forEach(function (q) { fragment.appendChild(buildQuotaRow(statsByNumberForShip[q.number] || q)); });
+                ownerOrder.forEach(function (ownerName) {
+                    var ownerRows = byOwner[ownerName];
+                    fragment.appendChild(buildCargoOwnerHeaderRow(ownerName, ownerRows.length));
+                    ownerRows.forEach(function (quota) {
+                        var tr = buildQuotaRow(quota);
+                        tr.classList.add('is-nested');
+                        fragment.appendChild(tr);
+                    });
+                });
             });
         }
 
         el.quotasBody.appendChild(fragment);
     }
 
-    // آمار محاسبه‌شده‌ی فقط یک کشتی؛ صدا زده می‌شود وقتی دسته‌بندی همان کشتی باز می‌شود. نتیجه کش می‌شود تا
-    // باز/بسته کردن دوباره‌ی همان کشتی دوباره محاسبه نکند؛ رفرش دستی داشبورد این کش را پاک می‌کند.
-    function loadShipStats(shipName) {
-        if (state.shipStats[shipName]) { return Promise.resolve(); }
-        if (state.shipStatsPromises[shipName]) { return state.shipStatsPromises[shipName]; }
+    // محاسبات فقط برای ترکیب کشتی+کالای انتخاب‌شده؛ صدا زده می‌شود وقتی کاربر آیتمی از دراپ‌داون انتخاب کند.
+    function loadSelectionStats() {
+        el.dashboardLoading.classList.remove('is-hidden');
+        el.dashboardEmpty.classList.add('is-hidden');
+        el.quotasBody.replaceChildren();
+        el.quotasBody.appendChild(buildStateRow('در حال محاسبه‌ی آمار این انتخاب...'));
 
-        var promise = request('shipStats', { shipName: shipName })
+        var shipName = state.selectedShip;
+        var cargoType = state.selectedCargoType;
+
+        return request('shipStats', { shipName: shipName, cargoType: cargoType })
             .then(function (data) {
-                state.shipStats[shipName] = data.quotas;
-                if (state.openShip === shipName) { renderDashboard(); }
+                if (state.selectedShip !== shipName || state.selectedCargoType !== cargoType) { return; }
+                state.selectionQuotas = data.quotas;
+                renderDashboard();
             })
             .catch(function (error) {
                 if (error.message !== 'unauthenticated') { toast(error.message, 'error'); }
-                if (state.openShip === shipName) { state.openShip = null; renderDashboard(); }
+                if (state.selectedShip === shipName && state.selectedCargoType === cargoType) {
+                    state.selectionQuotas = [];
+                    renderDashboard();
+                }
             })
             .finally(function () {
-                delete state.shipStatsPromises[shipName];
+                el.dashboardLoading.classList.add('is-hidden');
             });
-
-        state.shipStatsPromises[shipName] = promise;
-        return promise;
     }
 
-    // فهرست کامل و سنگین (همه‌ی کشتی‌ها با محاسبات) فقط وقتی مرتب‌سازی سراسری فعال شود لود می‌شود.
-    function loadFullQuotas() {
-        if (state.fullQuotas) { return Promise.resolve(); }
-        if (state.fullQuotasPromise) { return state.fullQuotasPromise; }
-
-        state.fullQuotasPromise = request('summary', null)
-            .then(function (data) {
-                state.fullQuotas = data.quotas;
-            })
-            .catch(function (error) {
-                if (error.message !== 'unauthenticated') { toast(error.message, 'error'); }
-                state.sortField = null;
-            })
-            .finally(function () {
-                state.fullQuotasPromise = null;
-            });
-
-        return state.fullQuotasPromise;
+    function resetSortState() {
+        state.sortField = null;
+        state.sortDir = 'asc';
+        Array.prototype.forEach.call(el.quotasHeaderRow.querySelectorAll('th[data-sort]'), function (header) {
+            delete header.dataset.sortDir;
+        });
     }
 
     function loadDashboard() {
         el.dashboardLoading.classList.remove('is-hidden');
         el.dashboardEmpty.classList.add('is-hidden');
 
-        // داده‌های سنگین کش‌شده متعلق به بار قبلی‌اند؛ با رفرش دستی داشبورد باید دوباره (تنبل) محاسبه شوند.
-        state.shipStats = {};
-        state.shipStatsPromises = {};
-        state.fullQuotas = null;
-        state.fullQuotasPromise = null;
-
-        // بارگذاری اولیه فقط فهرست سبک را می‌گیرد؛ محاسبات تناژ/درصد/حواله اینجا انجام نمی‌شود.
+        // بارگذاری اولیه فقط فهرست سبک را می‌گیرد (برای دراپ‌داون)؛ محاسبات تناژ/درصد/حواله اینجا انجام نمی‌شود.
         return request('groups', null)
             .then(function (data) {
                 state.quotas = data.quotas;
+                populateShipCargoSelect();
+
+                if (state.selectedShip) {
+                    return loadSelectionStats();
+                }
                 renderDashboard();
             })
             .catch(function (error) {
@@ -667,6 +713,24 @@
 
     el.dashboardRefreshBtn.addEventListener('click', function () { loadDashboard(); });
 
+    el.shipCargoSelect.addEventListener('change', function () {
+        var value = el.shipCargoSelect.value;
+        resetSortState();
+
+        if (!value) {
+            state.selectedShip = null;
+            state.selectedCargoType = null;
+            state.selectionQuotas = [];
+            renderDashboard();
+            return;
+        }
+
+        var separatorIndex = value.indexOf('|||');
+        state.selectedShip = value.slice(0, separatorIndex);
+        state.selectedCargoType = value.slice(separatorIndex + 3);
+        loadSelectionStats();
+    });
+
     el.quotasHeaderRow.addEventListener('click', function (event) {
         var th = event.target.closest('th[data-sort]');
         if (!th) { return; }
@@ -691,14 +755,6 @@
     });
 
     el.quotasBody.addEventListener('click', function (event) {
-        var groupHeader = event.target.closest('tr.group-header');
-        if (groupHeader) {
-            state.openShip = state.openShip === groupHeader.dataset.ship ? null : groupHeader.dataset.ship;
-            renderDashboard();
-            if (state.openShip) { loadShipStats(state.openShip); }
-            return;
-        }
-
         var row = event.target.closest('tr[data-number]');
         if (row) { showDetail(row.dataset.number); }
     });

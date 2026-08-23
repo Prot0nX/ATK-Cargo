@@ -64,41 +64,54 @@
     cursor: pointer;
 }
 
-/* --- ردیف عنوان گروه (نام کشتی) در جدول داشبورد؛ آکاردئون با باز بودن فقط یک کشتی --------------------------- */
-.group-header {
-    cursor: pointer;
+/* --- سرستون دسته‌بندی سطح اول (انبار) در جدول داشبورد؛ فقط نمایشی، غیرقابل‌کلیک ------------------------ */
+.group-header.is-static {
+    cursor: default;
 }
 
-.group-header td {
+.group-header.is-static td {
     background: var(--surface-alt);
     color: var(--text-muted);
     font-weight: 700;
     font-size: var(--fs-sm);
 }
 
-.group-header:hover td {
-    background: var(--border);
+.group-header.is-static:hover td {
+    background: var(--surface-alt);
 }
 
-.group-header-content {
+/* --- سرستون دسته‌بندی سطح دوم (صاحب کالا)، تودرتوی سرستون انبار؛ نام وسط‌چین با خط‌چین در دو طرف تا عرض کامل ---
+   فلکس روی .subgroup-header-inner (یک div ساده) است، نه خودِ td: بعضی موتورهای مرورگر display:flex را روی
+   سلول جدول نادیده می‌گیرند و به table-cell معمولی برمی‌گردند که این خط‌چین‌ها را از کار می‌انداخت. */
+.subgroup-header td {
+    padding-block: 8px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: var(--fs-sm);
+}
+
+.subgroup-header-inner {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
+    width: 100%;
 }
 
-.group-header-chevron {
-    width: 16px;
-    height: 16px;
+.subgroup-header-line {
+    flex: 1 1 auto;
+    height: 0;
+    border-block-start: 1px dashed var(--border-strong);
+}
+
+.subgroup-header-label {
     flex: none;
-    transition: transform var(--dur) var(--ease-standard);
+    white-space: nowrap;
 }
 
-.group-header.is-open .group-header-chevron {
-    transform: rotate(180deg);
-}
-
-.group-header.is-open td {
-    color: var(--text);
+/* --- تورفتگی ردیف‌های کوتاژ زیر دسته‌بندی دوسطحی ----------------------------------------------------- */
+.data-table tbody tr.is-nested td:first-child {
+    padding-inline-start: calc(var(--space-4) * 3);
 }
 
 /* --- نمودار ---------------------------------------------------------------- */
@@ -213,6 +226,17 @@
 
 .field-inline {
     margin: 0;
+}
+
+/* --- دراپ‌داون انتخاب کشتی/کالای داشبورد؛ هم‌ساختار با .toolbar-search تا در نوار ابزار هم‌تراز باشد --- */
+.ship-cargo-field {
+    flex: 1 1 260px;
+    max-width: 360px;
+}
+
+.ship-cargo-field select {
+    flex: 1;
+    padding-inline-start: 38px;
 }
 
 /* --- متن آزاد داخل کارت آمار (مالک بار / وضعیت) ------------------------------ */

@@ -291,14 +291,17 @@ final class QuotaService {
         return $quotas;
     }
 
- // آمار محاسبه‌شده (تناژ بارگیری‌شده/باقی‌مانده، درصد، تعداد حواله) فقط برای کوتاژهای یک کشتی — دقیقاً همان شکل
- // خروجی fetchQuotasSummary اما با WHERE shipName، تا داشبورد بدون تغییر منطق رندر بتواند از آن استفاده کند.
-    public function getQuotaStatsForShip(string $shipName): array {
+ // آمار محاسبه‌شده (تناژ بارگیری‌شده/باقی‌مانده، درصد، تعداد حواله) فقط برای کوتاژهای یک کشتی (و در صورت
+ // مشخص‌بودن، فقط یک نوع کالای همان کشتی) — دقیقاً همان شکل خروجی fetchQuotasSummary اما محدود به WHERE
+ // shipName [+ cargoType]، تا داشبورد بدون تغییر منطق رندر بتواند از آن استفاده کند.
+    public function getQuotaStatsForShip(string $shipName, ?string $cargoType = null): array {
         $shipName = InputValidator::validateIdentifier($shipName);
-        return MicroCache::remember('quota_reports_ship_stats_' . $shipName, 10, fn() => $this->fetchQuotaStatsForShip($shipName));
+        $cargoType = $cargoType !== null && $cargoType !== '' ? InputValidator::validateIdentifier($cargoType) : null;
+        $cacheKey = 'quota_reports_ship_stats_' . $shipName . '|' . ($cargoType ?? '');
+        return MicroCache::remember($cacheKey, 10, fn() => $this->fetchQuotaStatsForShip($shipName, $cargoType));
     }
 
-    private function fetchQuotaStatsForShip(string $shipName): array {
+    private function fetchQuotaStatsForShip(string $shipName, ?string $cargoType): array {
         $query = "SELECT
             i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
             i.cargoWeight as totalTonnage, i.percentage, i.is_enabled, i.isActive,
@@ -313,11 +316,13 @@ final class QuotaService {
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
-        WHERE i.shipName = ?
+        WHERE i.shipName = ?" . ($cargoType !== null ? " AND i.cargoType = ?" : "") . "
         ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
 
+        $params = $cargoType !== null ? [$shipName, $shipName, $cargoType] : [$shipName, $shipName];
+
         $stmt = $this->db->prepare($query);
-        $stmt->execute([$shipName, $shipName]);
+        $stmt->execute($params);
 
         $quotas = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {

@@ -61,10 +61,17 @@ $theme = qr_theme();
             </div>
 
             <section class="toolbar">
+                <div class="toolbar-search ship-cargo-field">
+                    <svg class="icon" aria-hidden="true"><use href="#ship"></use></svg>
+                    <select id="shipCargoSelect" aria-label="انتخاب کشتی و کالا">
+                        <option value="">— انتخاب کشتی و کالا —</option>
+                    </select>
+                </div>
+
                 <form class="kotazh-search" id="kotazhSearchForm">
                     <svg class="icon" aria-hidden="true"><use href="#search"></use></svg>
                     <input type="text" id="kotazhInput"
-                        placeholder="جستجو در همه‌ی داده‌ها: شماره کوتاژ، کشتی، انبار، شرکت حمل، کالا…"
+                        placeholder="جستجو در کوتاژهای این انتخاب: شماره، انبار، صاحب کالا…"
                         aria-label="جستجوی کوتاژها" autocomplete="off">
                 </form>
 
@@ -102,7 +109,7 @@ $theme = qr_theme();
                     <tbody id="quotasBody"></tbody>
                 </table>
                 <p class="table-state" id="dashboardLoading">در حال بارگذاری…</p>
-                <p class="table-state is-hidden" id="dashboardEmpty">کوتاژی برای نمایش وجود ندارد.</p>
+                <p class="table-state" id="dashboardEmpty">برای نمایش کوتاژها، یک کشتی و کالا از فهرست بالا انتخاب کنید.</p>
             </section>
         </section>
 
