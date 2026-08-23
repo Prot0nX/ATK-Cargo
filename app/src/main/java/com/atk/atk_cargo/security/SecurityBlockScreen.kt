@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.core.domain.AnimationManager
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun SecurityBlockScreen(
@@ -159,9 +160,9 @@ private fun LoadingContent() {
 
         var stage by remember { mutableIntStateOf(0) }
         LaunchedEffect(Unit) {
-            delay(4000)
+            delay(4000.milliseconds)
             stage = 1
-            delay(5000)
+            delay(5000.milliseconds)
             stage = 2
         }
 
