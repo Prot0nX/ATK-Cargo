@@ -484,7 +484,7 @@ textarea {
 /* --- آمار --------------------------------------------------------------- */
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: var(--space-3);
     margin-block-end: var(--space-5);
 }
@@ -1018,10 +1018,14 @@ textarea {
 /* --- ردیف فیلترهای بازه‌ی تاریخ -------------------------------------------- */
 .date-filter-row {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     flex-wrap: wrap;
     gap: var(--space-2);
     margin-block-end: var(--space-3);
+}
+
+.date-filter-row .btn {
+    flex: none;
 }
 
 .date-filter-row select {
