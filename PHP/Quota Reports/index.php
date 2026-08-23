@@ -143,10 +143,6 @@ $theme = qr_theme();
                     <p class="stat-value" id="statVouchers">—</p>
                 </article>
                 <article class="stat">
-                    <p class="stat-label">میانگین وزن حواله</p>
-                    <p class="stat-value" id="statAvgWeight">—</p>
-                </article>
-                <article class="stat">
                     <p class="stat-label">مالک بار</p>
                     <p class="stat-value stat-value-text" id="statOwner">—</p>
                 </article>

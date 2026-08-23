@@ -76,7 +76,6 @@
             percentage: document.getElementById('statPercentage'),
             percentageBar: document.getElementById('statPercentageBar'),
             vouchers: document.getElementById('statVouchers'),
-            avgWeight: document.getElementById('statAvgWeight'),
             owner: document.getElementById('statOwner'),
             status: document.getElementById('statStatus')
         }
@@ -283,7 +282,6 @@
         el.stats.percentage.textContent = formatNumber(info.percentageLoaded, 1) + '٪';
         el.stats.percentageBar.value = Math.min(100, Math.max(0, info.percentageLoaded));
         el.stats.vouchers.textContent = formatNumber(info.exitVoucherCount);
-        el.stats.avgWeight.textContent = formatNumber(info.avgVoucherWeight, 2);
         el.stats.owner.textContent = info.cargoOwner || '—';
         el.stats.status.textContent = info.isActive ? 'فعال' : 'غیرفعال';
 
