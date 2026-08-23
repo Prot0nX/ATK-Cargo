@@ -186,7 +186,7 @@ class AnalyticsController {
             // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت (B-11/B-12/C-3)
             // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود (DEEP_CODE_AUDIT.md #۷)
             $baseQuery = "SELECT
-                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
+                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::EXITED->value . "' THEN c.id END) AS exitVouchers,
                 COUNT(DISTINCT c.id) AS totalVouchers,
@@ -198,7 +198,7 @@ class AnalyticsController {
                     AND i.shippingCompany = c.shippingCompany
                     AND i.cargoType = c.cargoType
                 WHERE i.isActive = 1 AND (%s)
-                GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
+                GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner";
 
             if ($shiftInfo['type'] === 'روز') {
                 $shiftCondition = "(c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = '" . self::ENTERED->value . "' AND c.exitDate IS NULL)";

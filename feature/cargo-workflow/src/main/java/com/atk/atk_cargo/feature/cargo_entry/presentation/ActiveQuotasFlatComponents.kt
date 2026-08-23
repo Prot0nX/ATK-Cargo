@@ -210,6 +210,14 @@ internal fun FlatQuotaCard(
                                 )
                             }
                         }
+
+                        if (!quota.cargoOwner.isNullOrBlank()) {
+                            Text(
+                                text = "صاحب کالا: ${quota.cargoOwner}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -357,8 +365,8 @@ internal fun FlatQuotaCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .height(2.dp)
+                        .clip(RoundedCornerShape(1.dp))
                         .background(QuotasMutedBg)
                 ) {
                     Box(

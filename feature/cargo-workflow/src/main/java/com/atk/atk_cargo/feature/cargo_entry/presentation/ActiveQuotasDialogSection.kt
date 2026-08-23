@@ -80,7 +80,8 @@ internal fun ActiveQuotasDialog(
                 loadingQuotaNumber = data.loadingQuotaNumber,
                 entryVouchers = data.entryVouchers,
                 exitVouchers = data.exitVouchers,
-                totalNetWeight = data.totalNetWeight
+                totalNetWeight = data.totalNetWeight,
+                cargoOwner = data.cargoOwner
             )
         }
     }
@@ -437,8 +438,8 @@ private fun QuotasHeader(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .height(2.dp)
+                    .clip(RoundedCornerShape(1.dp))
                     .background(QuotasMutedBg)
             ) {
                 Box(

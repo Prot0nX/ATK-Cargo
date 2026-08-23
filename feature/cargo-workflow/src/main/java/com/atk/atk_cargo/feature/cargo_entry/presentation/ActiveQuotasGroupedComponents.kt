@@ -132,6 +132,7 @@ internal fun ShipCard(
             ShipHeader(
                 shipName = shipName,
                 cargoType = ships.firstOrNull()?.cargoType ?: "",
+                cargoOwner = ships.firstOrNull()?.cargoOwner ?: "",
                 quotaCount = ships.count { it.entryVouchers + it.exitVouchers > 0 },
                 totalVouchers = totalVouchers,
                 completedVouchers = completedVouchers,
@@ -187,6 +188,7 @@ internal fun ShipCard(
 private fun ShipHeader(
     shipName: String,
     cargoType: String,
+    cargoOwner: String,
     quotaCount: Int,
     totalVouchers: Int,
     completedVouchers: Int,
@@ -278,6 +280,16 @@ private fun ShipHeader(
                     style = MaterialTheme.typography.bodySmall,
                     color = onBackgroundColor.copy(alpha = 0.7f)
                 )
+
+                if (cargoOwner.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Text(
+                        text = "صاحب کالا: $cargoOwner",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onBackgroundColor.copy(alpha = 0.7f)
+                    )
+                }
             }
 
             // نمایش تعداد حواله‌های باقیمانده
@@ -345,8 +357,8 @@ private fun ShipHeader(
             progress = { progressPercentage / 100f },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
+                .height(2.dp)
+                .clip(RoundedCornerShape(1.dp)),
             color = onBackgroundColor,
             trackColor = onBackgroundColor.copy(alpha = 0.1f),
             strokeCap = StrokeCap.Round

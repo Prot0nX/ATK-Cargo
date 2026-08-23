@@ -48,7 +48,8 @@ data class RealTimeLoadingData(
     val cargoType: String?,
     val entryVouchers: Int,
     val exitVouchers: Int,
-    val totalNetWeight: Int
+    val totalNetWeight: Int,
+    val cargoOwner: String? = null
 )
 
 @Immutable
@@ -310,5 +311,6 @@ data class ActiveShipInfo(
     val loadingQuotaNumber: String,
     var entryVouchers: Int = 0,
     var exitVouchers: Int = 0,
-    var totalNetWeight: Int = 0
+    var totalNetWeight: Int = 0,
+    val cargoOwner: String? = null
 )
