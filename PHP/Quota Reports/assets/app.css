@@ -961,9 +961,6 @@ textarea {
 }
 
 .group-header td {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     background: var(--surface-alt);
     color: var(--text-muted);
     font-weight: 700;
@@ -974,9 +971,16 @@ textarea {
     background: var(--border);
 }
 
+.group-header-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
 .group-header-chevron {
     width: 16px;
     height: 16px;
+    flex: none;
     transition: transform .15s ease;
 }
 

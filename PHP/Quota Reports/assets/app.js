@@ -185,6 +185,9 @@
         var td = document.createElement('td');
         td.colSpan = DASHBOARD_COLUMN_COUNT;
 
+        var content = document.createElement('span');
+        content.className = 'group-header-content';
+
         var chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         chevron.setAttribute('class', 'icon group-header-chevron');
         chevron.setAttribute('aria-hidden', 'true');
@@ -192,8 +195,9 @@
         use.setAttribute('href', '#chevron-down');
         chevron.appendChild(use);
 
-        td.appendChild(chevron);
-        td.appendChild(document.createTextNode((shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ'));
+        content.appendChild(chevron);
+        content.appendChild(document.createTextNode((shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ'));
+        td.appendChild(content);
         tr.appendChild(td);
         return tr;
     }
