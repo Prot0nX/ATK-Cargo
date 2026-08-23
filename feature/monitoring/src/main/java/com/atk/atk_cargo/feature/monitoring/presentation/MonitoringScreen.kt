@@ -77,16 +77,14 @@ private val SEVERITY_LABEL = mapOf(
     "info" to "اطلاعاتی"
 )
 
-// تاریخ/زمان سرور (میلادی، "yyyy-MM-dd HH:mm:ss") به شمسی — دقیقاً هم‌ارز toLocaleDateString('fa-IR')
-// داشبورد وب (PHP/Monitoring/assets/app.js) که مرورگر خودش شمسی نمایش می‌دهد؛ سمت اندروید باید صریح تبدیل شود
+// تاریخ/زمان سرور (میلادی، "yyyy-MM-dd HH:mm:ss") به شمسی — دقیقاً هم‌ارز toLocaleDateString('fa-IR') داشبورد وب (PHP/Monitoring/assets/app.js) که مرورگر خودش شمسی نمایش می‌دهد.
 private fun formatJalaliDateTime(raw: String): String {
     val date = JalaliDateUtils.formatDate(raw)
     val time = JalaliDateUtils.formatTime(raw)
     return if (time.isNotEmpty()) "$date $time" else date
 }
 
-// فیلتر ترکیبی شدت + جستجوی متنی روی رویدادهای همین لحظه بارگذاری‌شده؛ کاملاً سمت کلاینت است
-// (بدون درخواست شبکه‌ی جدید) چون هر بار حداکثر ۱۰۰ رویداد برای یک وضعیت (باز/تأییدشده/همه) واکشی می‌شود
+// فیلتر ترکیبی شدت + جستجوی متنی روی رویدادهای همین لحظه بارگذاری‌شده.
 private fun filterEvents(events: List<MonitoringEvent>, severity: String, query: String): List<MonitoringEvent> {
     val bySeverity = if (severity == "all") events else events.filter { it.severity == severity }
     val trimmedQuery = query.trim()
@@ -98,10 +96,7 @@ private fun filterEvents(events: List<MonitoringEvent>, severity: String, query:
     }
 }
 
-// صفحه‌ی نظارت — مصرف‌کننده‌ی api/v2/monitoring/* (فاز الف) با همان بازخوانی خودکار هر ۳۰ ثانیه‌ی
-// داشبورد وب (فاز ب). زبان طراحی عمداً هم‌راستا با UserManagementDialog/ComprehensiveAnalyticsDialog
-// شد (هدر با نشان آیکون، کارت‌های آماری، فیلتر segmented، کارت‌های لیست با حاشیه‌ی ظریف) نه TopAppBar
-// پیش‌فرض Material3 — تا با بقیه‌ی صفحات مدیریتی اپ یکدست باشد.
+// صفحه‌ی نظارت — مصرف‌کننده‌ی api/v2/monitoring/* با همان بازخوانی خودکار هر ۳۰ ثانیه‌ی داشبورد وب.
 @Composable
 fun MonitoringScreen(
     viewModel: MonitoringViewModel,

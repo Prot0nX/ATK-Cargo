@@ -38,8 +38,7 @@ class AnalyticsController {
         $this->request = new Request();
     }
 
-    // مدیریت درخواست‌های realTimeLoadingData.php؛ $username از Router::dispatch می‌آید — هر ۴ route این handler
- // از قبل permission=>'view_reports' سطح Router دارند، پس بررسی دوباره‌ی داخلی حذف شد
+    // مدیریت درخواست‌های realTimeLoadingData.php.
     public function handleRealTimeLoadingData(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
@@ -183,8 +182,7 @@ class AnalyticsController {
         ]));
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
-            // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت (B-11/B-12/C-3)
- // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود
+            // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود.
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,

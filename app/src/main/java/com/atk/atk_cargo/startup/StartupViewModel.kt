@@ -120,8 +120,7 @@ class StartupViewModel(
         if (startupSequenceStarted) return
         startupSequenceStarted = true
 
-        // بدون کتابخانه‌ی نیتیو secrets، BASE_URL/API_KEY در دسترس نیستند؛ هیچ فراخوانی شبکه‌ای
-        // انجام نمی‌شود تا از UnsatisfiedLinkError در UpdateManager/SecurityVerifier/RetrofitClient جلوگیری شود
+        // بدون کتابخانه‌ی نیتیو secrets، BASE_URL/API_KEY در دسترس نیستند.
         if (!_isNativeLibraryAvailable.value) return
 
         viewModelScope.launch {

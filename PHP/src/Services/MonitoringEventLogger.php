@@ -7,9 +7,7 @@ namespace App\Services;
 
 use App\Core\DatabaseManager;
 
-// ثبت best-effort رویدادهای مانیتورینگ در monitoring_events؛ مطابق الگوی
-// AuditLogger — خطا هرگز مسیر فراخوان (SecurityAlerter::alert در مسیرهای
-// امنیتی حساس مثل login/refresh) را نمی‌شکند
+// ثبت best-effort رویدادهای مانیتورینگ در monitoring_events.
 final class MonitoringEventLogger {
     public static function record(
         string $eventType,

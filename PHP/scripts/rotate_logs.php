@@ -1,15 +1,5 @@
 <?php
-// PHP/scripts/rotate_logs.php
-//
-// جایگزین PHP/deploy/logrotate.d/atk-cargo برای هاست‌های اشتراکی که دسترسی
-// root/logrotate ندارند. Logger.php هرگز
-// خودش فایل‌های logs/*.log را نمی‌چرخاند یا پاک نمی‌کند — بدون این اسکریپت
-// (یا logrotate واقعی)، این فایل‌ها تا ابد رشد می‌کنند.
-//
-// نصب: یک cron job کاربر (نه root) هر روز این را اجرا کند، مثلاً:
-//   0 3 * * * php /path/to/PHP/scripts/rotate_logs.php >> /path/to/PHP/logs/rotate.out 2>&1
-//
-// این اسکریپت فقط CLI است — مثل export_schema.php از طریق HTTP اجرا نمی‌شود.
+// PHP/scripts/rotate_logs.php جایگزین PHP/deploy/logrotate.d/atk-cargo برای هاست‌های اشتراکی که دسترسی root/logrotate ندارند.
 
 declare(strict_types=1);
 
@@ -34,8 +24,7 @@ $deleted = 0;
 foreach (glob($logDir . '/*.log') as $logFile) {
     $baseName = basename($logFile, '.log');
 
-    // فایل‌های آرشیوشده (که خودشان .log هستند اما با پسوند تاریخ) دوباره
-    // چرخانده نشوند — فقط فایل‌های لاگ فعال (بدون تاریخ در نام) هدف‌اند.
+    // فایل‌های آرشیوشده (که خودشان .log هستند اما با پسوند تاریخ) دوباره چرخانده نشوند — فقط فایل‌های لاگ فعال (بدون تاریخ در نام) هدف‌اند.
     if (preg_match('/-\d{4}-\d{2}-\d{2}$/', $baseName)) {
         continue;
     }
@@ -58,9 +47,7 @@ foreach (glob($logDir . '/*.log') as $logFile) {
         continue;
     }
 
-    // خالی‌کردن فایل اصلی (نه حذف) — Logger.php به همان مسیر می‌نویسد و اگر
-    // فایل حذف شود، تا اولین باز شدن پراسس PHP بعدی همچنان به fd قدیمی
-    // (که دیگر در سیستم‌فایل قابل مشاهده نیست) می‌نویسد؛ truncate امن‌تر است.
+    // خالی‌کردن فایل اصلی (نه حذف) — Logger.php به همان مسیر می‌نویسد و اگر فایل حذف شود، تا اولین باز شدن پراسس PHP بعدی همچنان به fd قدیمی (که دیگر در سیستم‌فایل قابل مشاهده نیست) می‌نویسد.
     if (file_put_contents($logFile, '') === false) {
         fwrite(STDERR, "خالی‌کردن ناموفق بعد از آرشیو: $logFile\n");
         continue;

@@ -89,8 +89,7 @@ class MainActivity : ComponentActivity() {
                     startupViewModel.runStartupSequenceOnce()
                 }
 
- // تنظیم Reduce Motion حالا در AtkCargoApplication.onCreate خوانده می‌شود
-                // قبلاً اینجا با LaunchedEffect(Unit) بعد از اولین composition اعمال می‌شد و Composableهای زودتر render‌شده هرگز مقدار واقعی را نمی‌دیدند
+ // تنظیم Reduce Motion حالا در AtkCargoApplication.onCreate خوانده می‌شود قبلاً اینجا با LaunchedEffect(Unit) بعد از اولین composition اعمال می‌شد و Composableهای زودتر...
 
                 LaunchedEffect(Unit) {
 

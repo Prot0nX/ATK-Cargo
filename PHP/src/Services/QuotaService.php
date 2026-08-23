@@ -500,8 +500,7 @@ final class QuotaService {
         }
     }
 
-    // هر سه تابع زیر عمداً فقط با id کار می‌کنند، نه loadingQuotaNumber که یکتا نیست
-    // نام کشتی مرتبط با یک ردیف InitialInfo، برای invalidate کردن کش per-ship بعد از نوشتن با فقط id
+    // هر سه تابع زیر عمداً فقط با id کار می‌کنند، نه loadingQuotaNumber که یکتا نیست نام کشتی مرتبط با یک ردیف InitialInfo، برای invalidate کردن کش per-ship بعد از نوشتن با فقط id.
     private function getShipNameById(int $id): ?string {
         $stmt = $this->db->prepare("SELECT shipName FROM InitialInfo WHERE id = ?");
         $stmt->execute([$id]);

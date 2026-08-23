@@ -13,15 +13,11 @@ use App\Services\UserService;
 use PHPUnit\Framework\TestCase;
 
 // تست‌های AuthController::login: شکست ورود، قفل‌شدن حساب، ورود همزمان، ورود موفق.
-// زیر TESTING_MODE (tests/bootstrap.php)، Response::json به‌جای exit یک ResponseSentException پرتاب می‌کند که اینجا catch می‌شود.
-// LoginAttemptLimiter/PermissionService (هر دو final، غیرقابل‌mock) به‌صورت نمونه‌ی واقعی استفاده می‌شوند —
-// هیچ‌کدام برای این تست‌ها به DB واقعی نیاز ندارند (fallback فایلی و fallback permissions.json).
 final class AuthControllerTest extends TestCase {
     protected function setUp(): void {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-        // چون $_SERVER بین متدهای تست در همان پروسه باقی می‌ماند، بدون این reset تست‌های «کلاینت قدیمی»
-        // می‌توانستند به‌اشتباه هدر تست قبلی را ببینند (فاز۳ #۲۸)
+        // چون $_SERVER بین متدهای تست در همان پروسه باقی می‌ماند، بدون این reset تست‌های «کلاینت قدیمی» می‌توانستند به‌اشتباه هدر تست قبلی را ببینند.
         unset($_SERVER['HTTP_X_APP_VERSION']);
         $_POST = [];
         $_GET = [];

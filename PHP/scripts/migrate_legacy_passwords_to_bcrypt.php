@@ -1,32 +1,5 @@
 <?php
-// PHP/scripts/migrate_legacy_passwords_to_bcrypt.php
-//
-// یک‌بارمصرف: تبدیل رمزهای غیر-bcrypt باقی‌مانده در جدول Users به bcrypt
-//. پیش‌نیاز حذف کامل fallback
-// «حالت ۳» (رمز متن‌خام/SHA-256 مستقیم) در UserService::verifyCredentials —
-// تا وقتی این تعداد صفر نشود، حذف آن fallback یعنی قفل‌شدن خاموش حساب
-// کاربرانی که مهاجرت نکرده‌اند.
-//
-// چرا نیازی به تشخیص «رمز متن‌خام است یا SHA-256؟» برای هر کاربر نیست:
-// UserService::verifyCredentials() از قبل هر دو حالت را زیر bcrypt پوشش
-// می‌دهد — «حالت ۱» ورودی خام کاربر را با bcrypt(stored) مقایسه می‌کند،
-// «حالت ۲» SHA-256(ورودی) را. پس هرچه الان در ستون password ذخیره است
-// (چه متن خام چه از قبل SHA-256 بوده) را مستقیماً bcrypt می‌کنیم:
-//   - اگر stored واقعاً رمز خام بوده: bcrypt(stored) === bcrypt(رمز واقعی)
-//     → در ورود بعدی از «حالت ۱» عبور می‌کند.
-//   - اگر stored از قبل SHA-256(رمز واقعی) بوده: bcrypt(stored) دقیقاً
-//     همان چیزی است که «حالت ۲» انتظار دارد → در ورود بعدی از «حالت ۲»
-//     عبور و بی‌صدا به «حالت ۱» ارتقا می‌یابد.
-// در هر دو حالت نیازی به دانستن رمز واقعی کاربر نیست و رفتار ورود برای
-// کاربر تغییری نمی‌کند.
-//
-// نصب: یک‌بار دستی روی سرور اجرا شود، نه از طریق cron:
-//   php /path/to/PHP/scripts/migrate_legacy_passwords_to_bcrypt.php
-//
-// بعد از اجرا، این باید صفر برگرداند:
-//   SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE '$2a$%';
-// وقتی صفر شد، بلوک «حالت ۳» و متغیر ALLOW_LEGACY_PLAINTEXT_LOGIN را از
-// UserService.php حذف کنید (به کاربر اطلاع بدهید تا این را به Claude بگوید).
+// PHP/scripts/migrate_legacy_passwords_to_bcrypt.php یک‌بارمصرف: تبدیل رمزهای غیر-bcrypt باقی‌مانده در جدول Users به bcrypt .
 
 declare(strict_types=1);
 

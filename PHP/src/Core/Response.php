@@ -8,8 +8,7 @@ namespace App\Core;
 use App\Exceptions\ResponseSentException;
 
 class Response {
-    // پایین‌ترین X-App-Version که کدهای HTTP معنادار (401/403/409/422/429 و...) به‌جای 200 می‌گیرد؛
- // نسخه‌های قدیمی‌تر همچنان 200 + success:false می‌گیرند تا نشکنند
+    // پایین‌ترین X-App-Version که کدهای HTTP معنادار (401/403/409/422/429 و...) به‌جای 200 می‌گیرد؛ نسخه‌های قدیمی‌تر همچنان 200 + success:false می‌گیرند تا نشکنند.
     public const HTTP_CODES_MIN_APP_VERSION = '4.1.0';
 
     // ارسال هدرهای امنیتی استاندارد سیستم
@@ -69,8 +68,7 @@ class Response {
         self::json($response, $httpCode);
     }
 
-    // بدنه‌ی خطای واحد با کد HTTP وابسته به نسخه‌ی کلاینت؛ قرارداد یکسان جایگزین ۲۰۰-همیشگی قدیمی
- // در AuthController/ChatController — $body باید شامل success:false باشد
+    // بدنه‌ی خطای واحد با کد HTTP وابسته به نسخه‌ی کلاینت؛ قرارداد یکسان جایگزین ۲۰۰-همیشگی قدیمی در AuthController/ChatController — $body باید شامل success:false باشد.
     public static function versionGatedJson(array $body, int $legacyHttpCode, int $newHttpCode): void {
         $appVersion = (new Request())->getHeader('X-App-Version');
         $useNewCode = $appVersion !== null && version_compare((string)$appVersion, self::HTTP_CODES_MIN_APP_VERSION, '>=');

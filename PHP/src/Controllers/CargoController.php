@@ -38,8 +38,7 @@ class CargoController {
         $this->cargoService = $cargoService ?? new CargoService($this->cargoRepo);
     }
 
-    // ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)؛ $username/$userType از Router::dispatch
- // می‌آیند تا audit trail با هدر جعلی قابل دستکاری نباشد
+    // ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)؛ $username/$userType از Router::dispatch می‌آیند تا audit trail با هدر جعلی قابل دستکاری نباشد.
     public function saveOrUpdate(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=utf-8');
         ini_set('memory_limit', '64M');
@@ -86,8 +85,7 @@ class CargoController {
         }
     }
 
-    // به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)؛ $username/$userType از Router::dispatch می‌آیند —
- // route این متد از قبل permission=>'edit_cargo' سطح Router دارد
+    // به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)؛ $username/$userType از Router::dispatch می‌آیند — route این متد از قبل permission=>'edit_cargo' سطح Router دارد.
     public function updateCargoInfo(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -174,8 +172,7 @@ class CargoController {
         }
     }
 
-    // تأیید حواله توسط بارشمار (confirm_cargo.php)؛ $username/$userType از Router::dispatch می‌آیند — route این متد
- // از قبل permission=>'cargo_counter' سطح Router دارد
+    // تأیید حواله توسط بارشمار (confirm_cargo.php)؛ $username/$userType از Router::dispatch می‌آیند — route این متد از قبل permission=>'cargo_counter' سطح Router دارد.
     public function confirmCargo(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -250,8 +247,7 @@ class CargoController {
         }
     }
 
-    // حذف اطلاعات حواله (deleteCargoInfo.php)؛ $username از Router::dispatch می‌آید — route این متد از قبل
- // permission=>'delete_cargo' سطح Router دارد
+    // حذف اطلاعات حواله (deleteCargoInfo.php)؛ $username از Router::dispatch می‌آید — route این متد از قبل permission=>'delete_cargo' سطح Router دارد.
     public function deleteCargoInfo(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -477,8 +473,7 @@ class CargoController {
             $initialInfo['tempTonnageStatus'] = isset($initialInfo['temp_tonnage_status']) ? (bool)$initialInfo['temp_tonnage_status'] : false;
             $initialInfo['tempTonnageAmount'] = isset($initialInfo['temp_tonnage_amount']) ? (float)$initialInfo['temp_tonnage_amount'] : null;
 
-            // استفاده از COALESCE برای ستون‌های NULLABLE چون مدل Kotlin کلاینت آن‌ها را non-null می‌خواهد و بدون آن کرش می‌کرد
- // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ در عمل به ورودهای معلق + خروج ۲۴ ساعت اخیر محدود است
+            // استفاده از COALESCE برای ستون‌های NULLABLE چون مدل Kotlin کلاینت آن‌ها را non-null می‌خواهد و بدون آن کرش می‌کرد LIMIT 2000 سقف محافظتی است نه صفحه‌بندی.
             $cargoStmt = $this->conn->prepare("SELECT id,
                 COALESCE(trackingNumber, '') AS trackingNumber,
                 COALESCE(numberOfPeople, 0) AS numberOfPeople,
@@ -517,8 +512,7 @@ class CargoController {
         }
     }
 
-    // ثبت اطلاعات اولیه جدید (saveInitialInfo.php)
- // route این متد از قبل permission=>'initial_info' سطح Router دارد
+    // ثبت اطلاعات اولیه جدید (saveInitialInfo.php) route این متد از قبل permission=>'initial_info' سطح Router دارد.
     public function saveInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -612,8 +606,7 @@ class CargoController {
         return (string)$sanitized;
     }
 
-    // $maxLength پیش‌فرض ۱۰۰ هم‌راستا با varchar(100) در schema.sql، برای جلوگیری از truncate بی‌صدا (Phase4.10)
- // htmlspecialchars حذف شد تا با sanitizeString هم‌راستا باشد؛ مصرف‌کننده JSON/اندروید است نه مرورگر
+    // $maxLength پیش‌فرض ۱۰۰ هم‌راستا با varchar(100) در schema.sql، برای جلوگیری از truncate بی‌صدا htmlspecialchars حذف شد تا با sanitizeString هم‌راستا باشد.
     private function validateStringField($value, string $fieldName, bool $required = true, ?int $maxLength = 100): string {
         $strValue = ($value === null) ? '' : (string)$value;
         $sanitized = trim($strValue);

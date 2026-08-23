@@ -1,6 +1,5 @@
 <?php
-// PHP/config/config.php
-// فایل پیکربندی دیتابیس و تنظیمات پایه سیستم
+// PHP/config/config.php فایل پیکربندی دیتابیس و تنظیمات پایه سیستم.
 
 declare(strict_types=1);
 

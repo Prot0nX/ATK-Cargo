@@ -8,8 +8,7 @@ namespace App\Controllers;
 use App\Exceptions\ApiException;
 use App\Repositories\MonitoringRepository;
 
-// نمایش/تایید رویدادهای مانیتورینگ —
-// فقط REST داخلی؛ داشبورد وب/بخش اندروید مصرف‌کننده‌ی فازهای بعدی‌اند، نه بخشی از این فاز
+// نمایش/تایید رویدادهای مانیتورینگ — فقط REST داخلی؛ داشبورد وب/بخش اندروید مصرف‌کننده‌ی فازهای بعدی‌اند، نه بخشی از این فاز.
 class MonitoringController {
     private MonitoringRepository $repository;
 
@@ -36,8 +35,7 @@ class MonitoringController {
 
     /** @return array<string,mixed> */
     public function summary(): array {
-        // خودِ وضعیت سلامت زنده محاسبه می‌شود (همان evaluateHealth که health_monitor.php هم صدا می‌زند)
-        // نه از یک ردیف ذخیره‌شده، تا جدول monitoring_events با heartbeat هر ۵ دقیقه شلوغ نشود
+        // خودِ وضعیت سلامت زنده محاسبه می‌شود (همان evaluateHealth که health_monitor.php هم صدا می‌زند) نه از یک ردیف ذخیره‌شده، تا جدول monitoring_events با heartbeat هر ۵ دقیقه شلوغ نشود.
         $health = (new DiagnosticsController())->evaluateHealth();
 
         return [

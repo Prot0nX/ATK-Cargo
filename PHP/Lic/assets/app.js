@@ -1,20 +1,4 @@
-/* =============================================================================
-   پنل مدیریت لایسنس — جاوااسکریپت داشبورد
-   =============================================================================
-   وانیلا، بدون وابستگی. جایگزین license-manager.js قبلی که به SweetAlert2 و
-   Tailwind CDN وابسته بود.
-
-   دو تفاوت مهم با نسخه‌ی قبلی:
-
-   ۱. هیچ ردیفی با innerHTML ساخته نمی‌شود. نسخه‌ی قبلی داده‌ی کاربر را
-      مستقیم درون رشته‌ی HTML و حتی داخل onclick="...('${key}')" می‌گذاشت —
-      یعنی یک نام شرکت با کاراکتر ' یا < می‌توانست کد اجرا کند. اینجا همه‌چیز
-      با createElement/textContent ساخته می‌شود و رویدادها با delegation روی
-      <tbody> بسته می‌شوند.
-
-   ۲. بازخوانی خودکار هر ۶۰ ثانیه حذف شده. آن setInterval نشست را برای همیشه
-      زنده نگه می‌داشت و انقضای بی‌کاری سمت سرور را عملاً بی‌اثر می‌کرد.
-   ========================================================================== */
+// پنل مدیریت لایسنس — جاوااسکریپت داشبورد وانیلا، بدون وابستگی؛ جایگزین license-manager.js قبلی که به SweetAlert2 و Tailwind CDN وابسته بود.
 
 (function () {
     'use strict';
@@ -59,10 +43,7 @@
 
     /* --- ارتباط با سرور -------------------------------------------------- */
 
-    /**
-     * هر پاسخ ۴۰۱ یعنی نشست منقضی شده — کاربر به صفحه‌ی ورود برمی‌گردد
-     * به‌جای اینکه با خطاهای مبهم روبه‌رو شود.
-     */
+    // هر پاسخ ۴۰۱ یعنی نشست منقضی شده — کاربر به صفحه‌ی ورود برمی‌گردد به‌جای اینکه با خطاهای مبهم روبه‌رو شود. /.
     function request(action, method, payload, params) {
         var query = new URLSearchParams(params || {});
         query.set('action', action);
@@ -280,10 +261,7 @@
 
     /* --- فرم ایجاد/ویرایش ------------------------------------------------ */
 
-    /**
-     * ورودی datetime-local فقط قالب `YYYY-MM-DDTHH:MM` را می‌پذیرد، اما
-     * دیتابیس `YYYY-MM-DD HH:MM:SS` برمی‌گرداند.
-     */
+    // ورودی datetime-local فقط قالب `YYYY-MM-DDTHH:MM` را می‌پذیرد، اما دیتابیس `YYYY-MM-DD HH:MM:SS` برمی‌گرداند. /.
     function toDatetimeLocal(value) {
         return value ? value.replace(' ', 'T').slice(0, 16) : '';
     }
@@ -458,9 +436,7 @@
     function toggleTheme() {
         var next = currentTheme() === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = next;
-        // کوکی (نه localStorage) چون PHP باید مقدار را هنگام رندر بخواند و
-        // data-theme را در همان اولین بایت خروجی بگذارد؛ وگرنه صفحه لحظه‌ای
-        // با پوسته‌ی اشتباه نمایش داده می‌شود.
+        // کوکی (نه localStorage) چون PHP باید مقدار را هنگام رندر بخواند و data-theme را در همان اولین بایت خروجی بگذارد؛ وگرنه صفحه لحظه‌ای با پوسته‌ی اشتباه نمایش داده می‌شود.
         document.cookie = 'lic_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
@@ -493,8 +469,7 @@
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     el.form.addEventListener('submit', submitForm);
 
-    // Event delegation: یک شنونده برای کل جدول به‌جای هندلر درون‌خطی روی هر
-    // دکمه — همان چیزی که الگوی تزریق نسخه‌ی قبلی را ممکن می‌کرد.
+    // Event delegation: یک شنونده برای کل جدول به‌جای هندلر درون‌خطی روی هر دکمه — همان چیزی که الگوی تزریق نسخه‌ی قبلی را ممکن می‌کرد.
     el.body.addEventListener('click', function (event) {
         var button = event.target.closest('button[data-action]');
         var license;

@@ -1,15 +1,5 @@
 <?php
-// PHP/Lic/_icons.php
-//
-// اسپرایت آیکون‌ها به‌صورت inline در همان سند.
-//
-// چرا inline و نه یک فایل .svg جدا؟ ارجاع خارجی <use href="icons.svg#id">
-// در کروم و سافاری کار نمی‌کند (فقط فایرفاکس پشتیبانی می‌کند) — آن‌ها ارجاع
-// <use> را فقط درون همان سند دنبال می‌کنند. پس اسپرایت یک‌بار در ابتدای
-// <body> چاپ می‌شود و آیکون‌ها با <use href="#name"> صدا زده می‌شوند.
-//
-// جایگزین Font Awesome است که قبلاً از دو CDN مختلف و مجموعاً حدود ۸۰
-// کیلوبایت بارگذاری می‌شد، برای ۱۵ آیکونی که واقعاً استفاده می‌شوند.
+// PHP/Lic/_icons.php اسپرایت آیکون‌ها به‌صورت inline در همان سند.
 ?>
 <svg xmlns="http://www.w3.org/2000/svg" class="icon-sprite" aria-hidden="true" focusable="false">
   <symbol id="key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"

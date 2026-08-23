@@ -88,8 +88,7 @@ class CargoViewModel(
     private val _uiState = MutableStateFlow(CargoUiState())
     val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()
 
-    // نگهدارنده‌ی حواله‌ی در انتظار تأیید ثبت تکراری؛ چون فقط بین submitCargoInfo و confirmDuplicateCargoRegistration
-    // رد و بدل می‌شود و هیچ Composable مستقیم آن را نمی‌خواند، عمداً بیرون CargoUiState ماند
+    // نگهدارنده‌ی حواله‌ی در انتظار تأیید ثبت تکراری.
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
 
     private val snackbarQueue = CargoSnackbarQueue()
@@ -637,7 +636,6 @@ class CargoViewModel(
                 val cType = result.initialInfo.cargoType
 
                 // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود.
- // forceRefresh=true چون این بارگذاری اولیه‌ی یک کوتاژ است، نه یک بررسی دوره‌ای؛ همیشه باید تازه باشد
                 launch {
                     try {
                         val data = repository.getLoadableTonnage(
@@ -814,9 +812,7 @@ class CargoViewModel(
         }
     }
 
-    // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices)
-    // هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده
- // نمی‌شدند — محاسبه‌ای کاملاً مرده. تنها مقدار واقعاً مصرف‌شده totalNetWeight در CargoUiState بود
+    // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices) هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده نمی‌شدند — محاسبه‌ای کاملاً مرده.
     fun updateInfoValues() {
         viewModelScope.launch(Dispatchers.Default) {
             try {
@@ -891,8 +887,7 @@ class CargoViewModel(
         return JalaliDateUtils.getCurrentJalaliDateString()
     }
 
-    // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود؛ حالا در Repository نگه‌داری می‌شود، پس این متد فقط forceRefresh
- // را عبور می‌دهد و منطق تازه/کهنه‌بودن را به repository.getLoadableTonnage واگذار می‌کند
+    // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود.
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
         viewModelScope.launch(Dispatchers.Default) {
             try {

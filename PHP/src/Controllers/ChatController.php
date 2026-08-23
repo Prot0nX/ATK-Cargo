@@ -28,8 +28,7 @@ class ChatController {
         $this->request = new Request();
     }
 
-    // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر
- // ورودی که رازی نیست و قابل جعل بود (S-03، فاز۳ #۲۵)
+    // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر ورودی که رازی نیست و قابل جعل بود.
     public function handleChatRequest(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');

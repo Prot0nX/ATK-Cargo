@@ -11,7 +11,6 @@ import java.io.File
 import java.security.MessageDigest
 
 // تست‌های UpdateManager: تأیید allowlist دامنه‌ی دانلود، تأیید یکپارچگی SHA-256، و مقایسه‌ی نسخه.
-// trustedBaseUrl به‌عنوان پارامتر پاس داده می‌شود تا این تست‌ها به کتابخانه‌ی نیتیو Secrets (که در JVM ساده در دسترس نیست) وابسته نباشند.
 class UpdateManagerTest {
     private lateinit var updateManager: UpdateManager
 

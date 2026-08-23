@@ -31,8 +31,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-// اشتراک‌گذاری متن و فیلد جستجوی مشترک بخش تحلیل کوتاژها — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
-// تابع مشترک برای گرفتن خطای ActivityNotFoundException در هر دو نقطه اشتراک‌گذاری، هم‌راستا با الگوی PDF در ReportsViewModel.kt
+// اشتراک‌گذاری متن و فیلد جستجوی مشترک بخش تحلیل کوتاژها — از QuotaAnalysisSection.kt جدا شد تابع مشترک برای گرفتن خطای ActivityNotFoundException در هر دو نقطه اشتراک‌گذاری،...
 internal fun shareAnalyticsText(context: Context, text: String) {
     val sendIntent = Intent().apply {
         action = Intent.ACTION_SEND

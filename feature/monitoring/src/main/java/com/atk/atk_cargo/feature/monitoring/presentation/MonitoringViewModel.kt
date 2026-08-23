@@ -27,8 +27,7 @@ data class MonitoringUiState(
     val lastUpdatedAtMillis: Long? = null
 )
 
-// بازخوانی خودکار هر ۳۰ ثانیه، هم‌الگو با داشبورد وب (PHP/Monitoring/assets/app.js) — کل هدف فاز الف
-// یک مدل pull-based بود، پس بازخوانی دوره‌ای اینجا هم لازم است
+// بازخوانی خودکار هر ۳۰ ثانیه، هم‌الگو با داشبورد وب (PHP/Monitoring/assets/app.js) — کل هدف فاز الف یک مدل pull-based بود، پس بازخوانی دوره‌ای اینجا هم لازم است.
 class MonitoringViewModel(
     private val repository: MonitoringRepository
 ) : ViewModel() {

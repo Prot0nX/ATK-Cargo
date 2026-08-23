@@ -1,10 +1,5 @@
 <?php
-// PHP/Monitoring/login.php
-//
-// ورود به داشبورد مانیتورینگ. جریان دقیقاً مطابق Lic/login.php: بررسی CSRF →
-// بررسی قفل تلاش ناموفق → password_verify روی هش bcrypt از .env → بازتولید
-// شناسه‌ی نشست. رمز MONITORING_ADMIN_PASSWORD_HASH مستقل از LIC_ADMIN_PASSWORD_HASH
-// و ADMIN_PASSWORD_HASH است تا بتوان این سه دسترسی را جدا واگذار/چرخاند.
+// PHP/Monitoring/login.php ورود به داشبورد مانیتورینگ.
 
 declare(strict_types=1);
 

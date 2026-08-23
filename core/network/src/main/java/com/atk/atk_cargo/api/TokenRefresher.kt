@@ -10,8 +10,7 @@ import java.util.concurrent.TimeUnit
 
 // منطق مشترک POST /api/v2/auth/refresh بین TokenAuthenticator (رفرش واکنشی روی ۴۰۱) و SessionValidator (بررسی صریح در startup، چون checkSession هرگز ۴۰۱ نمی‌شود)
 object TokenRefresher {
- // مشتق از HttpStack.shared (connection pool مشترک، فاز۳ #۲۷)؛ عمداً بدون authenticator/headersInterceptor
-    // چون این کلاینتِ خودِ TokenAuthenticator است — اگر authenticator مشترک را می‌گرفت، حلقه‌ی رفرش-روی-رفرش ممکن می‌شد
+ // مشتق از HttpStack.shared (connection pool مشترک، فاز۳ #۲۷).
     private val httpClient: OkHttpClient by lazy {
         HttpStack.shared.newBuilder()
             .connectTimeout(10, TimeUnit.SECONDS)

@@ -107,8 +107,7 @@ object RetrofitClient {
 
     // Headers interceptor
     private val headersInterceptor = Interceptor { chain ->
-        // منتظر پر شدن AuthSession از DataStore می‌ماند تا اولین درخواست‌های cold start بدون هدر احراز هویت نروند؛
- // این thread همیشه thread دیسپچر OkHttp است نه Main، پس مسدود شدن کوتاه اینجا امن است
+        // منتظر پر شدن AuthSession از DataStore می‌ماند تا اولین درخواست‌های cold start بدون هدر احراز هویت نروند.
         AuthSession.awaitReady()
 
         val original = chain.request()
@@ -137,10 +136,7 @@ object RetrofitClient {
         )
     }
 
-    // مشتق از HttpStack.shared تا connection pool با بقیه‌ی مسیرهای شبکه (رفرش توکن، دانلود آپدیت، تأیید امنیتی)
- // مشترک بماند؛ timeoutهای پایه‌ی shared با همین مقادیر یکسان‌اند، اینجا صریح تکرار
-    // شده‌اند تا نیاز این کلاینت مستقل از تغییرات آینده‌ی HttpStack مستند بماند. lazy تا appContext قبل از ساخته‌شدن
-    // این کلاینت (در RetrofitClient.init) فرصت مقداردهی داشته باشد
+    // مشتق از HttpStack.shared تا connection pool با بقیه‌ی مسیرهای شبکه (رفرش توکن، دانلود آپدیت، تأیید امنیتی) مشترک بماند.
     private val okHttpClient: OkHttpClient by lazy {
         val builder = HttpStack.shared.newBuilder()
             .addInterceptor(loggingInterceptor)

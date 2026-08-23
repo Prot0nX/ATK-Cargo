@@ -1,17 +1,5 @@
 <?php
-// PHP/Lic/login.php
-//
-// ورود به پنل مدیریت لایسنس. جریان دقیقاً مطابق PermissionManager.php:
-// بررسی CSRF → بررسی قفل تلاش ناموفق → password_verify روی هش bcrypt از
-// .env → بازتولید شناسه‌ی نشست.
-//
-// تفاوت با نسخه‌ی قبلی: رمز دیگر از جدول Passwords با
-// passwordType='delete_info' خوانده نمی‌شود. آن رمز متعلق به «تأیید حذف
-// اطلاعات» در اپ اصلی است و بازاستفاده‌اش یعنی هرکس بتواند اطلاعات را در
-// اپ حذف کند، به پنل صدور لایسنس هم دسترسی داشت. اکنون رمز اختصاصی
-// LIC_ADMIN_PASSWORD_HASH در .env است — مستقل از ADMIN_PASSWORD_HASH
-// (پنل PermissionManager) تا بتوان این دو دسترسی را جدا واگذار و جدا
-// چرخاند.
+// PHP/Lic/login.php ورود به پنل مدیریت لایسنس.
 
 declare(strict_types=1);
 
@@ -41,19 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
         $error = 'توکن امنیتی نامعتبر است. لطفاً دوباره تلاش کنید.';
     } elseif ($passwordHash === '') {
-        // همان رفتار PermissionManager: بدون پیکربندی، ورود ممکن نیست —
-        // نه اینکه به یک مقدار پیش‌فرض برگردد.
+        // همان رفتار PermissionManager: بدون پیکربندی، ورود ممکن نیست — نه اینکه به یک مقدار پیش‌فرض برگردد.
         $error = 'خطای پیکربندی: متغیر LIC_ADMIN_PASSWORD_HASH در فایل .env تنظیم نشده است.';
         $logger->security('Lic panel login attempted while LIC_ADMIN_PASSWORD_HASH is unset');
     } elseif ($limiter->isLocked(LIC_ACTOR, $clientIp)) {
-        // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به
-        // سقف تلاش رسیده یا صرفاً رمز را غلط زده.
+        // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به سقف تلاش رسیده یا صرفاً رمز را غلط زده.
         $error = 'رمز عبور نادرست است.';
     } elseif (password_verify((string)($_POST['password'] ?? ''), $passwordHash)) {
         $limiter->resetAttempts(LIC_ACTOR, $clientIp);
 
-        // جلوگیری از session fixation: شناسه‌ی نشست پس از احراز هویت عوض
-        // می‌شود تا شناسه‌ای که مهاجم از قبل به قربانی داده بی‌اثر شود.
+        // جلوگیری از session fixation: شناسه‌ی نشست پس از احراز هویت عوض می‌شود تا شناسه‌ای که مهاجم از قبل به قربانی داده بی‌اثر شود.
         session_regenerate_id(true);
         $_SESSION[LIC_SESSION_KEY] = true;
         $_SESSION['last_activity'] = time();

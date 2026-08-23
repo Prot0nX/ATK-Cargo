@@ -79,8 +79,7 @@ class UtilityController {
         }
     }
 
-    // بررسی وجود اطلاعات (checkExistence.php)
- // هویت از Router::dispatch (auth=>true) تضمین می‌شود؛ احراز هویت داخلی حذف شد
+    // بررسی وجود اطلاعات (checkExistence.php) هویت از Router::dispatch (auth=>true) تضمین می‌شود؛ احراز هویت داخلی حذف شد.
     public function checkExistence(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -186,8 +185,7 @@ class UtilityController {
         exit;
     }
 
-    // همگام‌سازی دسترسی‌ها (sync_permissions.php)؛ $username/$userType از Router::dispatch (auth=>true) می‌آیند —
- // احراز هویت مبتنی‌بر توکن آنجا هم‌راستا با سایر endpointها انجام می‌شود (S-20، فاز۳ #۲۵)
+    // همگام‌سازی دسترسی‌ها (sync_permissions.php)؛ $username/$userType از Router::dispatch (auth=>true) می‌آیند — احراز هویت مبتنی‌بر توکن آنجا هم‌راستا با سایر endpointها انجام می‌شود.
     public function syncPermissions(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');

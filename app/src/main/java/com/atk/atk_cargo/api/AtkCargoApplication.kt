@@ -66,10 +66,7 @@ class AtkCargoApplication : Application() {
         // AuthSession درون‌حافظه‌ای است و با کشته‌شدن پروسه خالی می‌شود؛ اینجا از DataStore پر می‌شود تا هدرهای احراز هویت از اولین درخواست درست ارسال شوند
         val userPreferencesManager = koinApp.koin.get<UserPreferencesManager>()
 
-        // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است؛ لمس RetrofitClient (حتی فقط init())
-        // کل initializer شیء را اجرا می‌کند و BASE_URL = Secrets.getBaseUrl() آنجا بی‌قید‌وشرط
-        // فراخوانی می‌شد — یعنی یک UnsatisfiedLinkError غیرقابل‌بازیابی. حالا StartupViewModel
- // این پرچم را می‌بیند و صفحه‌ی خطای صریح نشان می‌دهد
+        // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است.
         if (Secrets.isAvailable) {
  // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد
             RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)

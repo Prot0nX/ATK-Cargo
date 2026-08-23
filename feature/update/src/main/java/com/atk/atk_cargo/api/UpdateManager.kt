@@ -50,9 +50,7 @@ class UpdateManager(
 ) {
     private val appContext: Context = context.applicationContext
 
- // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، فاز۳ #۲۷)
-    // Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف پیش‌فرض OkHttp (۵ در هر هاست)
-    // بدون این override بین دانلود و بقیه‌ی ترافیک هم‌زمان (API/بررسی امنیتی در startup) به اشتراک گذاشته می‌شد
+ // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، فاز۳ #۲۷) Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف...
     private val client = HttpStack.shared.newBuilder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -286,8 +284,6 @@ class UpdateManager(
     }
 
     // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود.
-    // trustedBaseUrl پارامتر شد (پیش‌فرض همان Constants.BASE_URL قبلی) تا UpdateManagerTest بدون نیاز به
- // کتابخانه‌ی نیتیو Secrets (که در JVM ساده در دسترس نیست) این تابع را مستقیم تست کند
     internal fun isTrustedDownloadUrl(url: String, trustedBaseUrl: String = Constants.BASE_URL): Boolean = runCatching {
         val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
         val trustedHost = java.net.URI(trustedBaseUrl).host ?: return false

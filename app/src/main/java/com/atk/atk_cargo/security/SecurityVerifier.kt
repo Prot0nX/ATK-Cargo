@@ -52,8 +52,7 @@ class SecurityVerifier(private val context: Context) {
 
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
 
- // مشتق از HttpStack.shared (connection pool مشترک با API/دانلود آپدیت، فاز۳ #۲۷)
-    // جایگزین HttpURLConnection خام قبلی، با همان BUFFER_DURATION برای connect و read
+ // مشتق از HttpStack.shared (connection pool مشترک با API/دانلود آپدیت، فاز۳ #۲۷) جایگزین HttpURLConnection خام قبلی، با همان BUFFER_DURATION برای connect و read.
     private val securityHttpClient: OkHttpClient by lazy {
         HttpStack.shared.newBuilder()
             .connectTimeout(BUFFER_DURATION.toLong(), TimeUnit.MILLISECONDS)

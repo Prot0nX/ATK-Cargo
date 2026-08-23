@@ -33,8 +33,7 @@ interface QuotaRepository {
         cargoType: String
     ): CargoInfoResponse
 
-    // کش TTL (۳۰ ثانیه) اینجا نگه‌داری می‌شود، نه در ViewModel — تا بین نمونه‌های مختلف ViewModel هم مشترک بماند
- //. forceRefresh=false یعنی پاسخ کش‌شده‌ی تازه (در صورت وجود) به‌جای درخواست شبکه برگردد.
+    // کش TTL (۳۰ ثانیه) اینجا نگه‌داری می‌شود، نه در ViewModel — تا بین نمونه‌های مختلف ViewModel هم مشترک بماند .
     suspend fun getLoadableTonnage(
         quotaNumber: String,
         shippingCompany: String,
@@ -43,15 +42,11 @@ interface QuotaRepository {
         forceRefresh: Boolean = false
     ): LoadableTonnageResponse?
 
-    // فراخوان‌کننده باید بعد از هر تغییری که تناژ باقی‌مانده‌ی سرور را عوض می‌کند (ثبت/حذف/تغییر وضعیت حواله) این را
-    // صدا بزند تا فراخوانی بعدی getLoadableTonnage مقدار کهنه‌ی کش‌شده را برنگرداند. کل کش را پاک می‌کند (نه فقط
-    // یک کوتاژ خاص) چون در عمل هر لحظه فقط یک کوتاژ روی صفحه فعال است؛ ساده‌تر و بی‌ریسک‌تر از کلیدسازی دقیق در هر نقطه‌ی فراخوانی.
+    // فراخوان‌کننده باید بعد از هر تغییری که تناژ باقی‌مانده‌ی سرور را عوض می‌کند (ثبت/حذف/تغییر وضعیت حواله) این را صدا بزند تا فراخوانی بعدی getLoadableTonnage مقدار کهنه‌ی کش‌شده را برنگرداند.
     suspend fun invalidateLoadableTonnageCache()
 
  // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند =====
-    // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel
-    // منطق UI-محور و به‌شدت خاص هر عملیات است؛ عبور دادن Response خام کل آن منطق را دست‌نخورده نگه می‌دارد
-    // و فقط منبع فراخوانی شبکه را از ApiServiceV2 مستقیم به Repository منتقل می‌کند.
+    // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel منطق UI-محور و به‌شدت خاص هر عملیات است.
 
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): Response<QuotaExistenceMultipleResponse>
 
@@ -61,9 +56,7 @@ interface QuotaRepository {
 
     suspend fun confirmCargo(request: Map<String, String>): Response<Map<String, JsonElement>>
 
-    // نام متفاوت از ReportsRepository.toggleQuotaStatus(id): Boolean عمدی است — همان endpoint را صدا می‌زند
-    // اما CargoViewModel به پیام خطای دقیق سرور نیاز دارد، پس Response خام را می‌خواهد نه Boolean؛
-    // هم‌نام‌کردن با امضای متفاوت روی یک کلاس در JVM ممکن نیست (تضاد overload).
+    // نام متفاوت از ReportsRepository.toggleQuotaStatus(id): Boolean عمدی است — همان endpoint را صدا می‌زند اما CargoViewModel به پیام خطای دقیق سرور نیاز دارد، پس Response خام را می‌خواهد نه Boolean.
     suspend fun toggleCargoQuotaStatus(id: Int): Response<SuccessResponse>
 
     suspend fun deleteCargo(cargoInfoRequest: CargoInfoRequest): Response<CargoDeleteResponse>

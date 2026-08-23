@@ -1,29 +1,5 @@
 <?php
-// PHP/scripts/fix_double_escaped_cargo_fields.php
-//
-// یک‌بارمصرف: رفع مقادیر escape‌شده‌ای که قبل از رفع #۱۳
-// از طریق CargoController::updateCargoInfo (PATCH cargo/update) با
-// htmlspecialchars ذخیره شده بودند. آن endpoint دیگر escape نمی‌کند، اما
-// ردیف‌هایی که قبلاً از این مسیر ویرایش شده‌اند ممکن است هنوز &amp; / &lt; /
-// &gt; / &quot; / &#039; داشته باشند.
-//
-// این اسکریپت فقط ستون‌هایی از CargoInfo را بررسی می‌کند که واقعاً از طریق
-// validateStringField (تنها منبع htmlspecialchars در مسیر نوشتن) عبور
-// می‌کردند: trackingNumber, numberOfPeople, entryTime, scaleReceiptNumber,
-// exitTime, exitDate, status, confirm.
-//
-// پیش‌فرض: dry-run — فقط تعداد و نمونه‌ی ردیف‌های مشکوک را چاپ می‌کند،
-// هیچ UPDATE ای اجرا نمی‌شود. برای اعمال واقعی، پرچم --apply لازم است.
-//
-// نصب: یک‌بار دستی روی سرور اجرا شود، نه از طریق cron:
-//   php /path/to/PHP/scripts/fix_double_escaped_cargo_fields.php            (بررسی، بدون تغییر)
-//   php /path/to/PHP/scripts/fix_double_escaped_cargo_fields.php --apply    (اعمال واقعی)
-//
-// هشدار: قبل از --apply حتماً از جدول CargoInfo بکاپ بگیرید. html_entity_decode
-// روی مقادیری که کاربر واقعاً و عمداً رشته‌ی «&amp;» را تایپ کرده باشد هم اثر
-// می‌کند (این حالت در داده‌ی این جدول بسیار بعید است چون این ستون‌ها شماره/
-// تاریخ/وضعیت هستند، نه متن آزاد)، پس خروجی dry-run را قبل از اعمال دستی
-// مرور کنید.
+// PHP/scripts/fix_double_escaped_cargo_fields.php یک‌بارمصرف: رفع مقادیر escape‌شده‌ای که قبل از رفع #۱۳ از طریق CargoController::updateCargoInfo (PATCH cargo/update) با htmlspecialchars ذخیره شده بودند.
 
 declare(strict_types=1);
 

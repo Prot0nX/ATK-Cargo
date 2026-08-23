@@ -37,9 +37,7 @@ class UserController {
         'forceLogout',
     ];
 
-    // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این
-    // کنترلر auth=>true دارند. getAllUsers با وجود permission=>null سطح Router، تنها از طریق عضویت در
- // ADMIN_ONLY_ACTIONS محدود می‌شود، پس این بررسی داخلی حذف نشد، فقط به ApiAuthGate منتقل شد
+    // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این کنترلر auth=>true دارند.
     public function handle(?string $username, ?string $userType): void {
         $this->authenticatedUsername = $username;
         $this->authenticatedUserType = $userType;
@@ -238,4 +236,3 @@ class UserController {
     }
 
 }
-

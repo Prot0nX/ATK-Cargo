@@ -1,7 +1,4 @@
-/**
- * Online Users Manager Script v3.0
- * Modular Architecture with Modern ES6+ Features
- */
+// Online Users Manager Script v3.0 Modular Architecture with Modern ES6+ Features /.
 
 // ===== Configuration =====
 const CONFIG = {

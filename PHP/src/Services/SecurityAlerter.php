@@ -39,10 +39,7 @@ class SecurityAlerter {
         try {
             Logger::getInstance()->security("[ALERT] [$event] $message");
 
-            // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که
-            // اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
-            // عمداً مستقل از cooldown تلگرام زیر: هر رخداد باید در فهرست رویدادهای
- // داشبورد آینده دیده شود، نه فقط اولین مورد هر ۵ دقیقه.
+            // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
             MonitoringEventLogger::record(
                 $event,
                 'critical',

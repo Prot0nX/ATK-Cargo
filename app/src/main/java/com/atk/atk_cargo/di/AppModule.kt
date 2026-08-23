@@ -19,12 +19,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-// فقط زیرساخت مشترک بین فیچرها (احراز هویت نشست، دیتابیس محلی، امنیت) اینجا می‌ماند؛ هر فیچر ماژول Koin خودش
-// را در پکیج di مربوطه صادر می‌کند (authModule، chatModule، reportsModule، ...)
-// StartupViewModel هم چون خودش هنوز در :app زندگی می‌کند (app/.../core/startup) اینجا مانده، نه به‌خاطر
-// وابستگی‌اش به فیچرهای دیگر — Koin بدون توجه به این‌که کدام ماژول Gradle چه چیزی را register کرده، یک گراف
-// واحد می‌سازد، پس get<ChatRepository>()/get<UpdateManager>() از موجودهای authModule/chatModule/updateModule
-// در AtkCargoApplication (که همه‌ی ماژول‌ها را با هم لود می‌کند) به‌درستی resolve می‌شوند.
+// فقط زیرساخت مشترک بین فیچرها (احراز هویت نشست، دیتابیس محلی، امنیت) اینجا می‌ماند.
 val appModule = module {
     // ===== API Service =====
  // استفاده انحصاری از Router v2 به عنوان تنها API stack کلاینت.
@@ -53,4 +48,3 @@ val appModule = module {
     // ===== ViewModelهایی که خودشان هنوز در :app هستند =====
     viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get(), get()) }
 }
-

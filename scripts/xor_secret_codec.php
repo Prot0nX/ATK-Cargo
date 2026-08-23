@@ -1,25 +1,5 @@
 <?php
-// scripts/xor_secret_codec.php
-//
-// — ابزار کمکی برای چرخش
-// API_KEY/LICENSE_KEY (و بقیه‌ی مقادیر) در app/src/main/cpp/secrets.cpp.
-//
-// ⚠️ این ابزار فقط "مبهم‌سازی" XOR فعلی را جایگزین می‌کند، امنیت واقعی اضافه
-// نمی‌کند (به همان دلیلی که در گزارش توضیح داده شده — کلید 0x5A در باینری
-// دیده می‌شود). فقط برای رفع فوری (چرخش سریع مقدار افشاشده) استفاده کنید؛
-// راه‌حل واقعی، حذف کامل راز از کلاینت و مدل challenge-response سمت سرور
-// است (Phase2 #10).
-//
-// استفاده:
-//   php scripts/xor_secret_codec.php encode "MATN-JADID-RAZ"
-//     → آرایه‌ی بایت C++ آماده برای جای‌گذاری در secrets.cpp + طول رشته
-//
-//   php scripts/xor_secret_codec.php decode "0x32,0x2E,0x2E,..."
-//     → متن اصلی، برای راستی‌آزمایی یک آرایه‌ی موجود در secrets.cpp
-//
-// نکته: بعد از تغییر یک مقدار در secrets.cpp، مقدار متناظر آن باید هم‌زمان
-// سمت سرور (.env / DB — بسته به endpoint) هم به‌روزرسانی شود، وگرنه کلاینت
-// از کار می‌افتد.
+// scripts/xor_secret_codec.php — ابزار کمکی برای چرخش API_KEY/LICENSE_KEY (و بقیه‌ی مقادیر) در app/src/main/cpp/secrets.cpp.
 
 declare(strict_types=1);
 
