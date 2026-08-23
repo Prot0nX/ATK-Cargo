@@ -158,18 +158,20 @@
         tr.appendChild(cell(quota.exitVoucherCount));
 
         var statusCell = document.createElement('td');
-        statusCell.className = 'cell-status-group';
+        var statusContent = document.createElement('span');
+        statusContent.className = 'cell-status-group';
         var badge = document.createElement('span');
         badge.className = 'badge ' + (quota.isActive ? 'badge-active' : 'badge-inactive');
         badge.textContent = quota.isActive ? 'فعال' : 'غیرفعال';
-        statusCell.appendChild(badge);
+        statusContent.appendChild(badge);
         if (isNearCompletion) {
             var warningBadge = document.createElement('span');
             warningBadge.className = 'badge badge-warning';
             warningBadge.title = 'باقی‌مانده کمتر از ' + (100 - NEAR_COMPLETION_PERCENTAGE) + '٪ است';
             warningBadge.textContent = 'نزدیک اتمام';
-            statusCell.appendChild(warningBadge);
+            statusContent.appendChild(warningBadge);
         }
+        statusCell.appendChild(statusContent);
         tr.appendChild(statusCell);
 
         return tr;
