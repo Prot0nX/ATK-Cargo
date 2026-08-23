@@ -1170,14 +1170,20 @@ textarea {
         display: none !important;
     }
 
+    html,
     body {
+        direction: rtl;
         background: #fff;
         color: #000;
         font-size: 11px;
+        width: 100%;
     }
 
     .container {
+        direction: rtl;
         max-width: none;
+        width: 100%;
+        margin: 0;
         padding: 0;
     }
 
