@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ReportsDomainCalculationsTest {
 
-    // ===== calculatePercentage =====
+ // ===== calculatePercentage =====
 
     @Test
     fun calculatePercentage_normalRatio_roundsDownToInt() {
@@ -28,7 +28,7 @@ class ReportsDomainCalculationsTest {
         assertEquals(0, calculatePercentage(-10f, 100f))
     }
 
-    // ===== calculateProgress =====
+ // ===== calculateProgress =====
 
     @Test
     fun calculateProgress_normalRatio_returnsFractionRoundedToTwoDecimals() {
@@ -51,7 +51,7 @@ class ReportsDomainCalculationsTest {
         assertEquals(0f, calculateProgress(-10f, 100f), 0.001f)
     }
 
-    // ===== formatNumber =====
+ // ===== formatNumber =====
 
     @Test
     fun formatNumber_addsThousandsSeparators() {
@@ -68,7 +68,7 @@ class ReportsDomainCalculationsTest {
         assertEquals("0", formatNumber(0))
     }
 
-    // ===== formatWeightWithDetail =====
+ // ===== formatWeightWithDetail =====
 
     @Test
     fun formatWeightWithDetail_belowOneThousandKg_showsKilos() {

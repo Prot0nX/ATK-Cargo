@@ -10,7 +10,7 @@ use PDO;
 
 // تنها منبع حقیقت کوئری‌های جدول audit_log؛ فقط خواندن — نوشتن از طریق App\Services\AuditLogger انجام می‌شود
 class AuditLogRepository {
-    // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه MonitoringRepository::MAX_ROWS
+ // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه MonitoringRepository::MAX_ROWS
     private const MAX_ROWS = 200;
 
     private PDO $db;
@@ -19,9 +19,9 @@ class AuditLogRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
-    /**
-     * @return array<int,array<string,mixed>>
-     */
+ /**
+ * @return array<int,array<string,mixed>>
+ */
     public function listLogs(int $limit, ?int $beforeId = null, ?string $username = null, ?string $entityType = null): array {
         $limit = max(1, min($limit, self::MAX_ROWS));
         $where = [];
@@ -53,7 +53,7 @@ class AuditLogRepository {
         return $stmt->fetchAll();
     }
 
-    // حذف دائمی یک ردیف لاگ تغییرات؛ rowCount()===0 یعنی از قبل وجود نداشته
+ // حذف دائمی یک ردیف لاگ تغییرات؛ rowCount===0 یعنی از قبل وجود نداشته
     public function delete(int $id): bool {
         $stmt = $this->db->prepare('DELETE FROM audit_log WHERE id = :id');
         $stmt->execute([':id' => $id]);

@@ -123,7 +123,7 @@ $plans = LicenseAdminService::PLANS;
         </section>
     </main>
 
-    <!-- فرم ایجاد/ویرایش -->
+ <!-- فرم ایجاد/ویرایش -->
     <dialog id="licenseDialog" class="dialog">
         <form method="dialog" id="licenseForm" class="dialog-body">
             <header class="dialog-header">
@@ -188,7 +188,7 @@ $plans = LicenseAdminService::PLANS;
         </form>
     </dialog>
 
-    <!-- جزئیات لایسنس -->
+ <!-- جزئیات لایسنس -->
     <dialog id="detailsDialog" class="dialog">
         <div class="dialog-body">
             <header class="dialog-header">
@@ -204,7 +204,7 @@ $plans = LicenseAdminService::PLANS;
         </div>
     </dialog>
 
-    <!-- تأیید عملیات -->
+ <!-- تأیید عملیات -->
     <dialog id="confirmDialog" class="dialog dialog-sm">
         <div class="dialog-body">
             <header class="dialog-header">

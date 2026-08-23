@@ -113,7 +113,7 @@ fun ComprehensiveAnalyticsDialog(
 
                     Box(modifier = Modifier.fillMaxSize().weight(1f)) {
                         when (loadingState) {
-                            // Idle فقط حالت اولیه است؛ بارگذاری واقعی با LaunchedEffect بالا انجام می‌شود تا درخواست تکراری به سرور نرود
+ // Idle فقط حالت اولیه است؛ بارگذاری واقعی با LaunchedEffect بالا انجام می‌شود تا درخواست تکراری به سرور نرود
                             ReportsViewModel.LoadingState.Idle,
                             is ReportsViewModel.LoadingState.Loading -> {
                                 Box(
@@ -141,7 +141,7 @@ fun ComprehensiveAnalyticsDialog(
                                 )
                             }
                             ReportsViewModel.LoadingState.Success -> {
-                                // QuotaAnalysis لیست را مستقیماً از ReportsViewModel.analyticsGroups می‌خواند
+ // QuotaAnalysis لیست را مستقیماً از ReportsViewModel.analyticsGroups می‌خواند
                                 analyticsData?.quotaCompletionAnalysis?.let {
                                     QuotaAnalysis(viewModel = viewModel)
                                 } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
@@ -164,7 +164,7 @@ private fun AnalyticsDateNavigation(
 
     val dayName = dateInfo?.dayName ?: ""
 
-    // پنجره واقعی «روز کاری» است، نه لحظه‌ی حاضر؛ بازه کامل نمایش داده می‌شود تا مشخص شود چه بخشی از امروز در گزارش نیست
+ // پنجره واقعی «روز کاری» است، نه لحظه‌ی حاضر؛ بازه کامل نمایش داده می‌شود تا مشخص شود چه بخشی از امروز در گزارش نیست
     val windowStart = dateInfo?.windowStartDate
     val windowEnd = dateInfo?.windowEndDate
     val windowLabel = if (windowStart != null && windowEnd != null) {
@@ -341,7 +341,7 @@ private fun ErrorStateCard(
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
-            // دکمه تلاش مجدد چون قبلاً فقط با بستن/بازکردن دیالوگ ممکن بود، در شبکه ناپایدار مشکل تجربه کاربری داشت
+ // دکمه تلاش مجدد چون قبلاً فقط با بستن/بازکردن دیالوگ ممکن بود، در شبکه ناپایدار مشکل تجربه کاربری داشت
             if (onRetry != null) {
                 Button(
                     onClick = onRetry,

@@ -20,7 +20,7 @@ class AppNotificationManager(private val context: Context) {
     private val notificationManager = NotificationManagerCompat.from(context)
 
     companion object {
-        // کانال‌های اعلان
+ // کانال‌های اعلان
         const val CHANNEL_CHAT = "chat_notifications_v2"
         const val CHANNEL_LOADING = "loading_notifications_v2"
         const val CHANNEL_SYSTEM = "system_alerts_v2"
@@ -30,7 +30,7 @@ class AppNotificationManager(private val context: Context) {
         const val SYSTEM_ALERT_ID = 300
     }
 
-    // تنظیم اولیه‌ی کانال‌های اعلان در سیستم اندروید
+ // تنظیم اولیه‌ی کانال‌های اعلان در سیستم اندروید
     fun setupChannels() {
         val systemManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -54,7 +54,7 @@ class AppNotificationManager(private val context: Context) {
         systemManager.createNotificationChannels(channels)
     }
 
-    // نمایش اعلان چت با استفاده از MessagingStyle (استاندارد پیام‌رسان‌ها)
+ // نمایش اعلان چت با استفاده از MessagingStyle (استاندارد پیام‌رسان‌ها)
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showChatNotification(
         senderName: String,
@@ -90,7 +90,7 @@ class AppNotificationManager(private val context: Context) {
         notificationManager.notify(senderName.hashCode(), notification)
     }
 
-    // مدیریت لیست کشتی‌های مسدود شده
+ // مدیریت لیست کشتی‌های مسدود شده
     fun muteShip(shipName: String) {
         val prefs = context.getSharedPreferences("ship_notifications_prefs", Context.MODE_PRIVATE)
         val muted = prefs.getStringSet("muted_ships", emptySet())?.toMutableSet() ?: mutableSetOf()
@@ -110,7 +110,7 @@ class AppNotificationManager(private val context: Context) {
         context.getSharedPreferences("ship_notifications_prefs", Context.MODE_PRIVATE).edit { clear() }
     }
 
-    // نمایش هشدارهای سیستمی (مانند هشدارهای تناژ)
+ // نمایش هشدارهای سیستمی (مانند هشدارهای تناژ)
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showSystemAlert(title: String, content: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -136,7 +136,7 @@ class AppNotificationManager(private val context: Context) {
         notificationManager.notify(SYSTEM_ALERT_ID, notification)
     }
 
-    // مدیریت هوشمند و نمایش اعلان‌های بارگیری لحظه‌ای
+ // مدیریت هوشمند و نمایش اعلان‌های بارگیری لحظه‌ای
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun notifyLoadingData(loadingData: List<RealTimeLoadingData>, mutedShips: Set<String>) {
         val shipGroups = loadingData.groupBy { it.shipName }
@@ -150,7 +150,7 @@ class AppNotificationManager(private val context: Context) {
             totalExit += dataList.sumOf { it.exitVouchers }
             totalWeight += dataList.sumOf { it.totalNetWeight }
 
-            // نمایش اعلان انفرادی اگر کشتی مسدود (Mute) نشده باشد
+ // نمایش اعلان انفرادی اگر کشتی مسدود (Mute) نشده باشد
             if (!mutedShips.contains(shipName)) {
                 val warehouses = dataList.map { it.loadingWarehouse }.distinct()
                 val title = "کشتی $shipName (${warehouses.joinToString()})"
@@ -167,7 +167,7 @@ class AppNotificationManager(private val context: Context) {
             }
         }
 
-        // نمایش آمار کلی
+ // نمایش آمار کلی
         val summaryTitle = "آمار کلی بارگیری عملیات"
         val summaryContent = "کل حواله ها: ${totalInput + totalExit} | ✅ ورود: $totalInput | ⬅️ خروج: $totalExit"
         val summaryExpanded = buildString {
@@ -184,7 +184,7 @@ class AppNotificationManager(private val context: Context) {
         return "%,d کیلوگرم".format(weight)
     }
 
-    // نمایش اعلان برای یک کشتی خاص
+ // نمایش اعلان برای یک کشتی خاص
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showShipNotification(shipName: String, title: String, content: String, expandedText: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -211,7 +211,7 @@ class AppNotificationManager(private val context: Context) {
         notificationManager.notify(shipName.hashCode(), notification)
     }
 
-    // نمایش آمار کلی بارگیری
+ // نمایش آمار کلی بارگیری
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showTotalStats(title: String, content: String, expandedText: String) {
         val notification = NotificationCompat.Builder(context, CHANNEL_LOADING)
@@ -228,7 +228,7 @@ class AppNotificationManager(private val context: Context) {
         notificationManager.notify(SUMMARY_LOADING_ID, notification)
     }
 
-    // پاک کردن تمامی اعلان‌ها
+ // پاک کردن تمامی اعلان‌ها
     fun clearAll() {
         notificationManager.cancelAll()
     }

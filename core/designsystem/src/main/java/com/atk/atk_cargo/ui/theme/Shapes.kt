@@ -19,7 +19,7 @@ data class AppShapes(
     val extraExtraLarge: CornerBasedShape = RoundedCornerShape(28.dp),
     val full: CornerBasedShape = RoundedCornerShape(50),
     
-    // اشکال تخصصی کامپوننت‌ها
+ // اشکال تخصصی کامپوننت‌ها
     val button: CornerBasedShape = RoundedCornerShape(12.dp),
     val card: CornerBasedShape = RoundedCornerShape(16.dp),
     val dialog: CornerBasedShape = RoundedCornerShape(24.dp),

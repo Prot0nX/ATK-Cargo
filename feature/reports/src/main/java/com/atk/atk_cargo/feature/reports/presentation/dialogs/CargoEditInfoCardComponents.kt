@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// کارت و ردیف اطلاعاتی مشترک بین بخش‌های فقط‌خواندنی/قابل‌ویرایش دیالوگ ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// کارت و ردیف اطلاعاتی مشترک بین بخش‌های فقط‌خواندنی/قابل‌ویرایش دیالوگ ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 internal fun InfoCard(
     mainColor: Color,

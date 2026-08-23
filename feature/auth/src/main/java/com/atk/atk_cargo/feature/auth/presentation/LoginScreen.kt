@@ -95,14 +95,14 @@ fun LoginScreen(
     val loginState by viewModel.loginState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
 
-    // ===== SIDE EFFECTS =====
+ // ===== SIDE EFFECTS =====
     LaunchedEffect(loginState) {
         if (loginState is LoginUiState.Success) {
             onLoginSuccess()
         }
     }
 
-    // ===== ADAPTIVE LAYOUT & THEME TOKENS =====
+ // ===== ADAPTIVE LAYOUT & THEME TOKENS =====
     val adaptiveConfig = rememberAdaptiveLayoutConfig()
 
     Surface(
@@ -110,7 +110,7 @@ fun LoginScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         if (adaptiveConfig.windowSizeClass == WindowSizeClass.COMPACT) {
-            // حالت عمودی گوشی (Portrait Layout)
+ // حالت عمودی گوشی (Portrait Layout)
             CompactLoginLayout(
                 formState = formState,
                 loginState = loginState,
@@ -120,7 +120,7 @@ fun LoginScreen(
                 onLoginClick = viewModel::login
             )
         } else {
-            // حالت افقی گوشی یا تبلت (Dual-Column Expanded Layout)
+ // حالت افقی گوشی یا تبلت (Dual-Column Expanded Layout)
             ExpandedLoginLayout(
                 formState = formState,
                 loginState = loginState,
@@ -158,10 +158,10 @@ private fun CompactLoginLayout(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l)
         ) {
-            // کارت برندینگ (لوگو، نام سامانه و توضیح کوتاه)
+ // کارت برندینگ (لوگو، نام سامانه و توضیح کوتاه)
             LoginBrandingCard()
 
-            // کارت فرم ورود
+ // کارت فرم ورود
             IndustrialLoginFormCard(
                 formState = formState,
                 loginState = loginState,
@@ -196,14 +196,14 @@ private fun ExpandedLoginLayout(
         horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxl),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // ستون سمت چپ: هدر تصویر پس‌زمینه + برندینگ و ویژگی‌های سامانه
+ // ستون سمت چپ: هدر تصویر پس‌زمینه + برندینگ و ویژگی‌های سامانه
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius))
         ) {
-            // تصویر پس‌زمینه صنعتی
+ // تصویر پس‌زمینه صنعتی
             Image(
                 painter = painterResource(R.drawable.login_bg),
                 contentDescription = "تصویر پس‌زمینه هدر سامانه ATK Cargo",
@@ -211,7 +211,7 @@ private fun ExpandedLoginLayout(
                 contentScale = ContentScale.Crop
             )
 
-            // گرادینت پوششی برای بالا بردن کنتراست متن
+ // گرادینت پوششی برای بالا بردن کنتراست متن
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -225,7 +225,7 @@ private fun ExpandedLoginLayout(
                     )
             )
 
-            // محتوای هدر
+ // محتوای هدر
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -257,7 +257,7 @@ private fun ExpandedLoginLayout(
             }
         }
 
-        // ستون سمت راست: فرم ورود صنعتی
+ // ستون سمت راست: فرم ورود صنعتی
         Column(
             modifier = Modifier
                 .weight(1.2f)
@@ -475,7 +475,7 @@ private fun IndustrialLoginFormCard(
             verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l)
         ) {
 
-            // Title & Helper
+ // Title & Helper
             Column(verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)) {
                 Text(
                     text = "ورود پرسنل",
@@ -490,7 +490,7 @@ private fun IndustrialLoginFormCard(
                 )
             }
 
-            // Username Field
+ // Username Field
             IndustrialInputField(
                 value = formState.username,
                 onValueChange = onUsernameChanged,
@@ -512,7 +512,7 @@ private fun IndustrialLoginFormCard(
                 )
             )
 
-            // Password Field (Numeric PIN)
+ // Password Field (Numeric PIN)
             IndustrialInputField(
                 value = formState.password,
                 onValueChange = onPasswordChanged,
@@ -563,7 +563,7 @@ private fun IndustrialLoginFormCard(
                 focusRequester = passwordFocusRequester
             )
 
-            // Error Banner (Animated Visibility & Accessibility LiveRegion)
+ // Error Banner (Animated Visibility & Accessibility LiveRegion)
             AnimatedVisibility(
                 visible = errorMessage != null,
                 enter = expandVertically(animationSpec = tween(ATKCargoTheme.motion.durationMedium2)) + fadeIn(),
@@ -609,7 +609,7 @@ private fun IndustrialLoginFormCard(
                 }
             }
 
-            // Action Button (پرشده، تخت و بدون سایه، مطابق طراحی جدید)
+ // Action Button (پرشده، تخت و بدون سایه، مطابق طراحی جدید)
             Button(
                 onClick = {
                     keyboardController?.hide()
@@ -691,7 +691,7 @@ private fun IndustrialInputField(
             modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xxs)
         )
 
-        // فیلد پرشده و بدون حاشیه (Pill Input) مطابق طراحی جدید
+ // فیلد پرشده و بدون حاشیه (Pill Input) مطابق طراحی جدید
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,

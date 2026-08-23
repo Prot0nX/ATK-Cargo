@@ -19,10 +19,10 @@ class ChatRepository(
     private val apiServiceV2: ApiServiceV2,
     private val userPreferencesManager: ChatPreferencesStore
 ) {
-    // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
+ // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
 
-    // برای کد HTTP غیر ۲xx، Retrofit پیام سرور را در body() نمی‌گذارد بلکه در errorBody() — بدون این، پیام‌های واقعی سرور (مثلاً «دسترسی غیرمجاز») از نسخه‌ی ۴.۱.۰ به بعد که سرور کد...
+ // برای کد HTTP غیر ۲xx، Retrofit پیام سرور را در body نمی‌گذارد بلکه در errorBody — بدون این، پیام‌های واقعی سرور (مثلاً «دسترسی غیرمجاز») از نسخه‌ی ۴.۱.۰ به بعد که سرور کد...
     private fun <T> extractErrorMessage(response: retrofit2.Response<T>, fallback: String): String {
         return try {
             response.errorBody()?.string()?.let { raw ->
@@ -33,17 +33,17 @@ class ChatRepository(
         }
     }
 
-    // مشاهده تعداد پیام‌های خوانده نشده
+ // مشاهده تعداد پیام‌های خوانده نشده
     val unreadCount: Flow<Int> = chatDao.getUnreadCount()
 
     suspend fun refreshMessages() {
         withContext(Dispatchers.IO) {
             try {
-                // دریافت نام کاربری
+ // دریافت نام کاربری
                 val username = userPreferencesManager.username.first()
                 if (username.isEmpty()) return@withContext
 
-                // دریافت آخرین پیام‌های سرور تا پیام‌های ویرایش/حذف‌شده هم به‌روز شوند
+ // دریافت آخرین پیام‌های سرور تا پیام‌های ویرایش/حذف‌شده هم به‌روز شوند
                 val response = apiServiceV2.getChatMessages(
                     limit = 100,
                     username = username
@@ -58,7 +58,7 @@ class ChatRepository(
                         val minIdInBatch = serverIds.minOrNull() ?: 0
                         val maxIdInBatch = serverIds.maxOrNull() ?: 0
 
-                        // همگام‌سازی: حذف پیام‌هایی که در این بازه هستند اما در پاسخ سرور نبودند
+ // همگام‌سازی: حذف پیام‌هایی که در این بازه هستند اما در پاسخ سرور نبودند
                         Log.d("ATK_CHAT_DEBUG", "Refresh: Syncing range [$minIdInBatch, $maxIdInBatch]")
                         chatDao.deleteOrphanedMessages(minIdInBatch, maxIdInBatch, serverIds)
 
@@ -66,10 +66,10 @@ class ChatRepository(
                         Log.d("ATK_CHAT_DEBUG", "Refresh: Inserting ${entities.size} entities into local DB")
                         chatDao.insertMessages(entities)
 
-                        // پاکسازی پیام‌های خیلی قدیمی برای جلوگیری از انباشت دیتا
+ // پاکسازی پیام‌های خیلی قدیمی برای جلوگیری از انباشت دیتا
                         chatDao.deleteOldMessages()
                     } else {
-                        // اگر سرور هیچ پیامی برنگرداند، یعنی چت کلاً خالی شده است
+ // اگر سرور هیچ پیامی برنگرداند، یعنی چت کلاً خالی شده است
                         Log.d("ATK_CHAT_DEBUG", "Refresh: Server returned empty list. Clearing local cache.")
                         chatDao.clearAll()
                     }
@@ -101,7 +101,7 @@ class ChatRepository(
                         val minIdInBatch = serverIds.minOrNull() ?: 0
                         val maxIdInBatch = serverIds.maxOrNull() ?: 0
 
-                        // همگام‌سازی برای صفحات قدیمی
+ // همگام‌سازی برای صفحات قدیمی
                         chatDao.deleteOrphanedMessages(minIdInBatch, maxIdInBatch, serverIds)
 
                         val entities = messages.map { it.toEntity(username) }
@@ -151,7 +151,7 @@ class ChatRepository(
             )
 
             if (response.isSuccessful && response.body()?.success == true) {
-                // آپدیت دستی دیتابیس محلی چون پاسخ سرور updated_at را برنمی‌گرداند
+ // آپدیت دستی دیتابیس محلی چون پاسخ سرور updated_at را برنمی‌گرداند
                 val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.ENGLISH).format(java.util.Date())
                 chatDao.updateMessage(messageId, newMessage, timestamp)
 

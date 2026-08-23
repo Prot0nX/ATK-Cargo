@@ -115,7 +115,7 @@ fun EnhancedAddUserDialog(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Header: title + subtitle, icon badge
+ // Header: title + subtitle, icon badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -197,7 +197,7 @@ fun EnhancedAddUserDialog(
                     )
                 )
 
-                // Role selection section
+ // Role selection section
                 UserTypeSelection(
                     selectedUserType = selectedUserType,
                     onUserTypeSelected = { selectedUserType = it },

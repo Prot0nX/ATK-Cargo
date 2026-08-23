@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 
-// ردیف خلاصه‌ی صاحب کالا داخل پنل گروه‌بندی‌شده‌ی تحلیل — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// ردیف خلاصه‌ی صاحب کالا داخل پنل گروه‌بندی‌شده‌ی تحلیل — از QuotaAnalysisSection.kt جدا شد
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AnalyticsOwnerSummaryCard(

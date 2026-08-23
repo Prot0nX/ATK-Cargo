@@ -20,7 +20,7 @@ class ChatNotificationWorker(
 
     override suspend fun doWork(): ListenableWorker.Result {
         return try {
-            // Check if user is logged in
+ // Check if user is logged in
             val username = userPreferencesManager.username.first()
             if (username.isEmpty()) {
                 return ListenableWorker.Result.success()
@@ -29,14 +29,14 @@ class ChatNotificationWorker(
             val userType = userPreferencesManager.userType.first()
             val lastNotifiedId = userPreferencesManager.lastNotifiedMessageId.first()
             
-            // Fetch latest messages
+ // Fetch latest messages
             val response = RetrofitClient.apiServiceV2.getChatMessages(username = username, limit = 20)
             
             if (response.isSuccessful) {
                 val messagesResponse = response.body()
                 val messages = messagesResponse?.messages ?: emptyList()
                 
-                // Filter new messages (ID > lastNotifiedId)
+ // Filter new messages (ID > lastNotifiedId)
                 val newMessages = messages.filter { it.id > lastNotifiedId }
                     .sortedBy { it.id }
 
@@ -50,17 +50,17 @@ class ChatNotificationWorker(
                             maxId = message.id
                         }
 
-                        // Don't notify for own messages
+ // Don't notify for own messages
                         if (message.username == username) continue
 
-                        // Notification Logic
+ // Notification Logic
                         if (userType == "admin") {
-                            // Admin gets notified for all new messages
+ // Admin gets notified for all new messages
                             val senderName = message.fullName ?: message.username
                             messagesToShow.add("$senderName: ${message.message}")
                             uniqueSenders.add(senderName)
                         } else if (message.message.contains("@$username")) {
-                            // Regular user gets notified if mentioned
+ // Regular user gets notified if mentioned
                             val senderName = message.fullName ?: message.username
                             messagesToShow.add("$senderName: ${message.message}")
                             uniqueSenders.add(senderName)
@@ -68,7 +68,7 @@ class ChatNotificationWorker(
                     }
 
                     if (messagesToShow.isNotEmpty()) {
-                        // در مدل جدید، لیست جفت‌های (فرستنده، متن) را ارسال می‌کنیم
+ // در مدل جدید، لیست جفت‌های (فرستنده، متن) را ارسال می‌کنیم
                         val messagesPairs = newMessages
                             .filter { it.username != username }
                             .map { (it.fullName ?: it.username) to it.message }
@@ -76,7 +76,7 @@ class ChatNotificationWorker(
                         showGroupedNotification(messagesPairs, uniqueSenders)
                     }
 
-                    // Update last notified ID
+ // Update last notified ID
                     userPreferencesManager.saveLastNotifiedMessageId(maxId)
                 }
             }
@@ -89,7 +89,7 @@ class ChatNotificationWorker(
     }
 
     private fun showGroupedNotification(messages: List<Pair<String, String>>, senders: Set<String>) {
-        // بررسی صریح مجوز POST_NOTIFICATIONS (مطابق الگوی StartupViewModel)، وگرنه worker برای کاربر بدون مجوز بی‌نهایت retry می‌کرد
+ // بررسی صریح مجوز POST_NOTIFICATIONS (مطابق الگوی StartupViewModel)، وگرنه worker برای کاربر بدون مجوز بی‌نهایت retry می‌کرد
         val hasNotificationPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             androidx.core.content.ContextCompat.checkSelfPermission(
                 applicationContext,
@@ -104,7 +104,7 @@ class ChatNotificationWorker(
 
         val appNotificationManager = AppNotificationManager(applicationContext)
 
-        // نمایش پیام‌ها با استایل پیام‌رسان
+ // نمایش پیام‌ها با استایل پیام‌رسان
         messages.forEach { (sender, text) ->
             appNotificationManager.showChatNotification(sender, text)
         }

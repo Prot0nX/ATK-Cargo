@@ -25,23 +25,23 @@ jobs:
       - name: Composer install
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      # php -l روی هر فایل .php پروژه (بدون vendor) — قبل از این CI، سه باگ
-      # واقعی (Request::post() ناموجود، cleanupExpiredSessions ناموجود،
-      # generateDailyStats.php روی کلاس حذف‌شده) فقط با بررسی دستی پیدا شدند؛
-      # این گیت آن‌ها را در همان کامیت مسدود می‌کند.
+ # php -l روی هر فایل .php پروژه (بدون vendor) — قبل از این CI، سه باگ
+ # واقعی (Request::post ناموجود، cleanupExpiredSessions ناموجود،
+ # generateDailyStats.php روی کلاس حذف‌شده) فقط با بررسی دستی پیدا شدند
+ # این گیت آن‌ها را در همان کامیت مسدود می‌کند.
       - name: PHP syntax check (php -l)
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 \
             | xargs -0 -n1 -P4 php -l
 
-      # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon دقیقاً
-      # همین حالت (نبود .env) را پیش‌فرض می‌شناسد. خطاهای از‌پیش‌موجود (عمدتاً
-      # jdf.php شخص‌ثالث) در phpstan-baseline.neon نگه داشته شده‌اند.
+ # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon دقیقاً
+ # همین حالت (نبود .env) را پیش‌فرض می‌شناسد. خطاهای از‌پیش‌موجود (عمدتاً
+ # jdf.php شخص‌ثالث) در phpstan-baseline.neon نگه داشته شده‌اند.
       - name: PHPStan (level 7)
         run: vendor/bin/phpstan analyse --no-progress --error-format=github
 
-      # فقط منطق خالص (بدون دیتابیس) مثل QuotaCalculator — تست‌هایی که به
-      # MySQL واقعی نیاز دارند در این CI (بدون سرویس دیتابیس) اجرا نمی‌شوند.
+ # فقط منطق خالص (بدون دیتابیس) مثل QuotaCalculator — تست‌هایی که به
+ # MySQL واقعی نیاز دارند در این CI (بدون سرویس دیتابیس) اجرا نمی‌شوند.
       - name: PHPUnit
         run: vendor/bin/phpunit
 
@@ -60,17 +60,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # gradlew در گیت با mode غیرقابل‌اجرا (100644) ذخیره شده — احتمالاً
-      # چون این ریپو از یک محیط ویندوز کار شده که bit اجرایی یونیکس را
-      # حفظ نمی‌کند؛ بدون این مرحله ./gradlew روی runner لینوکسی با خطای
-      # Permission denied شکست می‌خورد.
+ # gradlew در گیت با mode غیرقابل‌اجرا (100644) ذخیره شده — احتمالاً
+ # چون این ریپو از یک محیط ویندوز کار شده که bit اجرایی یونیکس را
+ # حفظ نمی‌کند؛ بدون این مرحله ./gradlew روی runner لینوکسی با خطای
+ # Permission denied شکست می‌خورد.
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Compile (debug)
         run: ./gradlew :app:compileDebugKotlin --console=plain
 
-      # اجرای تست‌های واحد سراسر ماژول‌ها شامل app و ماژول‌های core و feature.
+ # اجرای تست‌های واحد سراسر ماژول‌ها شامل app و ماژول‌های core و feature.
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --console=plain
 
@@ -82,7 +82,7 @@ jobs:
           path: '**/build/reports/tests/'
           retention-days: 14
 
-      # بررسی قوانین Lint برای نسخه‌های debug و release.
+ # بررسی قوانین Lint برای نسخه‌های debug و release.
       - name: Lint (debug)
         run: ./gradlew :app:lintDebug --console=plain
 
@@ -97,7 +97,7 @@ jobs:
           path: app/build/reports/lint-results-*.html
           retention-days: 14
 
-      # بیلد نسخه نهایی و اعمال قوانین R8/ProGuard.
+ # بیلد نسخه نهایی و اعمال قوانین R8/ProGuard.
       - name: Assemble release (R8 gate)
         run: ./gradlew :app:assembleRelease --console=plain
 

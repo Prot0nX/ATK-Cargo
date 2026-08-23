@@ -109,7 +109,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Unit)? = null) {
     val context = LocalContext.current
-    // UserPreferencesManager (پیاده‌سازی واقعی) در :app است.
+ // UserPreferencesManager (پیاده‌سازی واقعی) در :app است.
     val tokenStore = koinInject<TokenStore>()
     val userPreferencesStore = koinInject<UserPreferencesStore>()
     val startupViewModel = LocalStartupViewModel.current
@@ -129,7 +129,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
         try {
             when (validateServerSession(tokenStore)) {
                 SessionValidationOutcome.Valid -> {
-                    // نشست معتبر است، ادامه می‌دهد
+ // نشست معتبر است، ادامه می‌دهد
                 }
                 SessionValidationOutcome.Invalid -> {
                     startupViewModel.notifySessionExpired()
@@ -169,7 +169,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
     val currentShipName = reportsUiState.selectedShip
     val loadingError = reportsUiState.loadingError
 
-    // A-1: مجوز view_reports اکنون سمت کلاینت هم چک می‌شود؛ userPermissions از همان Flow ذخیره‌شده‌ی DataStore می‌آید که PermissionPoller به‌روز می‌کند (حداکثر با تأخیر یک دور polling، ۳ دقیقه)
+ // A-1: مجوز view_reports اکنون سمت کلاینت هم چک می‌شود؛ userPermissions از همان Flow ذخیره‌شده‌ی DataStore می‌آید که PermissionPoller به‌روز می‌کند (حداکثر با تأخیر یک دور polling، ۳ دقیقه)
     val userPermissions by userPreferencesStore.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val canViewReports = userPermissions["view_reports"] == true
 
@@ -191,7 +191,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
                         ShipsList(
                             viewModel = viewModel,
                             onShipSelected = { shipName ->
-                                // نام کشتی از سرور می‌آید؛ بدون encode، نامی حاوی '/'، '?' یا '#' مسیر ناوبری را می‌شکند
+ // نام کشتی از سرور می‌آید؛ بدون encode، نامی حاوی '/'، '?' یا '#' مسیر ناوبری را می‌شکند
                                 navController.navigate("shipDetails/${Uri.encode(shipName)}") {
                                     launchSingleTop = true
                                 }
@@ -271,7 +271,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
         )
     }
 
-    // دفاع دوم (defense-in-depth): بدون مجوز کاربر دیالوگ باز نمی‌شود، حتی اگر مسیر دیگری showAnalyticsDialog را true کند
+ // دفاع دوم (defense-in-depth): بدون مجوز کاربر دیالوگ باز نمی‌شود، حتی اگر مسیر دیگری showAnalyticsDialog را true کند
     ComprehensiveAnalyticsDialog(
         isVisible = showAnalyticsDialog && canViewReports,
         onDismiss = { showAnalyticsDialog = false },
@@ -397,7 +397,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Un
         )
     }
 
-    // نمایش خطاهای بارگیری
+ // نمایش خطاهای بارگیری
     if (loadingError != null) {
         AlertDialog(
             onDismissRequest = { viewModel.clearLoadingError() },
@@ -472,14 +472,14 @@ fun PersianDateRangePickerDialog(
     onDismiss: () -> Unit,
     onDateRangeSelected: (startDate: String, endDate: String) -> Unit
 ) {
-    // State variables for selected dates - حفظ آخرین انتخاب
+ // State variables for selected dates - حفظ آخرین انتخاب
     var startDateText by rememberSaveable { mutableStateOf("1404/01/01") }
     var startTimeText by rememberSaveable { mutableStateOf("07:00") }
     var endDateText by rememberSaveable { mutableStateOf("1404/01/02") }
     var endTimeText by rememberSaveable { mutableStateOf("07:00") }
 
     if (isOpen) {
-        // Dialog states
+ // Dialog states
         var showStartDatePicker by remember { mutableStateOf(false) }
         var showStartTimePicker by remember { mutableStateOf(false) }
         var showEndDatePicker by remember { mutableStateOf(false) }
@@ -506,7 +506,7 @@ fun PersianDateRangePickerDialog(
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // عنوان دیالوگ مدرن
+ // عنوان دیالوگ مدرن
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -540,12 +540,12 @@ fun PersianDateRangePickerDialog(
                         }
                     }
 
-                    // بخش انتخاب تاریخ‌ها
+ // بخش انتخاب تاریخ‌ها
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // بخش شروع
+ // بخش شروع
                         DateTimeSelectionCard(
                             title = "از تاریخ",
                             dateValue = startDateText,
@@ -557,7 +557,7 @@ fun PersianDateRangePickerDialog(
                             modifier = Modifier.weight(1f)
                         )
 
-                        // بخش پایان
+ // بخش پایان
                         DateTimeSelectionCard(
                             title = "تا تاریخ",
                             dateValue = endDateText,
@@ -572,7 +572,7 @@ fun PersianDateRangePickerDialog(
 
                     Spacer(modifier = Modifier.height(48.dp))
 
-                    // دکمه‌های عمل مدرن
+ // دکمه‌های عمل مدرن
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -609,7 +609,7 @@ fun PersianDateRangePickerDialog(
             }
         }
 
-        // دیالوگ انتخاب تاریخ شروع
+ // دیالوگ انتخاب تاریخ شروع
         if (showStartDatePicker) {
             DatePickerDialog(
                 isOpen = true,
@@ -625,7 +625,7 @@ fun PersianDateRangePickerDialog(
             )
         }
 
-        // دیالوگ انتخاب زمان شروع
+ // دیالوگ انتخاب زمان شروع
         if (showStartTimePicker) {
             TimePickerDialog(
                 isOpen = true,
@@ -641,7 +641,7 @@ fun PersianDateRangePickerDialog(
             )
         }
 
-        // دیالوگ انتخاب تاریخ پایان
+ // دیالوگ انتخاب تاریخ پایان
         if (showEndDatePicker) {
             DatePickerDialog(
                 isOpen = true,
@@ -657,7 +657,7 @@ fun PersianDateRangePickerDialog(
             )
         }
 
-        // دیالوگ انتخاب زمان پایان
+ // دیالوگ انتخاب زمان پایان
         if (showEndTimePicker) {
             TimePickerDialog(
                 isOpen = true,
@@ -702,7 +702,7 @@ fun DateTimeSelectionCard(
             border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                // دکمه تاریخ
+ // دکمه تاریخ
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -725,7 +725,7 @@ fun DateTimeSelectionCard(
                     color = accentColor.copy(alpha = 0.1f)
                 )
                 
-                // دکمه ساعت
+ // دکمه ساعت
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -781,7 +781,7 @@ fun TimePickerDialog(
     onTimeSelected: (time: String) -> Unit
 ) {
     if (isOpen) {
-        // Parse initial time
+ // Parse initial time
         val timeParts = initialTime.split(":")
         var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
         var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
@@ -805,7 +805,7 @@ fun TimePickerDialog(
                 Column(
                     modifier = Modifier.padding(24.dp).fillMaxWidth()
                 ) {
-                    // Header
+ // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -823,7 +823,7 @@ fun TimePickerDialog(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Time Value Display
+ // Time Value Display
                     Surface(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                         shape = RoundedCornerShape(CornerXL),
@@ -865,7 +865,7 @@ fun TimePickerDialog(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Actions
+ // Actions
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1023,13 +1023,13 @@ fun ScrollableSelector(
                 Box(
                     modifier = Modifier.fillMaxWidth().height(itemHeight).align(Alignment.Center)
                 ) {
-                    // خط بالا
+ // خط بالا
                     HorizontalDivider(
                         modifier = Modifier.fillMaxWidth(0.8f).align(Alignment.TopCenter),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                         thickness = 1.dp
                     )
-                    // خط پایین
+ // خط پایین
                     HorizontalDivider(
                         modifier = Modifier.fillMaxWidth(0.8f).align(Alignment.BottomCenter),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),

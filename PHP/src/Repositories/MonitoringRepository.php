@@ -10,7 +10,7 @@ use PDO;
 
 // تنها منبع حقیقت کوئری‌های جدول monitoring_events؛ برای خواندن/تایید توسط MonitoringController
 class MonitoringRepository {
-    // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه LicenseRepository::MAX_ROWS
+ // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه LicenseRepository::MAX_ROWS
     private const MAX_ROWS = 200;
 
     private PDO $db;
@@ -19,10 +19,10 @@ class MonitoringRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
-    /**
-     * @param string $status یکی از open، acknowledged یا all
-     * @return array<int,array<string,mixed>>
-     */
+ /**
+ * @param string $status یکی از open، acknowledged یا all
+ * @return array<int,array<string,mixed>>
+ */
     public function listEvents(string $status, int $limit, ?int $beforeId = null): array {
         $limit = max(1, min($limit, self::MAX_ROWS));
         $where = [];
@@ -50,7 +50,7 @@ class MonitoringRepository {
         return $stmt->fetchAll();
     }
 
-    /** @return array<string,mixed>|null */
+ /** @return array<string,mixed>|null */
     public function findById(int $id): ?array {
         $stmt = $this->db->prepare('SELECT * FROM monitoring_events WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
@@ -58,7 +58,7 @@ class MonitoringRepository {
         return $row ?: null;
     }
 
-    // فقط اگر هنوز تایید نشده باشد اثر می‌کند؛ rowCount()===0 یعنی «قبلاً تایید شده»
+ // فقط اگر هنوز تایید نشده باشد اثر می‌کند؛ rowCount===0 یعنی «قبلاً تایید شده»
     public function acknowledge(int $id, string $username): bool {
         $stmt = $this->db->prepare(
             'UPDATE monitoring_events SET acknowledged_at = NOW(), acknowledged_by = :username WHERE id = :id AND acknowledged_at IS NULL'
@@ -67,14 +67,14 @@ class MonitoringRepository {
         return $stmt->rowCount() > 0;
     }
 
-    // حذف دائمی یک رویداد؛ rowCount()===0 یعنی رویداد از قبل وجود نداشته
+ // حذف دائمی یک رویداد؛ rowCount===0 یعنی رویداد از قبل وجود نداشته
     public function delete(int $id): bool {
         $stmt = $this->db->prepare('DELETE FROM monitoring_events WHERE id = :id');
         $stmt->execute([':id' => $id]);
         return $stmt->rowCount() > 0;
     }
 
-    /** @return array{open_total:int, open_critical:int, open_warning:int, open_info:int} */
+ /** @return array{open_total:int, open_critical:int, open_warning:int, open_info:int} */
     public function openCounts(): array {
         $sql = "SELECT
                 COUNT(*) AS open_total,
@@ -86,7 +86,7 @@ class MonitoringRepository {
         $stmt = $this->db->query($sql);
         $row = $stmt !== false ? ($stmt->fetch() ?: []) : [];
 
-        // SUM() روی جدول خالی NULL برمی‌گرداند نه صفر
+ // SUM روی جدول خالی NULL برمی‌گرداند نه صفر
         return [
             'open_total'    => (int)($row['open_total'] ?? 0),
             'open_critical' => (int)($row['open_critical'] ?? 0),

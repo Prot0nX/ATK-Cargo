@@ -13,7 +13,7 @@
 --
 -- جایگزین ساده‌تر (اگر باطل‌شدن همه‌ی نشست‌های فعال در لحظه‌ی deploy قابل
 -- قبول است، به‌جای اجرای این migration):
---   UPDATE user_sessions SET is_active = 0;
+-- UPDATE user_sessions SET is_active = 0;
 
 UPDATE user_sessions
 SET session_token = SHA2(session_token, 256)

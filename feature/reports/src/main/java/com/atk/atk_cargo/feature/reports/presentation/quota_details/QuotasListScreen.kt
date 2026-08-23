@@ -276,7 +276,7 @@ fun QuotasList(
                             (quota.cargoOwner?.contains(searchQuery, ignoreCase = true) == true)
                 }
                 .groupBy {
-                    // به‌جای نگاشت cargoOwner تهی به کلید null، برچسب صریح "نامشخص" مطابق قرارداد سرور در getGroupedQuotas استفاده می‌شود تا تداخل کلید پیش نیاید
+ // به‌جای نگاشت cargoOwner تهی به کلید null، برچسب صریح "نامشخص" مطابق قرارداد سرور در getGroupedQuotas استفاده می‌شود تا تداخل کلید پیش نیاید
                     when (currentGroupingMode) {
                         WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
                         WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner ?: "نامشخص"
@@ -298,11 +298,11 @@ fun QuotasList(
 
             val sortedEntries = when (currentGroupSortingMode) {
                 GroupSortingMode.ALPHABETICAL -> {
-                    // sortedBy معمولی ترتیب کدپوینت یونیکد را می‌دهد نه الفبای فارسی، پس از persianCollator استفاده می‌شود
+ // sortedBy معمولی ترتیب کدپوینت یونیکد را می‌دهد نه الفبای فارسی، پس از persianCollator استفاده می‌شود
                     groupedMap.entries.sortedWith(compareBy(persianCollator) { it.key ?: "" })
                 }
                 GroupSortingMode.REMAINING_TONNAGE_ASC, GroupSortingMode.REMAINING_TONNAGE_DESC -> {
-                    // مجموع مانده‌ی هر گروه یک‌بار از پیش محاسبه می‌شود تا در هر مقایسه‌ی sort تکرار نشود
+ // مجموع مانده‌ی هر گروه یک‌بار از پیش محاسبه می‌شود تا در هر مقایسه‌ی sort تکرار نشود
                     val remainingTotals = groupedMap.mapValues { (_, groupQuotas) ->
                         groupQuotas.sumOf { calculateRemainingAfterPercentage(it).toDouble() }
                     }

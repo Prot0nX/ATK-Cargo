@@ -53,7 +53,7 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 
-// دیالوگ نتیجه‌ی جستجوی حواله (مشاهده/ویرایش) — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// دیالوگ نتیجه‌ی جستجوی حواله (مشاهده/ویرایش) — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 fun SearchResultDialog(
     cargoInfo: CargoInfo,

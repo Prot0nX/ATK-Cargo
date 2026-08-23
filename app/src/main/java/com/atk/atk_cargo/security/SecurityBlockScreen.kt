@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.core.domain.AnimationManager
 import kotlinx.coroutines.launch
 
-// صفحه‌ی مسدودسازی امنیتی (لودینگ ارزیابی/کارت خطا) — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// صفحه‌ی مسدودسازی امنیتی (لودینگ ارزیابی/کارت خطا) — از SecurityScreen.kt جدا شد
 @Composable
 fun SecurityBlockScreen(
     isLoading: Boolean,
@@ -65,11 +65,11 @@ fun SecurityBlockScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            // ۱. پس‌زمینه داینامیک انیمیشنی با حرکت اوربیتالی ذرات نور
+ // ۱. پس‌زمینه داینامیک انیمیشنی با حرکت اوربیتالی ذرات نور
             DynamicPremiumBackground(isDark = isDark)
 
             if (isLoading) {
-                // ۲. لودینگ پیشرفته و تعاملی اسکن امنیتی
+ // ۲. لودینگ پیشرفته و تعاملی اسکن امنیتی
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
@@ -102,7 +102,7 @@ fun SecurityBlockScreen(
                     )
                 }
             } else {
-                // ۳. کارت خطای امنیتی با افکت گلس‌مورفیسم و ورود انیمیشنی
+ // ۳. کارت خطای امنیتی با افکت گلس‌مورفیسم و ورود انیمیشنی
                 val slideAnim = remember { Animatable(80f) }
                 val alphaAnim = remember { Animatable(0f) }
 
@@ -136,7 +136,7 @@ fun SecurityBlockScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // فضای خالی برای تراز وسط بهتر در صفحات طولانی
+ // فضای خالی برای تراز وسط بهتر در صفحات طولانی
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Card(
@@ -154,12 +154,12 @@ fun SecurityBlockScreen(
                             modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // آیکون هشدار متحرک با افکت Sonar و چرخش پالس
+ // آیکون هشدار متحرک با افکت Sonar و چرخش پالس
                             AnimatedWarningIcon()
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // عنوان خطا
+ // عنوان خطا
                             Text(
                                 text = when (errorType) {
                                     SecurityErrorType.TAMPERED -> "خطای امنیتی ساختار"
@@ -178,7 +178,7 @@ fun SecurityBlockScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // پیام جزئیات خطا در پنل گلس‌مورفیسم قرمز
+ // پیام جزئیات خطا در پنل گلس‌مورفیسم قرمز
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isDark) 0.15f else 0.25f),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
@@ -221,7 +221,7 @@ fun SecurityBlockScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // پنل مراحل رفع مشکل با طراحی متالیک و مینیمال
+ // پنل مراحل رفع مشکل با طراحی متالیک و مینیمال
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(
@@ -293,7 +293,7 @@ fun SecurityBlockScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
-                            // بخش اطلاعات توسعه‌دهنده و سایت با طراحی کارت گلس
+ // بخش اطلاعات توسعه‌دهنده و سایت با طراحی کارت گلس
                             Surface(
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isDark) 0.12f else 0.25f),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
@@ -337,7 +337,7 @@ fun SecurityBlockScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // دکمه‌ی تلاش مجدد فقط برای خطاهای موقتی (قطعی شبکه)، نه خطاهای تأییدشده مثل TAMPERED یا LICENSE_INACTIVE
+ // دکمه‌ی تلاش مجدد فقط برای خطاهای موقتی (قطعی شبکه)، نه خطاهای تأییدشده مثل TAMPERED یا LICENSE_INACTIVE
                     if (onRetry != null &&
                         (errorType == SecurityErrorType.NETWORK_ERROR || errorType == SecurityErrorType.UNKNOWN_ERROR)
                     ) {
@@ -345,7 +345,7 @@ fun SecurityBlockScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
-                    // دکمه مدرن و انیمیشنی خروج از برنامه
+ // دکمه مدرن و انیمیشنی خروج از برنامه
                     InteractiveExitButton(
                         onClick = { android.os.Process.killProcess(android.os.Process.myPid()) }
                     )

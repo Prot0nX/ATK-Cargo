@@ -25,7 +25,7 @@ class Database {
         return self::$instance;
     }
 
-    // دریافت کانکشن PDO بهینه‌شده
+ // دریافت کانکشن PDO بهینه‌شده
     public function getPdoConnection(): PDO {
         if ($this->pdo === null) {
             try {
@@ -53,7 +53,7 @@ class Database {
         return $this->pdo;
     }
 
-    // بستن اتصالات
+ // بستن اتصالات
     public function closeConnections(): void {
         $this->pdo = null;
     }

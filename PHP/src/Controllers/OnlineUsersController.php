@@ -29,7 +29,7 @@ class OnlineUsersController {
             exit;
         }
 
-        // احراز هویت از طریق نشست سراسری PermissionManager.php برای جلوگیری از افشای اطلاعات کاربران (S-04)
+ // احراز هویت از طریق نشست سراسری PermissionManager.php برای جلوگیری از افشای اطلاعات کاربران
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -44,7 +44,7 @@ class OnlineUsersController {
 
         try {
             $sessionManager = new SessionManager();
-            // استفاده از Request::get() برای خواندن اکشن، چون Request::post() وجود ندارد (B-01)
+ // استفاده از Request::get برای خواندن اکشن، چون Request::post وجود ندارد
             $action = (string)($this->request->get('action', 'get_online_users'));
 
             switch ($action) {

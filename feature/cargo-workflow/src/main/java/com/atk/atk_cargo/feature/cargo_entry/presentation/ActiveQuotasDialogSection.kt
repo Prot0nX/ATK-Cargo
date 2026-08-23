@@ -86,7 +86,7 @@ internal fun ActiveQuotasDialog(
         }
     }
 
-    // دریافت داده‌ها از API
+ // دریافت داده‌ها از API
     LaunchedEffect(Unit) {
         try {
             isLoading = true
@@ -100,7 +100,7 @@ internal fun ActiveQuotasDialog(
         }
     }
 
-    // فیلتر کشتی‌ها برای نمایش فقط کشتی‌هایی که حداقل یک ورود یا خروج دارند
+ // فیلتر کشتی‌ها برای نمایش فقط کشتی‌هایی که حداقل یک ورود یا خروج دارند
     val filteredShips = remember(convertedShips) {
         convertedShips.filter { it.entryVouchers + it.exitVouchers > 0 }
     }
@@ -110,16 +110,16 @@ internal fun ActiveQuotasDialog(
     val completedVouchers = remember(filteredShips) { filteredShips.sumOf { it.exitVouchers } }
     val totalNetWeight = remember(filteredShips) { filteredShips.sumOf { it.totalNetWeight } }
 
-    // فیلتر وضعیت - پیش‌فرض "در حال انجام"
+ // فیلتر وضعیت - پیش‌فرض "در حال انجام"
     var filterState by remember { mutableStateOf(FilterState.PENDING) }
 
-    // انتخاب حالت نمایش - پیش فرض نمایش لیستی
+ // انتخاب حالت نمایش - پیش فرض نمایش لیستی
     var viewMode by remember { mutableStateOf(ViewMode.FLAT) }
 
-    // متغیر برای نگهداری کشتی باز شده
+ // متغیر برای نگهداری کشتی باز شده
     var expandedShipName by remember { mutableStateOf<String?>(null) }
 
-    // انیمیشن ورود دیالوگ
+ // انیمیشن ورود دیالوگ
     var dialogVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         dialogVisible = true
@@ -156,7 +156,7 @@ internal fun ActiveQuotasDialog(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // سربرگ با دکمه‌ی بروزرسانی
+ // سربرگ با دکمه‌ی بروزرسانی
                 QuotasHeader(
                     totalVouchers = totalVouchers,
                     completedVouchers = completedVouchers,
@@ -182,7 +182,7 @@ internal fun ActiveQuotasDialog(
                     }
                 )
 
-                // نمایش خطا اگر وجود داشته باشد
+ // نمایش خطا اگر وجود داشته باشد
                 AnimatedVisibility(
                     visible = errorMessage != null,
                     enter = fadeIn() + expandVertically(),
@@ -218,7 +218,7 @@ internal fun ActiveQuotasDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // نوار فیلتر
+ // نوار فیلتر
                 FilterBar(
                     filterState = filterState,
                     onFilterStateChange = { filterState = it }
@@ -226,7 +226,7 @@ internal fun ActiveQuotasDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // نمایش لودینگ
+ // نمایش لودینگ
                 if (isLoading) {
                     Box(
                         modifier = Modifier
@@ -247,9 +247,9 @@ internal fun ActiveQuotasDialog(
                         }
                     }
                 } else {
-                    // محتوای اصلی دیالوگ با حالت‌های مختلف نمایش
+ // محتوای اصلی دیالوگ با حالت‌های مختلف نمایش
                     if (viewMode == ViewMode.GROUPED) {
-                        // حالت گروه‌بندی شده بر اساس کشتی
+ // حالت گروه‌بندی شده بر اساس کشتی
                         GroupedShipsContent(
                             groupedShips = groupedShips,
                             searchQuery = "",
@@ -260,7 +260,7 @@ internal fun ActiveQuotasDialog(
                             }
                         )
                     } else {
-                        // حالت نمایش همه کوتاژها به صورت لیست
+ // حالت نمایش همه کوتاژها به صورت لیست
                         FlatQuotasContent(
                             activeShips = filteredShips,
                             searchQuery = "",
@@ -304,7 +304,7 @@ private fun QuotasHeader(
             )
         }
 
-        // عنوان و آمار
+ // عنوان و آمار
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
@@ -332,7 +332,7 @@ private fun QuotasHeader(
             }
         }
 
-        // دکمه‌های تغییر حالت نمایش
+ // دکمه‌های تغییر حالت نمایش
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
@@ -340,7 +340,7 @@ private fun QuotasHeader(
                 .padding(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // دکمه نمایش گروه‌بندی شده
+ // دکمه نمایش گروه‌بندی شده
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -357,7 +357,7 @@ private fun QuotasHeader(
                 )
             }
 
-            // دکمه نمایش لیستی
+ // دکمه نمایش لیستی
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -375,7 +375,7 @@ private fun QuotasHeader(
             }
         }
 
-        // دکمه بروزرسانی
+ // دکمه بروزرسانی
         if (!isLoading) {
             Box(
                 modifier = Modifier
@@ -394,7 +394,7 @@ private fun QuotasHeader(
             }
         }
 
-        // دکمه بستن
+ // دکمه بستن
         Box(
             modifier = Modifier
                 .clip(CircleShape)
@@ -412,7 +412,7 @@ private fun QuotasHeader(
         }
     }
 
-    // کارت آمار با طراحی جدید و کوچکتر
+ // کارت آمار با طراحی جدید و کوچکتر
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -424,7 +424,7 @@ private fun QuotasHeader(
         Column(
             modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp)
         ) {
-            // نوار پیشرفت با درصد
+ // نوار پیشرفت با درصد
             val progressPercentage = if (totalVouchers > 0) {
                 (completedVouchers.toFloat() / totalVouchers) * 100f
             } else 0f
@@ -459,13 +459,13 @@ private fun QuotasHeader(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // آمار در یک ردیف
+ // آمار در یک ردیف
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // کارت آمار کل حواله‌ها
+ // کارت آمار کل حواله‌ها
                 StatItem(
                     value = totalVouchers,
                     label = "کل حواله‌ها",
@@ -477,7 +477,7 @@ private fun QuotasHeader(
                     color = QuotasCardBorder
                 )
 
-                // کارت آمار حواله‌های خروجی
+ // کارت آمار حواله‌های خروجی
                 StatItem(
                     value = completedVouchers,
                     label = "خروجی",
@@ -489,7 +489,7 @@ private fun QuotasHeader(
                     color = QuotasCardBorder
                 )
 
-                // کارت آمار حواله‌های باقیمانده
+ // کارت آمار حواله‌های باقیمانده
                 StatItem(
                     value = totalVouchers - completedVouchers,
                     label = "باقیمانده",

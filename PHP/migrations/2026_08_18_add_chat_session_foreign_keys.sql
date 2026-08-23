@@ -12,13 +12,13 @@
 -- یتیمی باقی مانده — با کوئری‌های زیر پیدایش کنید و بخش ۱ را دوباره اجرا
 -- کنید:
 --
---   SELECT * FROM user_sessions WHERE username NOT IN (SELECT username FROM Users);
---   SELECT * FROM admin_chat_messages WHERE username NOT IN (SELECT username FROM Users);
---   SELECT * FROM admin_chat_reads WHERE username NOT IN (SELECT username FROM Users)
---      OR message_id NOT IN (SELECT id FROM admin_chat_messages);
+-- SELECT * FROM user_sessions WHERE username NOT IN (SELECT username FROM Users);
+-- SELECT * FROM admin_chat_messages WHERE username NOT IN (SELECT username FROM Users);
+-- SELECT * FROM admin_chat_reads WHERE username NOT IN (SELECT username FROM Users)
+-- OR message_id NOT IN (SELECT id FROM admin_chat_messages);
 --
 -- تصمیم عمدی — دامنه: audit_log و CargoInfo/InitialInfo عمداً بیرون از این
--- migration ماندند؛ Phase3.9 دقیقاً همان دو گروه («چت، نشست») را مشخص کرده.
+-- migration ماندند؛ دقیقاً همان دو گروه («چت، نشست») را مشخص کرده.
 -- audit_log باید حتی بعد از حذف کاربر باقی بماند (سابقه‌ی ممیزی)، پس گرفتن
 -- FK رو به Users برایش عمداً رد شد.
 --
@@ -29,7 +29,7 @@
 -- استفاده شده تا حذف یک کاربر که سابقه‌ی چت دارد، آن سابقه را بی‌صدا از بین
 -- نبرد (جدول از قبل ستون is_deleted برای soft-delete دارد؛ حذف واقعی ردیف
 -- عملاً نباید در جریان عادی رخ دهد). اگر رفتار دلخواه شما پاک‌شدن خودکار
--- چت‌های کاربر حذف‌شده است، RESTRICT را در بخش ۲ به CASCADE تغییر دهید —
+-- چت‌های کاربر حذف‌شده است، RESTRICT را در بخش ۲ به CASCADE تغییر دهید
 -- توجه: چون ستون username این دو جدول NOT NULL است، گزینه‌ی SET NULL بدون
 -- تغییر تعریف ستون به NULL-پذیر ممکن نیست.
 --

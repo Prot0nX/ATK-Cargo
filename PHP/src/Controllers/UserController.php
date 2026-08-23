@@ -27,7 +27,7 @@ class UserController {
         $this->loginAttemptLimiter = new LoginAttemptLimiter();
     }
 
-    // actionهای مخصوص مدیر؛ getAllUsers قفل شد تا افشای اطلاعات همه‌ی کاربران رخ ندهد (Phase1.3)
+ // actionهای مخصوص مدیر؛ getAllUsers قفل شد تا افشای اطلاعات همه‌ی کاربران رخ ندهد
     private const ADMIN_ONLY_ACTIONS = [
         'getAllUsers',
         'getAllUsersWithStatus',
@@ -37,7 +37,7 @@ class UserController {
         'forceLogout',
     ];
 
-    // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این کنترلر auth=>true دارند.
+ // مدیریت و مسیریابی درخواست‌های کاربران؛ $username/$userType از Router::dispatch می‌آیند — همه‌ی routeهای این کنترلر auth=>true دارند.
     public function handle(?string $username, ?string $userType): void {
         $this->authenticatedUsername = $username;
         $this->authenticatedUserType = $userType;
@@ -55,7 +55,7 @@ class UserController {
             if ($this->request->isGet()) {
                 $this->handleGet($action);
             } elseif ($this->request->isWrite()) {
-                // isWrite() هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد؛ تفکیک واقعی با action انجام می‌شود (Phase4 #33)
+ // isWrite هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد؛ تفکیک واقعی با action انجام می‌شود
                 $this->handlePost($action);
             } else {
                 throw new ApiException('روش درخواست نامعتبر است', 405);
@@ -157,7 +157,7 @@ class UserController {
                 InputValidator::validateRequired($params, ['id']);
                 $id = (int)$params['id'];
 
-                // کاربر بدون manage_users فقط مجاز به ویرایش رکورد خودش با فیلدهای غیرحساس است، وگرنه IDOR ممکن بود
+ // کاربر بدون manage_users فقط مجاز به ویرایش رکورد خودش با فیلدهای غیرحساس است، وگرنه IDOR ممکن بود
                 $isAdmin = (new \App\Services\PermissionService())
                     ->hasPermission($this->authenticatedUsername ?? '', $this->authenticatedUserType ?? '', 'manage_users');
 
@@ -170,7 +170,7 @@ class UserController {
                         throw new ApiException('شما مجاز به تغییر نام کاربری یا نوع کاربری خودتان نیستید.', 403);
                     }
 
-                    // تأیید رمز فعلی برای تغییر رمز خود کاربر، تا session token دزدیده‌شده به تصاحب دائمی حساب ارتقا نیابد (Phase2.8)
+ // تأیید رمز فعلی برای تغییر رمز خود کاربر، تا session token دزدیده‌شده به تصاحب دائمی حساب ارتقا نیابد
                     if (isset($params['password'])) {
                         $username = (string)$this->authenticatedUsername;
                         $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
@@ -223,7 +223,7 @@ class UserController {
                     $result = $sessionService->deactivateSession($username);
                 }
                 
-                // فرمت پاسخ برای هماهنگی با کلاینت اندروید
+ // فرمت پاسخ برای هماهنگی با کلاینت اندروید
                 if (isset($result['http_code'])) {
                     unset($result['http_code']);
                 }

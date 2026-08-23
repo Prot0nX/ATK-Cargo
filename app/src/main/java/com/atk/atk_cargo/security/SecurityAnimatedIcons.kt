@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.core.domain.AnimationManager
 
-// آیکون‌های متحرک هشدار و بروزرسانی صفحات امنیتی — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// آیکون‌های متحرک هشدار و بروزرسانی صفحات امنیتی — از SecurityScreen.kt جدا شد
 @Composable
 internal fun AnimatedWarningIcon() {
     val pulseScale: Float
@@ -78,7 +78,7 @@ internal fun AnimatedWarningIcon() {
         modifier = Modifier.size(90.dp),
         contentAlignment = Alignment.Center
     ) {
-        // حلقه پالس بیرونی (موج رادار)
+ // حلقه پالس بیرونی (موج رادار)
         Box(
             modifier = Modifier
                 .size(70.dp)
@@ -90,7 +90,7 @@ internal fun AnimatedWarningIcon() {
                 )
         )
 
-        // ظرف اصلی آیکون با لرزش ظریف
+ // ظرف اصلی آیکون با لرزش ظریف
         Box(
             modifier = Modifier
                 .size(70.dp)

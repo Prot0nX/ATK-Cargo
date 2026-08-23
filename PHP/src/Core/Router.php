@@ -7,11 +7,11 @@ namespace App\Core;
 
 // Router صریح نسخه‌ی ۲ API با مدل opt-in؛ فقط مسیرهای تعریف‌شده در routes/api_v2.php قابل‌دسترسی‌اند
 final class Router {
-    /** @var array<int, array{method:string, path:string, auth:bool, permission:?string, handler:callable}> */
+ /** @var array<int, array{method:string, path:string, auth:bool, permission:?string, handler:callable}> */
     private array $routes;
 
     public function __construct(array $routes) {
-        // مرتب‌سازی بر اساس تعداد پارامتر تا مسیرهای دقیق‌تر قبل از عمومی‌تر بررسی شوند
+ // مرتب‌سازی بر اساس تعداد پارامتر تا مسیرهای دقیق‌تر قبل از عمومی‌تر بررسی شوند
         usort($routes, static function (array $a, array $b): int {
             return self::countParams($a['path']) <=> self::countParams($b['path']);
         });
@@ -26,7 +26,7 @@ final class Router {
         $method = strtoupper($method);
         $path = trim((string)parse_url($rawPath, PHP_URL_PATH), '/');
 
-        // حذف پیشوند api/v2/ که توسط .htaccess اضافه شده تا الگوهای مسیر تمیز بمانند
+ // حذف پیشوند api/v2/ که توسط .htaccess اضافه شده تا الگوهای مسیر تمیز بمانند
         $path = preg_replace('#^api/v2/?#', '', $path) ?? $path;
 
         $request = new Request();
@@ -42,7 +42,7 @@ final class Router {
                 continue;
             }
 
-            // پارامترهای مسیر در $_GET هم قرار می‌گیرند تا با Request::get() سازگار باشند
+ // پارامترهای مسیر در $_GET هم قرار می‌گیرند تا با Request::get سازگار باشند
             foreach ($params as $key => $value) {
                 $_GET[$key] = $value;
             }
@@ -61,14 +61,14 @@ final class Router {
         }
 
         if (!empty($pathAllowedMethods)) {
-            // مسیر وجود دارد ولی متد HTTP اشتباه است — 405 دقیق‌تر از 404 عمومی است.
+ // مسیر وجود دارد ولی متد HTTP اشتباه است — 405 دقیق‌تر از 404 عمومی است.
             Response::error('روش درخواست برای این مسیر مجاز نیست.', 405);
         }
 
         Response::error('مسیر یافت نشد.', 404);
     }
 
-    /** @return array<string, string>|null آرایه‌ی پارامترهای مسیر در صورت تطبیق، یا null */
+ /** @return array<string, string>|null آرایه‌ی پارامترهای مسیر در صورت تطبیق، یا null */
     private function matchPath(string $pattern, string $path): ?array {
         $patternParts = $pattern === '' ? [] : explode('/', trim($pattern, '/'));
         $pathParts = $path === '' ? [] : explode('/', $path);

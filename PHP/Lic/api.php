@@ -24,7 +24,7 @@ if (in_array($action, WRITE_ACTIONS, true)) {
     if (!$request->isPost()) {
         Response::error('این عملیات فقط با متد POST قابل انجام است.', 405);
     }
-    // توکن از هدر خوانده می‌شود (نه بدنه) تا بدنه‌ی JSON خالص بماند.
+ // توکن از هدر خوانده می‌شود (نه بدنه) تا بدنه‌ی JSON خالص بماند.
     Csrf::requireValid($request->getHeader('X-CSRF-Token'));
 } elseif (!$request->isGet()) {
     Response::error('روش درخواست معتبر نیست.', 405);
@@ -88,7 +88,7 @@ try {
 } catch (ApiException $e) {
     Response::error($e->getMessage(), $e->getStatusCode(), $e->getDetails());
 } catch (\Throwable $e) {
-    // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه لاگ می‌شوند تا ساختار دیتابیس افشا نشود.
+ // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه لاگ می‌شوند تا ساختار دیتابیس افشا نشود.
     Logger::getInstance()->error('Lic api.php: ' . $e->getMessage());
     Response::error('خطای داخلی سرور رخ داده است.', 500);
 }

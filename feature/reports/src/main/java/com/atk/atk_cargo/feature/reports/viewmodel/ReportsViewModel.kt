@@ -58,15 +58,15 @@ class ReportsViewModel(
     private val repository: ReportsRepository,
     application: Application
 ) : AndroidViewModel(application) {
-    // کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» در این StateFlow جمع شده تا با چرخش صفحه ریست نشود
+ // کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» در این StateFlow جمع شده تا با چرخش صفحه ریست نشود
     private val _realTimeUiState = MutableStateFlow(RealTimeUiState())
     val realTimeUiState: StateFlow<RealTimeUiState> = _realTimeUiState.asStateFlow()
 
-    // وضعیت مشترک صفحه‌ی گزارش کشتی/کوتاژ در یک UiState واحد؛ سایر حوزه‌ها (polling، تحلیل جامع، مرتب‌سازی/جستجو) جدا نگه داشته شده‌اند
+ // وضعیت مشترک صفحه‌ی گزارش کشتی/کوتاژ در یک UiState واحد؛ سایر حوزه‌ها (polling، تحلیل جامع، مرتب‌سازی/جستجو) جدا نگه داشته شده‌اند
     private val _uiState = MutableStateFlow(ReportsUiState())
     val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
 
-    // فقط داخلی است و هیچ‌وقت به UI expose نمی‌شود، پس بیرون از ReportsUiState نگه داشته شده
+ // فقط داخلی است و هیچ‌وقت به UI expose نمی‌شود، پس بیرون از ReportsUiState نگه داشته شده
     private val _currentShipName = MutableStateFlow<String?>(null)
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
@@ -90,7 +90,7 @@ class ReportsViewModel(
     private val _analyticsDateOffset = MutableStateFlow(0)
     val analyticsDateOffset: StateFlow<Int> = _analyticsDateOffset.asStateFlow()
 
-    // بدون این Job، تعویض سریع تاریخ چند درخواست هم‌زمان می‌ساخت و پاسخ اشتباه در state می‌نشست
+ // بدون این Job، تعویض سریع تاریخ چند درخواست هم‌زمان می‌ساخت و پاسخ اشتباه در state می‌نشست
     private var analyticsFetchJob: Job? = null
 
     fun setAnalyticsDateOffset(offset: Int) {
@@ -116,7 +116,7 @@ class ReportsViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    // مستقیماً از StateFlow پاسخ سرور مشتق می‌شود؛ debounce + flowOn(Default) فیلتر/گروه‌بندی را یک‌بار و خارج از رشته UI انجام می‌دهد
+ // مستقیماً از StateFlow پاسخ سرور مشتق می‌شود؛ debounce + flowOn(Default) فیلتر/گروه‌بندی را یک‌بار و خارج از رشته UI انجام می‌دهد
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     val analyticsGroups: StateFlow<List<QuotaGroup>> =
         combine(
@@ -143,15 +143,15 @@ class ReportsViewModel(
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
 
-    // متغیرهای مربوط به مرتب‌سازی کوتاژها
+ // متغیرهای مربوط به مرتب‌سازی کوتاژها
     private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
     val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
 
-    // متغیرهای مربوط به مرتب‌سازی گروه‌ها
+ // متغیرهای مربوط به مرتب‌سازی گروه‌ها
     private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
     val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
 
-    // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
+ // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
     private val _shipSortingMode = MutableStateFlow(ShipSortingMode.REMAINING_TONNAGE_ASC)
     val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
 
@@ -163,17 +163,17 @@ class ReportsViewModel(
         _isMinimalQuotaMode.value = !_isMinimalQuotaMode.value
     }
 
-    // تابع تغییر حالت گروه‌بندی
+ // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
         _groupingMode.value = mode
     }
 
-    // تابع به‌روزرسانی کوئری جستجو
+ // تابع به‌روزرسانی کوئری جستجو
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
-    // بارگذاری اولیه توسط ShipsListScreen انجام می‌شود تا از فراخوانی همزمان کوئری سنگین سرور جلوگیری گردد.
+ // بارگذاری اولیه توسط ShipsListScreen انجام می‌شود تا از فراخوانی همزمان کوئری سنگین سرور جلوگیری گردد.
 
     fun formatNumber(number: Number): String {
         return NumberFormat.getNumberInstance(Locale.US).format(number)
@@ -204,7 +204,7 @@ class ReportsViewModel(
     companion object {
         private const val REAL_TIME_REFRESH_INTERVAL_MS = 30_000L
 
-        // حداکثر بازه روزهای مجاز برای گزارش تحلیل جامع عملیات (معادل AnalyticsController::MAX_ANALYTICS_DAYS_BACK سمت سرور).
+ // حداکثر بازه روزهای مجاز برای گزارش تحلیل جامع عملیات (معادل AnalyticsController::MAX_ANALYTICS_DAYS_BACK سمت سرور).
         const val ANALYTICS_MAX_DAYS_BACK = 7
     }
 
@@ -219,7 +219,7 @@ class ReportsViewModel(
                 )
             }
 
-            // تخصیص رنگ‌های متمایز فقط به کشتی‌ها که تنها مصرف واقعی رنگ در دیالوگ بارگیری لحظه‌ای است
+ // تخصیص رنگ‌های متمایز فقط به کشتی‌ها که تنها مصرف واقعی رنگ در دیالوگ بارگیری لحظه‌ای است
             val shipNames = response.data.map { it.shipName }.distinct().toSet()
             val shipColors = colorSelector.assignDistinctColors(shipNames)
                 .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
@@ -230,7 +230,7 @@ class ReportsViewModel(
         }
     }
 
-    // درخواست قبلی لغو می‌شود تا پاسخ دیرهنگام state را بازنویسی نکند؛ سپس تا پایان واقعی صبر می‌کند
+ // درخواست قبلی لغو می‌شود تا پاسخ دیرهنگام state را بازنویسی نکند؛ سپس تا پایان واقعی صبر می‌کند
     private suspend fun fetchRealTimeDataCoordinated(isDarkTheme: Boolean) {
         realTimeFetchJob?.cancel()
         val job = viewModelScope.launch { fetchRealTimeData(isDarkTheme) }
@@ -238,7 +238,7 @@ class ReportsViewModel(
         job.join()
     }
 
-    // کل حلقه‌ی polling دیالوگ «بارگیری لحظه‌ای» اینجاست، نه در Composable؛ با لغو کوروتین caller متوقف می‌شود
+ // کل حلقه‌ی polling دیالوگ «بارگیری لحظه‌ای» اینجاست، نه در Composable؛ با لغو کوروتین caller متوقف می‌شود
     suspend fun startRealTimePolling(isDarkTheme: Boolean) {
         var nextRefreshAt = System.currentTimeMillis() + REAL_TIME_REFRESH_INTERVAL_MS
         _realTimeUiState.update { it.copy(secondsToNextRefresh = 30) }
@@ -253,7 +253,7 @@ class ReportsViewModel(
                 fetchRealTimeDataCoordinated(isDarkTheme)
                 delay(500)
                 _realTimeUiState.update { it.copy(isRefreshing = false, secondsToNextRefresh = 30) }
-                // محاسبه هدف بعدی بر اساس زمان‌بندی قبلی جهت جلوگیری از drift تدریجی زمان polling.
+ // محاسبه هدف بعدی بر اساس زمان‌بندی قبلی جهت جلوگیری از drift تدریجی زمان polling.
                 nextRefreshAt = maxOf(
                     nextRefreshAt + REAL_TIME_REFRESH_INTERVAL_MS,
                     System.currentTimeMillis() + 1000L
@@ -262,7 +262,7 @@ class ReportsViewModel(
         }
     }
 
-    // برای دکمه‌ی refresh دستی؛ پیام خطای واقعی را برمی‌گرداند (null یعنی موفق) تا UI Toast نشان دهد
+ // برای دکمه‌ی refresh دستی؛ پیام خطای واقعی را برمی‌گرداند (null یعنی موفق) تا UI Toast نشان دهد
     suspend fun refreshRealTimeDataManually(isDarkTheme: Boolean): String? {
         _realTimeUiState.update { it.copy(isRefreshing = true) }
         fetchRealTimeDataCoordinated(isDarkTheme)
@@ -385,7 +385,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 supervisorScope {
-                    // forceRefresh=true بعد از هر نوشتن موفق صدا زده می‌شود تا کش دیسک OkHttp پاسخ قدیمی برنگرداند
+ // forceRefresh=true بعد از هر نوشتن موفق صدا زده می‌شود تا کش دیسک OkHttp پاسخ قدیمی برنگرداند
                     val shipDetailsDeferred = async { repository.getShipDetails(shipName, forceRefresh = true) }
                     val shipQuotasDeferred = async { repository.getShipQuotas(shipName, forceRefresh = true) }
 
@@ -499,7 +499,7 @@ class ReportsViewModel(
         }
     }
 
-    // quotaNumber دیگر برای سرور استفاده نمی‌شود؛ فقط برای سازگاری با فراخوان‌های موجود در UI نگه داشته شده
+ // quotaNumber دیگر برای سرور استفاده نمی‌شود؛ فقط برای سازگاری با فراخوان‌های موجود در UI نگه داشته شده
     fun toggleQuotaStatus(id: Int, quotaNumber: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
@@ -521,7 +521,7 @@ class ReportsViewModel(
         }
     }
 
-    // غیرفعال‌سازی دسته‌ای کوتاژهای هشداردار؛ همه‌ی toggleها اول اجرا و فقط یک‌بار در پایان رفرش می‌شوند تا از سقف Rate Limit رد نشویم
+ // غیرفعال‌سازی دسته‌ای کوتاژهای هشداردار؛ همه‌ی toggleها اول اجرا و فقط یک‌بار در پایان رفرش می‌شوند تا از سقف Rate Limit رد نشویم
     fun deactivateQuotasInBulk(quotaIds: List<Int>, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
@@ -727,7 +727,7 @@ class ReportsViewModel(
                     _analyticsLoadingState.value = LoadingState.Error("خطا در دریافت اطلاعات تحلیلی")
                 }
             } catch (e: HttpStatusException) {
-                // به‌جای نمایش کد/بدنه خام JSON سرور، پیام فارسی واضح بر اساس کد وضعیت HTTP نمایش داده می‌شود
+ // به‌جای نمایش کد/بدنه خام JSON سرور، پیام فارسی واضح بر اساس کد وضعیت HTTP نمایش داده می‌شود
                 val message = when (e.statusCode) {
                     401 -> "نشست شما منقضی شده است. لطفاً دوباره وارد شوید."
                     403 -> "شما مجوز مشاهده آمار تحلیلی را ندارید."
@@ -741,7 +741,7 @@ class ReportsViewModel(
         }
     }
 
-    // fire-and-forget؛ UI منتظر نتیجه نمی‌ماند تا share sheet بدون تأخیر باز شود
+ // fire-and-forget؛ UI منتظر نتیجه نمی‌ماند تا share sheet بدون تأخیر باز شود
     fun logAnalyticsExport(scope: String, groupCount: Int) {
         viewModelScope.launch {
             repository.logAnalyticsExport(scope, groupCount)

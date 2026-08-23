@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.Color
 // سیستم رنگ‌های معنایی برای وضعیت‌های عملیاتی ATK-Cargo (ورودی، خروجی، بارگیری، تکمیل، هشدارها و غیره)
 @Immutable
 data class SemanticColors(
-    // وضعیت‌های بارگیری و عملیات کشتیرانی
+ // وضعیت‌های بارگیری و عملیات کشتیرانی
     val cargoEntry: Color,
     val onCargoEntry: Color,
     val cargoEntryContainer: Color,
@@ -28,7 +28,7 @@ data class SemanticColors(
     val shipCompletedContainer: Color,
     val onShipCompletedContainer: Color,
 
-    // وضعیت‌های عمومی (Success, Warning, Error, Info)
+ // وضعیت‌های عمومی (Success, Warning, Error, Info)
     val success: Color,
     val onSuccess: Color,
     val successContainer: Color,
@@ -44,7 +44,7 @@ data class SemanticColors(
     val infoContainer: Color,
     val onInfoContainer: Color,
 
-    // رنگ‌های سیستم، کارت‌ها و حاشیه‌ها
+ // رنگ‌های سیستم، کارت‌ها و حاشیه‌ها
     val borderSubtle: Color,
     val borderStrong: Color,
     val cardBackground: Color,
@@ -53,7 +53,7 @@ data class SemanticColors(
     val inputBackground: Color,
     val inputBorder: Color,
 
-    // حالت‌های تعاملی
+ // حالت‌های تعاملی
     val stateDisabled: Color,
     val onStateDisabled: Color,
     val statePressedAlpha: Float = 0.12f,

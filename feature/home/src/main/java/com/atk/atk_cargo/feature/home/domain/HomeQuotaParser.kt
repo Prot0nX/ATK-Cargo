@@ -15,7 +15,7 @@ fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuIte
     if (userPermissions["manage_ships"] == true) {
         items.add(MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships", "مدیریت", "لیست کشتی‌ها و وضعیت آن‌ها"))
     }
-    // بلافاصله بعد از manage_ships اضافه شد تا در همان ردیف کنارش جفت شود (هر دو compact‌اند، طبق تصمیم کاربر) iconResourceId اینجا صرفاً فرمی است.
+ // بلافاصله بعد از manage_ships اضافه شد تا در همان ردیف کنارش جفت شود (هر دو compact‌اند، طبق تصمیم کاربر) iconResourceId اینجا صرفاً فرمی است.
     if (userPermissions["view_monitoring"] == true) {
         items.add(MenuItem("مانیتورینگ", R.drawable.ic_reports, "view_monitoring", "مدیریت", "رویدادهای سلامت و امنیت سیستم"))
     }

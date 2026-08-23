@@ -8,7 +8,7 @@ namespace App\Tests\Unit\Services;
 use App\Services\LoginAttemptLimiter;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد محدودکننده‌ی brute-force (S-06)؛ sleep مسدودکننده حذف شد پس دیگر نیازی به تزریق sleeper نیست
+// تست‌های واحد محدودکننده‌ی brute-force؛ sleep مسدودکننده حذف شد پس دیگر نیازی به تزریق sleeper نیست
 final class LoginAttemptLimiterTest extends TestCase {
     private LoginAttemptLimiter $limiter;
 
@@ -32,7 +32,7 @@ final class LoginAttemptLimiterTest extends TestCase {
         $username = $this->uniqueUsername();
         $ip = $this->uniqueIp();
 
-        // MAX_USER_ATTEMPTS = 5؛ چهار تلاش ناموفق هنوز نباید قفل کند.
+ // MAX_USER_ATTEMPTS = 5؛ چهار تلاش ناموفق هنوز نباید قفل کند.
         for ($i = 0; $i < 4; $i++) {
             $this->limiter->registerFailedAttempt($username, $ip);
         }
@@ -62,15 +62,15 @@ final class LoginAttemptLimiterTest extends TestCase {
 
         $this->limiter->resetAttempts($username, $ip);
 
-        // شمارنده‌ی username پاک شد ولی شمارنده‌ی IP دست‌نخورده ماند.
+ // شمارنده‌ی username پاک شد ولی شمارنده‌ی IP دست‌نخورده ماند.
         $this->assertFalse($this->limiter->isLocked($username, $ip));
 
-        // یک username دیگر از همان IP باید بخشی از سقف MAX_IP_ATTEMPTS را از قبل مصرف‌شده ببیند.
+ // یک username دیگر از همان IP باید بخشی از سقف MAX_IP_ATTEMPTS را از قبل مصرف‌شده ببیند.
         $otherUsername = $this->uniqueUsername();
         for ($i = 0; $i < 45; $i++) {
             $this->limiter->registerFailedAttempt($otherUsername, $ip);
         }
-        // ۵ (از username اول، هنوز روی شمارنده‌ی IP) + ۴۵ (از username دوم) = ۵۰ = MAX_IP_ATTEMPTS
+ // ۵ (از username اول، هنوز روی شمارنده‌ی IP) + ۴۵ (از username دوم) = ۵۰ = MAX_IP_ATTEMPTS
         $this->assertTrue($this->limiter->isLocked($otherUsername, $ip));
     }
 
@@ -79,7 +79,7 @@ final class LoginAttemptLimiterTest extends TestCase {
         $usernameA = $this->uniqueUsername();
         $usernameB = $this->uniqueUsername();
 
-        // تلاش‌های دو username روی یک IP باید در شمارنده‌ی مشترک IP جمع شوند تا به سقف MAX_IP_ATTEMPTS برسند.
+ // تلاش‌های دو username روی یک IP باید در شمارنده‌ی مشترک IP جمع شوند تا به سقف MAX_IP_ATTEMPTS برسند.
         for ($i = 0; $i < 5; $i++) {
             $this->limiter->registerFailedAttempt($usernameA, $ip);
         }
@@ -100,7 +100,7 @@ final class LoginAttemptLimiterTest extends TestCase {
             $this->limiter->registerFailedAttempt($username, $ipA);
         }
 
-        // username الان قفل است (سقف username رد شده)، صرف‌نظر از IP:
+ // username الان قفل است (سقف username رد شده)، صرف‌نظر از IP:
         $this->assertTrue($this->limiter->isLocked($username, $ipB));
     }
 

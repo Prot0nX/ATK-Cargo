@@ -51,7 +51,7 @@ import com.atk.atk_cargo.feature.reports.domain.QuotaGroup
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import kotlin.math.roundToInt
 
-// پنل باز/بسته‌شونده‌ی هر گروه در بخش تحلیل کوتاژها — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// پنل باز/بسته‌شونده‌ی هر گروه در بخش تحلیل کوتاژها — از QuotaAnalysisSection.kt جدا شد
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AnalyticsQuotaGroupExpansionPanel(
@@ -66,7 +66,7 @@ internal fun AnalyticsQuotaGroupExpansionPanel(
     val totalWeight = group.totalWeight
     val totalVouchers = group.totalVouchers
 
-    // به‌جای بازکردن بی‌درنگ chooser اشتراک‌گذاری با long-press ناخواسته، فقط متن آماده و منتظر تأیید کاربر می‌ماند
+ // به‌جای بازکردن بی‌درنگ chooser اشتراک‌گذاری با long-press ناخواسته، فقط متن آماده و منتظر تأیید کاربر می‌ماند
     var pendingShareText by remember { mutableStateOf<String?>(null) }
 
     val groupIcon = when (group.mode) {
@@ -97,7 +97,7 @@ internal fun AnalyticsQuotaGroupExpansionPanel(
                     .combinedClickable(
                         onClick = { onExpandChange(!isExpanded) },
                         onLongClick = {
-                            // عنوان از group.shareTitle می‌آید؛ دیگر نیازی به split("|") یا بازسازی groupTitle نیست
+ // عنوان از group.shareTitle می‌آید؛ دیگر نیازی به split("|") یا بازسازی groupTitle نیست
                             val shareText = buildString {
                                 appendLine("🔹 اطلاعات ${group.shareTitle}")
                                 appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalVouchers | تناژ کل: ${formatNumber(totalWeight.roundToInt())} تن")
@@ -137,7 +137,7 @@ internal fun AnalyticsQuotaGroupExpansionPanel(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // دیگر split("|") روی کلید رشته‌ای نیست؛ فیلدهای تایپ‌شده group.ship/cargoType/warehouse/carrier مستقیم خوانده می‌شوند
+ // دیگر split("|") روی کلید رشته‌ای نیست؛ فیلدهای تایپ‌شده group.ship/cargoType/warehouse/carrier مستقیم خوانده می‌شوند
                         when (group.mode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> {
                                 Text(

@@ -18,19 +18,19 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // اتصال باید سریع برقرار شود؛ خواندن/نوشتن ممکن است بار سنگین‌تری داشته باشد
+ // اتصال باید سریع برقرار شود؛ خواندن/نوشتن ممکن است بار سنگین‌تری داشته باشد
     private const val CONNECT_TIMEOUT_SECONDS = 10L
     private const val READ_TIMEOUT_SECONDS = 30L
     private const val WRITE_TIMEOUT_SECONDS = 30L
     private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024 * 1024
 
-    // Base URL from Secrets
+ // Base URL from Secrets
     private val BASE_URL = Secrets.getBaseUrl()
 
-    // باید پیش از اولین دسترسی به apiService (در AtkCargoApplication.onCreate) فراخوانی شود تا کش HTTP دیسک فعال شود
+ // باید پیش از اولین دسترسی به apiService (در AtkCargoApplication.onCreate) فراخوانی شود تا کش HTTP دیسک فعال شود
     private var appContext: Context? = null
 
-    // core:network به BuildConfig ماژول app دسترسی ندارد، پس این پرچم و tokenStore از بیرون (app) در init تزریق می‌شوند
+ // core:network به BuildConfig ماژول app دسترسی ندارد، پس این پرچم و tokenStore از بیرون (app) در init تزریق می‌شوند
     private var debugLogging: Boolean = false
     private var tokenStore: TokenStore? = null
 
@@ -40,7 +40,7 @@ object RetrofitClient {
         this.debugLogging = debugLogging
     }
 
-    // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version سمت سرور در هر درخواست فرستاده می‌شود
+ // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version سمت سرور در هر درخواست فرستاده می‌شود
     private val appVersionName: String? by lazy {
         try {
             appContext?.let { ctx ->
@@ -51,7 +51,7 @@ object RetrofitClient {
         }
     }
 
-    // Float Type Adapter for better handling of float values
+ // Float Type Adapter for better handling of float values
     private class FloatTypeAdapter : TypeAdapter<Float>() {
         override fun write(out: JsonWriter, value: Float) {
             out.value(value)
@@ -60,7 +60,7 @@ object RetrofitClient {
         override fun read(reader: JsonReader): Float {
             return try {
                 when (reader.peek()) {
-                    // null یک مقدار مجاز/مورد انتظار از سرور است، نه خطا — بدون لاگ
+ // null یک مقدار مجاز/مورد انتظار از سرور است، نه خطا — بدون لاگ
                     JsonToken.NULL -> {
                         reader.nextNull()
                         0f
@@ -69,7 +69,7 @@ object RetrofitClient {
                     JsonToken.STRING -> {
                         val raw = reader.nextString()
                         raw.toFloatOrNull() ?: run {
-                            // مقدار رشته‌ای غیرقابل‌پارس بی‌صدا ۰f می‌شد؛ حالا برای عیب‌یابی در Logcat هم ثبت می‌شود
+ // مقدار رشته‌ای غیرقابل‌پارس بی‌صدا ۰f می‌شد؛ حالا برای عیب‌یابی در Logcat هم ثبت می‌شود
                             Log.w("RetrofitClient", "FloatTypeAdapter: مقدار رشته‌ای غیرقابل‌تبدیل به float دریافت شد: \"$raw\" — 0f جایگزین شد")
                             0f
                         }
@@ -87,14 +87,14 @@ object RetrofitClient {
         }
     }
 
-    // Configure Gson with custom type adapter
+ // Configure Gson with custom type adapter
     private val gson = GsonBuilder()
         .setStrictness(Strictness.LENIENT)
         .serializeNulls()
         .registerTypeAdapter(Float::class.java, FloatTypeAdapter())
         .create()
 
-    // interceptor لاگ برای بیلدهای دیباگ؛ عمداً lazy است چون property initializerها قبل از init() اجرا می‌شوند و eager بودن همیشه مقدار پیش‌فرض debugLogging را می‌گرفت
+ // interceptor لاگ برای بیلدهای دیباگ؛ عمداً lazy است چون property initializerها قبل از init اجرا می‌شوند و eager بودن همیشه مقدار پیش‌فرض debugLogging را می‌گرفت
     private val loggingInterceptor: HttpLoggingInterceptor by lazy {
         HttpLoggingInterceptor().apply {
             level = if (debugLogging) {
@@ -105,9 +105,9 @@ object RetrofitClient {
         }
     }
 
-    // Headers interceptor
+ // Headers interceptor
     private val headersInterceptor = Interceptor { chain ->
-        // منتظر پر شدن AuthSession از DataStore می‌ماند تا اولین درخواست‌های cold start بدون هدر احراز هویت نروند.
+ // منتظر پر شدن AuthSession از DataStore می‌ماند تا اولین درخواست‌های cold start بدون هدر احراز هویت نروند.
         AuthSession.awaitReady()
 
         val original = chain.request()
@@ -115,11 +115,11 @@ object RetrofitClient {
             .addHeader("Accept", "application/json")
             .addHeader("Content-Type", "application/json")
 
-        // هویت نشست فعلی در صورت وجود به هر درخواست افزوده می‌شود؛ قبل از ورود کاربر این مقادیر خالی هستند و هدرها اضافه نمی‌شوند
+ // هویت نشست فعلی در صورت وجود به هر درخواست افزوده می‌شود؛ قبل از ورود کاربر این مقادیر خالی هستند و هدرها اضافه نمی‌شوند
         AuthSession.username.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Username", it) }
         AuthSession.deviceId.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Device-Id", it) }
         AuthSession.sessionToken.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Session-Token", it) }
-        // قفل نسخه‌ی منقضی قبلاً فقط سمت کلاینت بود؛ یک کلاینت دستکاری‌شده می‌توانست با دور زدن دیالوگ همچنان به همه‌ی APIها دسترسی داشته باشد
+ // قفل نسخه‌ی منقضی قبلاً فقط سمت کلاینت بود؛ یک کلاینت دستکاری‌شده می‌توانست با دور زدن دیالوگ همچنان به همه‌ی APIها دسترسی داشته باشد
         appVersionName?.let { builder.addHeader("X-App-Version", it) }
 
         val request = builder
@@ -128,7 +128,7 @@ object RetrofitClient {
         chain.proceed(request)
     }
 
-    // تمدید خودکار access token با refresh token روی ۴۰۱ با code=access_token_expired؛ tokenStore باید قبل از اولین دسترسی به apiService مقداردهی شده باشد
+ // تمدید خودکار access token با refresh token روی ۴۰۱ با code=access_token_expired؛ tokenStore باید قبل از اولین دسترسی به apiService مقداردهی شده باشد
     private val tokenAuthenticator: TokenAuthenticator by lazy {
         TokenAuthenticator(
             baseUrl = BASE_URL,
@@ -136,7 +136,7 @@ object RetrofitClient {
         )
     }
 
-    // مشتق از HttpStack.shared تا connection pool با بقیه‌ی مسیرهای شبکه (رفرش توکن، دانلود آپدیت، تأیید امنیتی) مشترک بماند.
+ // مشتق از HttpStack.shared تا connection pool با بقیه‌ی مسیرهای شبکه (رفرش توکن، دانلود آپدیت، تأیید امنیتی) مشترک بماند.
     private val okHttpClient: OkHttpClient by lazy {
         val builder = HttpStack.shared.newBuilder()
             .addInterceptor(loggingInterceptor)
@@ -147,7 +147,7 @@ object RetrofitClient {
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
 
-        // فقط برای GETهایی که سرور صریحاً Cache-Control/ETag می‌فرستد اثر دارد؛ endpointهای نوشتن/حذف بدون این هدرها کش نمی‌شوند
+ // فقط برای GETهایی که سرور صریحاً Cache-Control/ETag می‌فرستد اثر دارد؛ endpointهای نوشتن/حذف بدون این هدرها کش نمی‌شوند
         appContext?.let { ctx ->
             builder.cache(Cache(File(ctx.cacheDir, "http_cache"), HTTP_CACHE_SIZE_BYTES))
         }
@@ -155,7 +155,7 @@ object RetrofitClient {
         builder.build()
     }
 
-    // Configure and create Retrofit instance
+ // Configure and create Retrofit instance
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -164,7 +164,7 @@ object RetrofitClient {
             .build()
     }
 
-    // Router v2 تنها API stack کلاینت است؛ v1/protected_proxy.php کاملاً از سرور و کلاینت حذف شده
+ // Router v2 تنها API stack کلاینت است؛ v1/protected_proxy.php کاملاً از سرور و کلاینت حذف شده
     val apiServiceV2: ApiServiceV2 by lazy {
         retrofit.create(ApiServiceV2::class.java)
     }

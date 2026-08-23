@@ -141,7 +141,7 @@ fun QuotaEntryDialog(
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
 
-    // اعمال کوتاژ انتخاب‌شده؛ هم برای تطبیق تکی و هم انتخاب از دیالوگ کوتاژهای مشابه استفاده می‌شود
+ // اعمال کوتاژ انتخاب‌شده؛ هم برای تطبیق تکی و هم انتخاب از دیالوگ کوتاژهای مشابه استفاده می‌شود
     fun applySelectedQuota(selectedQuota: MatchingQuota) {
         if (selectedQuota.shipName == shipName) {
             if (selectedQuota.isActive) {
@@ -304,7 +304,7 @@ fun QuotaEntryDialog(
                                                     errorMessage = "کوتاژ $quotaEntry برای کشتی $shipName یافت نشد"
                                                 }
                                                 response.matchingQuotas.size > 1 -> {
-                                                    // چند کوتاژ تکراری منطبق یافت شد؛ کاربر باید مورد دقیق را انتخاب کند
+ // چند کوتاژ تکراری منطبق یافت شد؛ کاربر باید مورد دقیق را انتخاب کند
                                                     matchingQuotasForSelection = response.matchingQuotas
                                                     showQuotaSelectionDialog = true
                                                 }

@@ -27,15 +27,15 @@ private const val POLL_INTERVAL_MS = 3 * 60 * 1000L // 3 minutes
 class PermissionPoller(
     private val userPreferencesManager: UserPreferencesManager
 ) {
-    // scope اختصاصی با SupervisorJob تا خطای یک iteration مانع iteration های بعدی نشود
+ // scope اختصاصی با SupervisorJob تا خطای یک iteration مانع iteration های بعدی نشود
     private val pollerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var pollingJob: Job? = null
 
-    // StateFlow داخلی برای انتشار آخرین permissions دریافت‌شده از سرور
+ // StateFlow داخلی برای انتشار آخرین permissions دریافت‌شده از سرور
     private val _livePermissions = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val livePermissions: StateFlow<Map<String, Boolean>> = _livePermissions.asStateFlow()
 
-    // شروع polling؛ اگر job فعالی وجود داشته باشد ابتدا cancel می‌شود
+ // شروع polling؛ اگر job فعالی وجود داشته باشد ابتدا cancel می‌شود
     fun start() {
         pollingJob?.cancel()
         pollingJob = pollerScope.launch {
@@ -47,14 +47,14 @@ class PermissionPoller(
         Log.d(TAG, "Permission polling started (interval=${POLL_INTERVAL_MS / 1000}s)")
     }
 
-    // توقف polling — هنگام logout یا انتقال به background
+ // توقف polling — هنگام logout یا انتقال به background
     fun stop() {
         pollingJob?.cancel()
         pollingJob = null
         Log.d(TAG, "Permission polling stopped")
     }
 
-    // پایان کامل چرخه حیات: pollerScope را نیز cancel می‌کند؛ باید در onDispose فراخوانی شود وگرنه scope زنده می‌ماند
+ // پایان کامل چرخه حیات: pollerScope را نیز cancel می‌کند؛ باید در onDispose فراخوانی شود وگرنه scope زنده می‌ماند
     fun destroy() {
         pollingJob?.cancel()
         pollingJob = null
@@ -62,12 +62,12 @@ class PermissionPoller(
         Log.d(TAG, "PermissionPoller destroyed")
     }
 
-    // دریافت فوری permissions از سرور، مثلاً پس از بازگشت از background یا refresh دستی
+ // دریافت فوری permissions از سرور، مثلاً پس از بازگشت از background یا refresh دستی
     fun fetchNow() {
         pollerScope.launch { fetchAndApply() }
     }
 
-    // ===== PRIVATE HELPERS =====
+ // ===== PRIVATE HELPERS =====
 
     private suspend fun fetchAndApply() {
         try {
@@ -83,7 +83,7 @@ class PermissionPoller(
             val request  = PermissionSyncRequest(username, deviceId, sessionToken)
             val response = RetrofitClient.apiServiceV2.syncPermissions(request)
 
- // ۴۰۱ باید پیش از isSuccessful چک شود، وگرنه پاک‌سازی نشست منقضی هرگز اجرا نمی‌شد (کد مرده، #Phase1.9)
+ // ۴۰۱ باید پیش از isSuccessful چک شود، وگرنه پاک‌سازی نشست منقضی هرگز اجرا نمی‌شد
             if (response.code() == 401) {
                 Log.w(TAG, "Session expired, clearing credentials")
                 userPreferencesManager.clearUserCredentials()
@@ -100,7 +100,7 @@ class PermissionPoller(
             if (body?.success == true) {
                 val newPerms = body.permissions ?: emptyMap()
 
-                // فقط در صورت تغییر واقعی، DataStore و StateFlow را به‌روز کن
+ // فقط در صورت تغییر واقعی، DataStore و StateFlow را به‌روز کن
                 val current = _livePermissions.value
                 if (current != newPerms) {
                     userPreferencesManager.savePermissions(newPerms)
@@ -109,7 +109,7 @@ class PermissionPoller(
                 }
             }
         } catch (e: Exception) {
-            // خطاهای شبکه سایلنت handle می‌شوند تا polling ادامه یابد
+ // خطاهای شبکه سایلنت handle می‌شوند تا polling ادامه یابد
             Log.w(TAG, "Poll error: ${e.message}")
         }
     }

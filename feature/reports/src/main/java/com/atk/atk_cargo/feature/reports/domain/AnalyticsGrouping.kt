@@ -15,7 +15,7 @@ data class QuotaGroup(
     val totalWeight: Float get() = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
     val totalVouchers: Int get() = quotas.sumOf { it.last_24h_vouchers }
 
-    /** کلید یکتای گروه؛ برای key پارامتر LazyColumn و مقایسه isExpanded استفاده می‌شود. */
+ /** کلید یکتای گروه؛ برای key پارامتر LazyColumn و مقایسه isExpanded استفاده می‌شود. */
     val key: String
         get() = when (mode) {
             QuotaGroupingMode.BY_CARGO_OWNER -> "${ship.orEmpty()}|${cargoType.orEmpty()}|${warehouse.orEmpty()}"
@@ -23,7 +23,7 @@ data class QuotaGroup(
             QuotaGroupingMode.BY_CARRIER -> carrier.orEmpty()
         }
 
-    /** عنوان قابل‌خواندن برای متن اشتراک‌گذاری (share). */
+ /** عنوان قابل‌خواندن برای متن اشتراک‌گذاری (share). */
     val shareTitle: String
         get() = when (mode) {
             QuotaGroupingMode.BY_CARGO_OWNER -> "کشتی: ${ship.orEmpty()} | کالا: ${cargoType.orEmpty()} | انبار: ${warehouse.orEmpty()}"

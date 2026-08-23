@@ -1,7 +1,7 @@
 <?php
 // پنل مدیریت متمرکز نقش‌ها و دسترسی‌های اختصاصی کاربران (V2)
 
-// نمایش خطا در production غیرفعال است تا جزئیات داخلی افشا نشود؛ خطاها همچنان لاگ می‌شوند (S-17)
+// نمایش خطا در production غیرفعال است تا جزئیات داخلی افشا نشود؛ خطاها همچنان لاگ می‌شوند
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
@@ -137,7 +137,7 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
                 $permissionRepository->saveRolePermissions($target_name, $new_perms);
                 $all_data['roles'][$target_name] = $new_perms;
             } else {
-                // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
+ // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
                 if (isset($_POST['delete_user_custom']) && $_POST['delete_user_custom'] == '1') {
                     $permissionRepository->deleteUserPermissions($target_name);
                     unset($all_data['users'][$target_name]);
@@ -161,14 +161,14 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
 $users_list = [];
 if ($is_authenticated) {
     try {
-        // قبلاً از یک اتصال مستقل استفاده می‌شد که تنظیمات SET SESSION را نداشت و باعث دو سوکت جدا به دیتابیس می‌شد (C-03)
+ // قبلاً از یک اتصال مستقل استفاده می‌شد که تنظیمات SET SESSION را نداشت و باعث دو سوکت جدا به دیتابیس می‌شد
         $conn = \App\Core\Database::getInstance()->getPdoConnection();
         $stmt = $conn->query("SELECT username, fullName, userType FROM Users ORDER BY username ASC");
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $users_list[] = $row;
         }
     } catch (Exception $e) {
-        // خطا در دیتابیس
+ // خطا در دیتابیس
     }
 }
 
@@ -184,7 +184,7 @@ $feature_labels = [
     'view_reports' => ['label' => 'مشاهده آمار تحلیلی', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>'],
     'active_quotas' => ['label' => 'گزارش کوتاژهای فعال', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>'],
     'tonnage_warning' => ['label' => 'هشدار تناژ سیستمی', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'],
-    // دسترسی مشترک رویدادهای مانیتورینگ سلامت و امنیت سیستم
+ // دسترسی مشترک رویدادهای مانیتورینگ سلامت و امنیت سیستم
     'view_monitoring' => ['label' => 'مانیتورینگ (رویدادهای سلامت و امنیت)', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>']
 ];
 
@@ -199,7 +199,7 @@ $feature_labels = [
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="assets/permission-manager.css">
     <script>
-        /* FOUC Prevention — apply saved theme before paint */
+ /* FOUC Prevention — apply saved theme before paint */
         (function(){
             var t = localStorage.getItem('atk_theme_pref');
             if(!t) t = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
@@ -265,7 +265,7 @@ $feature_labels = [
             </div>
             <?php endif; ?>
 
-            <!-- Stats Bar -->
+ <!-- Stats Bar -->
             <div class="stats-bar">
                 <div class="stat-chip">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -305,7 +305,7 @@ $feature_labels = [
                 </div>
 
                 <div class="main-content">
-                <!-- Form Box -->
+ <!-- Form Box -->
                 <form method="POST" class="form-card" id="permissionsForm">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="form-card-header">
@@ -395,7 +395,7 @@ $feature_labels = [
                 </form>
             </div>
 
-            <!-- Panel Footer -->
+ <!-- Panel Footer -->
             <div class="panel-footer">
                 <span>ATK-Cargo Permission Manager &copy; <?php echo date('Y'); ?></span>
                 <div class="panel-footer-badge">
@@ -408,7 +408,7 @@ $feature_labels = [
 </div>
 
 <script>
-    // Toast Notification System
+ // Toast Notification System
     function showToast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -425,7 +425,7 @@ $feature_labels = [
         
         container.appendChild(toast);
         
-        // Trigger reflow to ensure transition works
+ // Trigger reflow to ensure transition works
         void toast.offsetWidth;
         toast.classList.add('show');
         
@@ -435,7 +435,7 @@ $feature_labels = [
         }, 3000);
     }
 
-    // Check for PHP generated messages
+ // Check for PHP generated messages
     <?php if (isset($success_msg)): ?>
         window.addEventListener('DOMContentLoaded', () => showToast("<?php echo addslashes($success_msg); ?>", 'success'));
     <?php endif; ?>
@@ -443,7 +443,7 @@ $feature_labels = [
         window.addEventListener('DOMContentLoaded', () => showToast("<?php echo addslashes($error_msg); ?>", 'error'));
     <?php endif; ?>
 
-    // Theme Management
+ // Theme Management
     const themeIcon = document.getElementById('themeIcon');
     const sunSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
     const moonSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
@@ -484,7 +484,7 @@ $feature_labels = [
         loadPermissions();
     }
 
-    // ===== SEARCHABLE DROPDOWN — STATE =====
+ // ===== SEARCHABLE DROPDOWN — STATE =====
     let _sdOpen = false;
     let _sdSelectedValue = '';
     let _sdSelectedRole  = '';
@@ -595,14 +595,14 @@ $feature_labels = [
         loadPermissions();
     }
 
-    // Close on outside click
+ // Close on outside click
     document.addEventListener('click', (e) => {
         if (!document.getElementById('userDropdown')?.contains(e.target)) {
             if (_sdOpen) closeDropdown();
         }
     });
 
-    // ===== PERMISSION LOADER =====
+ // ===== PERMISSION LOADER =====
     function loadPermissions() {
         const type = currentMode;
         let target, perms;

@@ -139,7 +139,7 @@ fun MainScreen() {
                                 if (!isSessionValid) {
                                     val requestNotificationPermission = LocalNotificationPermissionRequester.current
                                     val authViewModel: AuthViewModel = koinViewModel()
-                                    // ریست وضعیت AuthViewModel پس از لاگ‌اوت برای جلوگیری از لوپ بی‌نهایت Success در LoginScreen.
+ // ریست وضعیت AuthViewModel پس از لاگ‌اوت برای جلوگیری از لوپ بی‌نهایت Success در LoginScreen.
                                     LaunchedEffect(Unit) {
                                         authViewModel.resetState()
                                     }

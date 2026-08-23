@@ -41,9 +41,9 @@
         }
     };
 
-    /* --- ارتباط با سرور -------------------------------------------------- */
+ /* --- ارتباط با سرور -------------------------------------------------- */
 
-    // هر پاسخ ۴۰۱ یعنی نشست منقضی شده — کاربر به صفحه‌ی ورود برمی‌گردد به‌جای اینکه با خطاهای مبهم روبه‌رو شود. /.
+ // هر پاسخ ۴۰۱ یعنی نشست منقضی شده — کاربر به صفحه‌ی ورود برمی‌گردد به‌جای اینکه با خطاهای مبهم روبه‌رو شود. /.
     function request(action, method, payload, params) {
         var query = new URLSearchParams(params || {});
         query.set('action', action);
@@ -71,7 +71,7 @@
         });
     }
 
-    /* --- توست ------------------------------------------------------------ */
+ /* --- توست ------------------------------------------------------------ */
     function toast(message, type) {
         var node = document.createElement('div');
         node.className = 'toast toast-' + (type || 'success');
@@ -80,7 +80,7 @@
         setTimeout(function () { node.remove(); }, 3500);
     }
 
-    /* --- قالب‌بندی ------------------------------------------------------- */
+ /* --- قالب‌بندی ------------------------------------------------------- */
     function formatDateTime(value) {
         if (!value) { return '—'; }
         var date = new Date(value.replace(' ', 'T'));
@@ -107,7 +107,7 @@
         return formatDate(value);
     }
 
-    /* --- ساخت جدول ------------------------------------------------------- */
+ /* --- ساخت جدول ------------------------------------------------------- */
     function iconButton(symbolId, label, action, id, extraClass) {
         var button = document.createElement('button');
         button.type = 'button';
@@ -139,7 +139,7 @@
         var tr = document.createElement('tr');
         tr.dataset.id = String(license.id);
 
-        // کلید + دکمه‌ی کپی
+ // کلید + دکمه‌ی کپی
         var keyCell = document.createElement('td');
         var keyWrap = document.createElement('span');
         keyWrap.className = 'cell-key';
@@ -205,7 +205,7 @@
             'این ماه ' + stats.this_month + ' · ماه قبل ' + stats.last_month;
     }
 
-    /* --- بارگذاری داده --------------------------------------------------- */
+ /* --- بارگذاری داده --------------------------------------------------- */
     function filterParams() {
         var params = {};
         if (state.search) { params.search = state.search; }
@@ -237,7 +237,7 @@
             });
     }
 
-    /* --- دیالوگ تأیید ---------------------------------------------------- */
+ /* --- دیالوگ تأیید ---------------------------------------------------- */
     function confirmAction(title, message, confirmLabel) {
         return new Promise(function (resolve) {
             el.confirmTitle.textContent = title;
@@ -259,9 +259,9 @@
         });
     }
 
-    /* --- فرم ایجاد/ویرایش ------------------------------------------------ */
+ /* --- فرم ایجاد/ویرایش ------------------------------------------------ */
 
-    // ورودی datetime-local فقط قالب `YYYY-MM-DDTHH:MM` را می‌پذیرد، اما دیتابیس `YYYY-MM-DD HH:MM:SS` برمی‌گرداند. /.
+ // ورودی datetime-local فقط قالب `YYYY-MM-DDTHH:MM` را می‌پذیرد، اما دیتابیس `YYYY-MM-DD HH:MM:SS` برمی‌گرداند. /.
     function toDatetimeLocal(value) {
         return value ? value.replace(' ', 'T').slice(0, 16) : '';
     }
@@ -315,7 +315,7 @@
                 el.dialog.close();
                 toast(data.message, 'success');
                 if (!isEdit) {
-                    // کلید تازه فقط همین یک‌بار به‌راحتی در دسترس است.
+ // کلید تازه فقط همین یک‌بار به‌راحتی در دسترس است.
                     showDetails(data.license);
                 }
                 return load();
@@ -330,7 +330,7 @@
             });
     }
 
-    /* --- جزئیات ---------------------------------------------------------- */
+ /* --- جزئیات ---------------------------------------------------------- */
     function showDetails(license) {
         var rows = [
             ['نام شرکت', license.company_name],
@@ -368,7 +368,7 @@
         el.details.showModal();
     }
 
-    /* --- عملیات ردیف ----------------------------------------------------- */
+ /* --- عملیات ردیف ----------------------------------------------------- */
     function findLicense(id) {
         return state.licenses.filter(function (item) {
             return String(item.id) === String(id);
@@ -426,7 +426,7 @@
         });
     }
 
-    /* --- پوسته ----------------------------------------------------------- */
+ /* --- پوسته ----------------------------------------------------------- */
     function currentTheme() {
         var explicit = document.documentElement.dataset.theme;
         if (explicit) { return explicit; }
@@ -436,11 +436,11 @@
     function toggleTheme() {
         var next = currentTheme() === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = next;
-        // کوکی (نه localStorage) چون PHP باید مقدار را هنگام رندر بخواند و data-theme را در همان اولین بایت خروجی بگذارد؛ وگرنه صفحه لحظه‌ای با پوسته‌ی اشتباه نمایش داده می‌شود.
+ // کوکی (نه localStorage) چون PHP باید مقدار را هنگام رندر بخواند و data-theme را در همان اولین بایت خروجی بگذارد؛ وگرنه صفحه لحظه‌ای با پوسته‌ی اشتباه نمایش داده می‌شود.
         document.cookie = 'lic_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
-    /* --- اتصال رویدادها -------------------------------------------------- */
+ /* --- اتصال رویدادها -------------------------------------------------- */
     function debounce(fn, delay) {
         var timer = null;
         return function () {
@@ -469,7 +469,7 @@
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     el.form.addEventListener('submit', submitForm);
 
-    // Event delegation: یک شنونده برای کل جدول به‌جای هندلر درون‌خطی روی هر دکمه — همان چیزی که الگوی تزریق نسخه‌ی قبلی را ممکن می‌کرد.
+ // Event delegation: یک شنونده برای کل جدول به‌جای هندلر درون‌خطی روی هر دکمه — همان چیزی که الگوی تزریق نسخه‌ی قبلی را ممکن می‌کرد.
     el.body.addEventListener('click', function (event) {
         var button = event.target.closest('button[data-action]');
         var license;

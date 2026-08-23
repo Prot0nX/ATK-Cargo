@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.core.domain.AnimationManager
 
-// هدر آیکون‌دار دیالوگ تأیید ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// هدر آیکون‌دار دیالوگ تأیید ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 internal fun CargoEditConfirmHeader() {
     Row(

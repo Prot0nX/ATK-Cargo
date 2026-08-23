@@ -113,7 +113,7 @@ class CargoCounterViewModel(
         _selectedTab.update { tab }
     }
 
-    // این دو متد قبلاً در Composable بودند؛ اکنون در viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند
+ // این دو متد قبلاً در Composable بودند؛ اکنون در viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند
     fun loadActiveShips(
         onSuccess: (List<ActiveShipInfo>) -> Unit,
         onError: (String) -> Unit
@@ -246,7 +246,7 @@ fun CargoCounterScreen(
         try {
             when (validateServerSession(userPreferencesManager)) {
                 SessionValidationOutcome.Valid -> {
-                    // نشست معتبر است، ادامه می‌دهد
+ // نشست معتبر است، ادامه می‌دهد
                 }
                 SessionValidationOutcome.Invalid -> {
                     startupViewModel.notifySessionExpired()
@@ -274,7 +274,7 @@ fun CargoCounterScreen(
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
     
     val selectedShipNames by viewModel.selectedShipNames.collectAsStateWithLifecycle(initialValue = emptySet())
-    // در remember نگه داشته می‌شود تا در هر recomposition (نه فقط با تغییر واقعی ورودی‌ها) دوباره فیلتر/گروه‌بندی نشود
+ // در remember نگه داشته می‌شود تا در هر recomposition (نه فقط با تغییر واقعی ورودی‌ها) دوباره فیلتر/گروه‌بندی نشود
     val groupedShips = remember(activeShips, selectedShipNames) {
         activeShips.filter { selectedShipNames.contains(it.shipName) }
             .groupBy { it.shipName }

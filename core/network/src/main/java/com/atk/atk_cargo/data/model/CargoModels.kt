@@ -108,7 +108,7 @@ data class SaveOrUpdateResponse(
     val message: String,
     val status: String? = null,
     val warning: Boolean? = null,
-    // سرور این کلید را snake_case می‌فرستد؛ بدون @SerializedName این فیلد همیشه null می‌ماند و دیالوگ تأیید ثبت تکراری نمایش داده نمی‌شود
+ // سرور این کلید را snake_case می‌فرستد؛ بدون @SerializedName این فیلد همیشه null می‌ماند و دیالوگ تأیید ثبت تکراری نمایش داده نمی‌شود
     @SerializedName("requires_confirmation")
     val requiresConfirmation: Boolean? = null,
     val requiresManagerPassword: Boolean? = null,

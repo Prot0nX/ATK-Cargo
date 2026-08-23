@@ -68,7 +68,7 @@ class CargoService {
                 throw new ApiException('تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید.', 403);
             }
 
-            // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
+ // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
             $existing24hCargo = $this->repo->find24hCargo($shipName, $trackingNumber, $yesterdayStart);
 
             if ($existing24hCargo && (string)$existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
@@ -106,7 +106,7 @@ class CargoService {
                 }
             }
 
-            // ۲. بررسی وجود حواله با کلیدهای اصلی
+ // ۲. بررسی وجود حواله با کلیدهای اصلی
             $existingCargo = $this->repo->findCargoByKeys(
                 $shipName, 
                 $params['loadingWarehouse'], 
@@ -148,7 +148,7 @@ class CargoService {
                 }
             }
 
-            // ۳. درج حواله جدید یا به‌روزرسانی حواله موجود
+ // ۳. درج حواله جدید یا به‌روزرسانی حواله موجود
             if ($shouldInsertNew) {
                 if ($quotaControl) {
                     $isPercentageRestricted = (bool)$quotaControl['is_enabled'];
@@ -205,7 +205,7 @@ class CargoService {
                         
                         $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber'], $cargoId);
                         
-                        // کسر تناژ موقت در صورت فعال بودن
+ // کسر تناژ موقت در صورت فعال بودن
                         $netWeightValue = floatval($params['netWeight']);
                         $tempTonnageData = $this->repo->findTempTonnage(
                             $shipName, 
@@ -241,7 +241,7 @@ class CargoService {
                             throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
                         }
                     } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
-                        // به‌روزرسانی کسری یا اضافه بار
+ // به‌روزرسانی کسری یا اضافه بار
                         $shortageApplied = $this->repo->updateCargoShortageOrExcess(
                             $cargoId,
                             $params['shortageWeight'],

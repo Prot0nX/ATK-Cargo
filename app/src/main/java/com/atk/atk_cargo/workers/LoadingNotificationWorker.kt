@@ -43,7 +43,7 @@ class LoadingNotificationWorker(
         }
     }
 
-    // isRefresh=true یعنی بروزرسانی دستی که باید از بررسی enabled/شیفت غیرفعال عبور کند
+ // isRefresh=true یعنی بروزرسانی دستی که باید از بررسی enabled/شیفت غیرفعال عبور کند
     private suspend fun fetchAndNotify(isRefresh: Boolean) {
         val userType = userPreferencesManager.userType.first()
         if (userType != "admin") {
@@ -59,7 +59,7 @@ class LoadingNotificationWorker(
             return
         }
 
-        // همان ReportsRepository دیالوگ «بارگیری لحظه‌ای» (C-6) تا کش HTTP بین این polling و polling دیالوگ مشترک باشد
+ // همان ReportsRepository دیالوگ «بارگیری لحظه‌ای» تا کش HTTP بین این polling و polling دیالوگ مشترک باشد
         val loadingData = reportsRepository.getRealTimeLoadingData()
 
         val previousData = getCachedLoadingData()

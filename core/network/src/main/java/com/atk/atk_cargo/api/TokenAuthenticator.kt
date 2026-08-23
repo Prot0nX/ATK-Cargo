@@ -19,7 +19,7 @@ class TokenAuthenticator(
     private val mutex = Mutex()
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        // اگر همان درخواست قبلاً یک‌بار retry شده، دیگر تلاش نکن تا حلقه‌ی بی‌نهایت پیش نیاید
+ // اگر همان درخواست قبلاً یک‌بار retry شده، دیگر تلاش نکن تا حلقه‌ی بی‌نهایت پیش نیاید
         if (responseCount(response) >= 2) {
             return null
         }
@@ -32,7 +32,7 @@ class TokenAuthenticator(
 
         val newAccessToken = runBlocking {
             mutex.withLock {
-                // اگر یک درخواست موازی دیگر قبلاً همین رفرش را انجام داده، نیازی به رفرش دوباره نیست
+ // اگر یک درخواست موازی دیگر قبلاً همین رفرش را انجام داده، نیازی به رفرش دوباره نیست
                 val current = AuthSession.sessionToken
                 if (current.isNotEmpty() && current != failedToken) {
                     current
@@ -50,7 +50,7 @@ class TokenAuthenticator(
     private fun isAccessTokenExpiredError(response: Response): Boolean {
         if (response.code != 401) return false
         return try {
-            // peekBody بدنه را مصرف نمی‌کند — پاسخ همچنان برای caller قابل خواندن می‌ماند
+ // peekBody بدنه را مصرف نمی‌کند — پاسخ همچنان برای caller قابل خواندن می‌ماند
             val bodyStr = response.peekBody(2048).string()
             Gson().fromJson(bodyStr, AuthErrorBody::class.java)?.code == "access_token_expired"
         } catch (_: Exception) {

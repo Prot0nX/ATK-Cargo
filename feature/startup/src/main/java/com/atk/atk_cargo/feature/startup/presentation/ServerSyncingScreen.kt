@@ -54,11 +54,11 @@ fun ServerSyncingScreen() {
     val bgColor = MaterialTheme.colorScheme.background
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
-    // همه انیمیشن‌های infinite این صفحه مشروط به تنظیم سیستمی «حذف انیمیشن‌ها» هستند
+ // همه انیمیشن‌های infinite این صفحه مشروط به تنظیم سیستمی «حذف انیمیشن‌ها» هستند
     val animationsEnabled = AnimationManager.areAnimationsEnabled
     val infiniteTransition = rememberInfiniteTransition(label = "server_sync")
 
-    // ===== ANIMATIONS =====
+ // ===== ANIMATIONS =====
     val orbitRotation1 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(

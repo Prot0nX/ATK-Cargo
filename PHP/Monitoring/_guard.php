@@ -62,7 +62,7 @@ function mon_destroy_session(): void {
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
         $sessionName = session_name();
-        /** @var 'Lax'|'lax'|'None'|'none'|'Strict'|'strict' $sameSite */
+ /** @var 'Lax'|'lax'|'None'|'none'|'Strict'|'strict' $sameSite */
         $sameSite = in_array($params['samesite'], ['Lax', 'lax', 'None', 'none', 'Strict', 'strict'], true)
             ? $params['samesite']
             : 'Lax';

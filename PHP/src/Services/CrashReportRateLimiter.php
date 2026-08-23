@@ -11,12 +11,12 @@ final class CrashReportRateLimiter {
     private const WINDOW_SECONDS = 3600; // ۱ ساعت
     private const CACHE_PREFIX = 'crash_report_rate_';
 
-    // آیا این IP از سقف مجاز در بازه‌ی جاری عبور کرده است
+ // آیا این IP از سقف مجاز در بازه‌ی جاری عبور کرده است
     public function isOverLimit(string $ipAddress): bool {
         return $this->getCount($this->key($ipAddress)) >= self::MAX_REPORTS_PER_WINDOW;
     }
 
-    // ثبت یک گزارش؛ باید فقط وقتی isOverLimit() == false صدا زده شود
+ // ثبت یک گزارش؛ باید فقط وقتی isOverLimit == false صدا زده شود
     public function registerReport(string $ipAddress): void {
         $this->increment($this->key($ipAddress));
     }

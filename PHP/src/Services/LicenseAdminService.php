@@ -11,7 +11,7 @@ use App\Repositories\LicenseRepository;
 
 // منطق تجاری پنل مدیریت لایسنس، جدا از لایه‌ی HTTP؛ خطاهای کاربر با ApiException به JSON تبدیل می‌شوند
 final class LicenseAdminService {
-    // پلن‌های مجاز؛ مقدار در دیتابیس ذخیره می‌شود و برچسب فارسی فقط برای نمایش است
+ // پلن‌های مجاز؛ مقدار در دیتابیس ذخیره می‌شود و برچسب فارسی فقط برای نمایش است
     public const PLANS = [
         'standard' => 'استاندارد',
         'pro'      => 'حرفه‌ای',
@@ -24,7 +24,7 @@ final class LicenseAdminService {
     private const MAX_CONTACT_EMAIL = 190;
     private const MAX_NOTES = 2000;
 
-    // تعداد تلاش برای یافتن کلید یکتا؛ فقط محافظ در برابر خرابی منبع تصادف
+ // تعداد تلاش برای یافتن کلید یکتا؛ فقط محافظ در برابر خرابی منبع تصادف
     private const MAX_KEY_ATTEMPTS = 10;
 
     private LicenseRepository $repository;
@@ -35,7 +35,7 @@ final class LicenseAdminService {
         $this->logger = Logger::getInstance();
     }
 
-    /** @return array<int,array<string,mixed>> ردیف‌های آماده برای نمایش */
+ /** @return array<int,array<string,mixed>> ردیف‌های آماده برای نمایش */
     public function list(?string $search, ?string $status): array {
         $status = in_array($status, ['active', 'expired', 'inactive'], true) ? $status : null;
         $rows = $this->repository->listAll($search, $status);
@@ -43,12 +43,12 @@ final class LicenseAdminService {
         return array_map([$this, 'presentRow'], $rows);
     }
 
-    /** @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int} */
+ /** @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int} */
     public function stats(): array {
         return $this->repository->stats();
     }
 
-    /** @param array<string,mixed> $input @return array<string,mixed> ردیف ساخته‌شده (شامل کلید تولیدشده) */
+ /** @param array<string,mixed> $input @return array<string,mixed> ردیف ساخته‌شده (شامل کلید تولیدشده) */
     public function create(array $input, string $actor): array {
         $data = $this->validate($input, null);
 
@@ -69,7 +69,7 @@ final class LicenseAdminService {
         return $this->presentRow($row);
     }
 
-    /** @param array<string,mixed> $input @return array<string,mixed> ردیف به‌روزشده */
+ /** @param array<string,mixed> $input @return array<string,mixed> ردیف به‌روزشده */
     public function update(int $id, array $input, string $actor): array {
         $existing = $this->requireById($id);
         $data = $this->validate($input, $id);
@@ -96,7 +96,7 @@ final class LicenseAdminService {
         return $this->presentRow($row);
     }
 
-    /** @return array<string,mixed> ردیف با وضعیت جدید */
+ /** @return array<string,mixed> ردیف با وضعیت جدید */
     public function toggle(int $id, string $actor): array {
         $existing = $this->requireById($id);
         $newState = !(bool)$existing['is_active'];
@@ -124,7 +124,7 @@ final class LicenseAdminService {
             throw new ApiException('لایسنس مورد نظر یافت نشد.', 404);
         }
 
-        // کلید کامل عمداً در جزئیات ممیزی ثبت می‌شود تا پس از حذف رکورد قابل پیگیری بماند
+ // کلید کامل عمداً در جزئیات ممیزی ثبت می‌شود تا پس از حذف رکورد قابل پیگیری بماند
         AuditLogger::log($actor, 'license.delete', 'license', (string)$id, [
             'company_name' => $existing['company_name'],
             'license_key'  => $existing['license_key'],
@@ -132,8 +132,8 @@ final class LicenseAdminService {
         $this->logger->security("License deleted (id={$id}, company={$existing['company_name']}) by {$actor}");
     }
 
-    // ردیف خام دیتابیس به شکل مصرفی پنل تبدیل می‌شود؛ کلیدها snake_case می‌مانند تا با دیتابیس هم‌نام باشند.
-    /** @param array<string,mixed> $row @return array<string,mixed> */
+ // ردیف خام دیتابیس به شکل مصرفی پنل تبدیل می‌شود؛ کلیدها snake_case می‌مانند تا با دیتابیس هم‌نام باشند.
+ /** @param array<string,mixed> $row @return array<string,mixed> */
     private function presentRow(array $row): array {
         $plan = (string)($row['plan'] ?? 'standard');
 
@@ -156,7 +156,7 @@ final class LicenseAdminService {
         ];
     }
 
-    /** @return array<string,mixed> */
+ /** @return array<string,mixed> */
     private function requireById(int $id): array {
         $row = $this->repository->findById($id);
         if ($row === null) {
@@ -165,8 +165,8 @@ final class LicenseAdminService {
         return $row;
     }
 
-    // اعتبارسنجی و نرمال‌سازی ورودی فرم؛ فقط کلیدهای شناخته‌شده برمی‌گردند.
-    /** @param array<string,mixed> $input @return array{company_name:string,plan:string,expires_at:?string,contact_name:?string,contact_phone:?string,contact_email:?string,notes:?string} */
+ // اعتبارسنجی و نرمال‌سازی ورودی فرم؛ فقط کلیدهای شناخته‌شده برمی‌گردند.
+ /** @param array<string,mixed> $input @return array{company_name:string,plan:string,expires_at:?string,contact_name:?string,contact_phone:?string,contact_email:?string,notes:?string} */
     private function validate(array $input, ?int $exceptId): array {
         $companyName = trim((string)($input['company_name'] ?? ''));
         if ($companyName === '') {
@@ -195,7 +195,7 @@ final class LicenseAdminService {
         ];
     }
 
-    // ورودی از فرم به شکل datetime-local یا فقط تاریخ می‌آید؛ خالی یعنی نامحدود، و تاریخ گذشته عمداً پذیرفته می‌شود
+ // ورودی از فرم به شکل datetime-local یا فقط تاریخ می‌آید؛ خالی یعنی نامحدود، و تاریخ گذشته عمداً پذیرفته می‌شود
     private function normalizeExpiry(mixed $value): ?string {
         if (!is_string($value)) {
             return null;
@@ -207,7 +207,7 @@ final class LicenseAdminService {
 
         $value = str_replace('T', ' ', $value);
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
-            // فقط تاریخ داده شده — تا پایان همان روز معتبر بماند.
+ // فقط تاریخ داده شده — تا پایان همان روز معتبر بماند.
             $value .= ' 23:59:59';
         } elseif (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $value) === 1) {
             $value .= ':00';
@@ -240,7 +240,7 @@ final class LicenseAdminService {
         if ($value === null) {
             return null;
         }
-        // ارقام فارسی/عربی به لاتین تبدیل می‌شوند تا شماره‌ی ذخیره‌شده یکدست و قابل جستجو بماند
+ // ارقام فارسی/عربی به لاتین تبدیل می‌شوند تا شماره‌ی ذخیره‌شده یکدست و قابل جستجو بماند
         $value = strtr($value, [
             '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
             '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
@@ -264,7 +264,7 @@ final class LicenseAdminService {
         return $value;
     }
 
-    // قرارداد کلید (۳۲ کاراکتر hex بزرگ) دست‌نخورده مانده؛ تغییر آن کلاینت اندروید را می‌شکند
+ // قرارداد کلید (۳۲ کاراکتر hex بزرگ) دست‌نخورده مانده؛ تغییر آن کلاینت اندروید را می‌شکند
     private function generateUniqueKey(): string {
         for ($attempt = 0; $attempt < self::MAX_KEY_ATTEMPTS; $attempt++) {
             $key = strtoupper(bin2hex(random_bytes(16)));

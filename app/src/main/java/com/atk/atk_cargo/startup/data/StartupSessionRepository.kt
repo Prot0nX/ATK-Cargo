@@ -8,6 +8,6 @@ interface StartupSessionRepository {
 sealed class SessionCheckOutcome {
     data object Valid : SessionCheckOutcome()
     data object Invalid : SessionCheckOutcome()
-    // خطای شبکه یا سرور (IOException یا کد ۵xx)؛ فراخوان‌کننده باید دوره‌ی فیض آفلاین را بررسی کند
+ // خطای شبکه یا سرور (IOException یا کد ۵xx)؛ فراخوان‌کننده باید دوره‌ی فیض آفلاین را بررسی کند
     data object Unreachable : SessionCheckOutcome()
 }

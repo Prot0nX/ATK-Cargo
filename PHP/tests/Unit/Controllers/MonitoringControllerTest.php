@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 // تست‌های واحد منطق MonitoringController با ریپازیتوری mock شده
 final class MonitoringControllerTest extends TestCase {
-    /** @var MonitoringRepository&MockObject */
+ /** @var MonitoringRepository&MockObject */
     private $repository;
     private MonitoringController $controller;
 
@@ -22,7 +22,7 @@ final class MonitoringControllerTest extends TestCase {
         $this->controller = new MonitoringController($this->repository);
     }
 
-    /** @param array<string,mixed> $overrides @return array<string,mixed> */
+ /** @param array<string,mixed> $overrides @return array<string,mixed> */
     private function row(array $overrides = []): array {
         return $overrides + [
             'id' => 1,
@@ -37,7 +37,7 @@ final class MonitoringControllerTest extends TestCase {
         ];
     }
 
-    // --- acknowledge ---------------------------------------------------------
+ // --- acknowledge ---------------------------------------------------------
 
     public function testAcknowledgeThrows404WhenEventNotFound(): void {
         $this->repository->method('findById')->willReturn(null);
@@ -73,7 +73,7 @@ final class MonitoringControllerTest extends TestCase {
         $this->controller->acknowledge(1, 'admin1');
     }
 
-    // --- listEvents ------------------------------------------------------------
+ // --- listEvents ------------------------------------------------------------
 
     public function testUnknownStatusFilterDefaultsToOpen(): void {
         $this->repository->expects($this->once())
@@ -111,7 +111,7 @@ final class MonitoringControllerTest extends TestCase {
         ], $events[0]);
     }
 
-    // --- summary -----------------------------------------------------------
+ // --- summary -----------------------------------------------------------
 
     public function testSummaryIncludesOpenCountsFromRepository(): void {
         $this->repository->method('openCounts')->willReturn([

@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 
 // OkHttpClient پایه‌ی مشترک بین همه‌ی مسیرهای شبکه‌ی برنامه (Retrofit، رفرش توکن، دانلود آپدیت، تأیید امنیتی).
 object HttpStack {
-    // چند صفحه هم‌زمان poll می‌کنند؛ pool بزرگ‌تر از پیش‌فرض OkHttp یعنی اتصالات idle دوباره استفاده می‌شوند نه بسته/باز
+ // چند صفحه هم‌زمان poll می‌کنند؛ pool بزرگ‌تر از پیش‌فرض OkHttp یعنی اتصالات idle دوباره استفاده می‌شوند نه بسته/باز
     private val sharedConnectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
 
     val shared: OkHttpClient by lazy {

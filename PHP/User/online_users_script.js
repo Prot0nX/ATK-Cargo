@@ -85,7 +85,7 @@ class ApiManager {
     static async request(action, params = {}, method = 'GET', useCache = false) {
         const cacheKey = `${action}-${JSON.stringify(params)}`;
 
-        // Check Cache
+ // Check Cache
         if (useCache && method === 'GET') {
             const cached = this.cache.get(cacheKey);
             if (cached && (Date.now() - cached.timestamp < CONFIG.CACHE_DURATION)) {
@@ -95,7 +95,7 @@ class ApiManager {
         }
 
         try {
-            // Use window.location.href as base to support subdirectories
+ // Use window.location.href as base to support subdirectories
             const url = new URL(CONFIG.API_URL, window.location.href);
             url.searchParams.append('action', action);
 
@@ -120,7 +120,7 @@ class ApiManager {
 
             const data = await response.json();
 
-            // Set Cache
+ // Set Cache
             if (useCache && method === 'GET' && data.success) {
                 this.cache.set(cacheKey, {
                     data,
@@ -217,10 +217,10 @@ class UIManager {
 
         this.hideEmptyState();
 
-        // Group users by date
+ // Group users by date
         const groups = usersManagerInstance.groupUsersByDate(users);
 
-        // Create accordion structure
+ // Create accordion structure
         const container = document.createElement('div');
         container.className = 'col-span-full space-y-4';
 
@@ -264,7 +264,7 @@ class UIManager {
             </div>
         `;
 
-        // Add user cards to the content area
+ // Add user cards to the content area
         const contentArea = section.querySelector(`#${contentId}`);
         group.users.forEach((user, index) => {
             const card = this.createUserCard(user, index);
@@ -275,11 +275,11 @@ class UIManager {
     }
 
     static toggleDateSection(contentId, headerId) {
-        // Close all other date sections first
+ // Close all other date sections first
         document.querySelectorAll('[id^="content-"]').forEach(content => {
             if (content.id !== contentId) {
                 content.classList.add('hidden');
-                // Reset icon for closed sections
+ // Reset icon for closed sections
                 const correspondingHeaderId = content.id.replace('content-', 'header-');
                 const correspondingHeader = document.getElementById(correspondingHeaderId);
                 if (correspondingHeader) {
@@ -303,7 +303,7 @@ class UIManager {
     }
 
     static toggleUserMenu(menuId) {
-        // Close all other user menus first
+ // Close all other user menus first
         document.querySelectorAll('[id^="userMenu-"]').forEach(menu => {
             if (menu.id !== `userMenu-${menuId}`) {
                 menu.classList.add('hidden');
@@ -545,13 +545,13 @@ class UsersManager {
         await this.loadData();
         this.setupEventListeners();
         this.setupKeyboardShortcuts();
-        // Auto-refresh is disabled by default, user must enable it
+ // Auto-refresh is disabled by default, user must enable it
     }
 
     async loadData() {
         try {
             this.ui.showLoading();
-            // Clear Cache on manual refresh if needed, but here we just fetch
+ // Clear Cache on manual refresh if needed, but here we just fetch
             const response = await ApiManager.request('get_all_sessions', {
                 time_filter: 'all',
                 status_filter: 'all'
@@ -587,12 +587,12 @@ class UsersManager {
         const groups = {};
         
         users.forEach(user => {
-            // Extract date from login_time_jalali (format: yyyy/mm/dd HH:MM:SS)
+ // Extract date from login_time_jalali (format: yyyy/mm/dd HH:MM:SS)
             let dateKey = '';
             if (user.login_time_jalali) {
                 dateKey = user.login_time_jalali.split(' ')[0]; // Get just the date part
             } else if (user.login_time) {
-                // Fallback: convert Gregorian date to Persian if needed
+ // Fallback: convert Gregorian date to Persian if needed
                 dateKey = 'نامشخص';
             } else {
                 dateKey = 'نامشخص';
@@ -609,12 +609,12 @@ class UsersManager {
             groups[dateKey].users.push(user);
         });
 
-        // Sort groups by date in descending order (newest first)
+ // Sort groups by date in descending order (newest first)
         const sortedGroups = Object.values(groups).sort((a, b) => {
             if (a.label === 'نامشخص') return 1;
             if (b.label === 'نامشخص') return -1;
             
-            // Compare Persian dates (yyyy/mm/dd format)
+ // Compare Persian dates (yyyy/mm/dd format)
             return b.label.localeCompare(a.label);
         });
 
@@ -671,7 +671,7 @@ class UsersManager {
                 logoutMenu.classList.add('hidden');
             }
             
-            // Close user menus when clicking outside
+ // Close user menus when clicking outside
             const userMenus = document.querySelectorAll('[id^="userMenu-"]');
             userMenus.forEach(menu => {
                 const menuButton = document.querySelector(`[onclick*="${menu.id.replace('userMenu-', '')}"]`);
@@ -692,22 +692,22 @@ class UsersManager {
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Search: Ctrl+K or /
+ // Search: Ctrl+K or /
             if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && document.activeElement.tagName !== 'INPUT')) {
                 e.preventDefault();
                 document.getElementById('searchInput').focus();
             }
 
-            // Close Modal: Esc
+ // Close Modal: Esc
             if (e.key === 'Escape') {
                 ModalManager.hide();
                 document.getElementById('logoutDropdownMenu').classList.add('hidden');
             }
 
-            // Refresh: Ctrl+R (Override default?) - Maybe just custom R key if not focused
-            // if (e.key === 'r' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') {
-            //     this.loadData();
-            // }
+ // Refresh: Ctrl+R (Override default?) - Maybe just custom R key if not focused
+ // if (e.key === 'r' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') {
+ // this.loadData;
+ // }
         });
     }
 
@@ -999,10 +999,10 @@ class UsersManager {
             کاربران_عادی: users.filter(u => u.userType === 'user').length
         };
 
-        // Create detailed CSV content
+ // Create detailed CSV content
         let csvContent = "data:text/csv;charset=utf-8,BOM\ufeff";
         
-        // Add summary section
+ // Add summary section
         csvContent += "خلاصه گزارش\n";
         csvContent += "نام,مقدار\n";
         Object.entries(reportData).forEach(([key, value]) => {
@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const online = users.filter(u => !u.logout_time).length;
         const offline = total - online;
 
-        // Calculate statistics by user type
+ // Calculate statistics by user type
         const userTypes = ['admin', 'operator', 'verifier', 'user'];
         const typeStats = userTypes.map(type => {
             const typeUsers = users.filter(u => u.userType === type);
@@ -1085,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         });
 
-        // Calculate device statistics
+ // Calculate device statistics
         const deviceStats = {};
         users.forEach(user => {
             const device = user.device_model || 'نامشخص';
@@ -1100,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
 
-        // Calculate hourly activity for today
+ // Calculate hourly activity for today
         const hourlyActivity = new Array(24).fill(0);
         const today = new Date().toDateString();
         
@@ -1111,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Calculate average session duration
+ // Calculate average session duration
         const completedSessions = users.filter(u => u.logout_time);
         let totalDuration = 0;
         completedSessions.forEach(user => {
@@ -1123,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         content.innerHTML = `
             <div class="space-y-6">
-                <!-- Overview Cards -->
+ <!-- Overview Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl text-center border border-blue-200 dark:border-blue-800">
                         <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">${Utils.toPersianDigits(total)}</div>
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- User Type Distribution -->
+ <!-- User Type Distribution -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i class="fas fa-users text-blue-500"></i>
@@ -1173,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- Device Statistics -->
+ <!-- Device Statistics -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i class="fas fa-mobile-alt text-green-500"></i>
@@ -1203,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- Hourly Activity Chart -->
+ <!-- Hourly Activity Chart -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
                     <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <i class="fas fa-chart-bar text-orange-500"></i>
@@ -1222,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
+ <!-- Quick Actions -->
                 <div class="flex gap-3 justify-center pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button onclick="UsersManager.exportDetailedReport()" class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
                         <i class="fas fa-file-export"></i>

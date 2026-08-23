@@ -38,9 +38,9 @@ object CrashReporter {
             try {
                 writeCrashFile(appContext, throwable)
             } catch (_: Throwable) {
-                // هیچ استثنایی نباید از خودِ handler خارج شود
+ // هیچ استثنایی نباید از خودِ handler خارج شود
             }
-            // زنجیره به handler قبلی سیستم — این کلاس فقط ثبت می‌کند و رفتار طبیعی کرش را دست‌نخورده می‌گذارد
+ // زنجیره به handler قبلی سیستم — این کلاس فقط ثبت می‌کند و رفتار طبیعی کرش را دست‌نخورده می‌گذارد
             previousHandler?.uncaughtException(thread, throwable)
         }
     }
@@ -76,7 +76,7 @@ object CrashReporter {
             } catch (e: Exception) {
                 Log.w(TAG, "ارسال گزارش کرش معلق شکست خورد", e)
             } finally {
-                // best-effort — بدون retry، تا کرش تکرارشونده باعث ارسال بی‌نهایت نشود
+ // best-effort — بدون retry، تا کرش تکرارشونده باعث ارسال بی‌نهایت نشود
                 file.delete()
             }
         }

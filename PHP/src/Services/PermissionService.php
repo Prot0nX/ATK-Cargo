@@ -12,18 +12,18 @@ use App\Repositories\PermissionRepository;
 final class PermissionService {
     private const PERMISSIONS_FILE = __DIR__ . '/../../config/permissions.json';
 
-    // کلید MicroCache؛ PermissionManager.php باید بعد از هر ذخیره همین کلید را forget کند
+ // کلید MicroCache؛ PermissionManager.php باید بعد از هر ذخیره همین کلید را forget کند
     public const CACHE_KEY = 'permissions_file_data';
     private const CACHE_TTL_SECONDS = 30;
 
     private ?PermissionRepository $repository;
 
-    // پارامتر اختیاری فقط برای تست واحد (تزریق mock)؛ production بدون آرگومان صدا زده می‌شود
+ // پارامتر اختیاری فقط برای تست واحد (تزریق mock)؛ production بدون آرگومان صدا زده می‌شود
     public function __construct(?PermissionRepository $repository = null) {
         $this->repository = $repository;
     }
 
-    // دریافت مجموعه دسترسی‌های مؤثر یک کاربر: تنظیمات اختصاصی او، وگرنه تنظیمات نقشش
+ // دریافت مجموعه دسترسی‌های مؤثر یک کاربر: تنظیمات اختصاصی او، وگرنه تنظیمات نقشش
     public function getUserPermissions(string $username, string $userType): array {
         $allData = MicroCache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, function () {
             return $this->loadFromDatabase() ?? $this->loadFromJsonFile();
@@ -41,7 +41,7 @@ final class PermissionService {
         return $permissions[$feature] ?? false;
     }
 
-    // اگر جداول مجوز نبودند یا DB در دسترس نبود، null برمی‌گرداند تا به فایل قدیمی permissions.json برگردد
+ // اگر جداول مجوز نبودند یا DB در دسترس نبود، null برمی‌گرداند تا به فایل قدیمی permissions.json برگردد
     private function loadFromDatabase(): ?array {
         try {
             $repo = $this->repository ?? new PermissionRepository();

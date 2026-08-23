@@ -401,7 +401,7 @@ fun CargoInfoDetailsDialog(
     if (showDeleteConfirmation) {
         DeleteDialog(
             onConfirm = {
-                // نتیجه‌ی واقعی از طریق کانال پیام‌رسانی خود ViewModel نمایش داده می‌شود
+ // نتیجه‌ی واقعی از طریق کانال پیام‌رسانی خود ViewModel نمایش داده می‌شود
                 val request = CargoInfoRequest(id = info.id ?: 0, password = password)
                 viewModel.deleteCargo(request)
                 onUpdateTypeChange("cargo_delete")

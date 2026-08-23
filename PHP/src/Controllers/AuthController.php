@@ -38,7 +38,7 @@ class AuthController {
         $this->logger = Logger::getInstance();
     }
 
-    // ورود کاربر و احراز هویت (check_Auth.php)
+ // ورود کاربر و احراز هویت (check_Auth.php)
     public function login(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -56,7 +56,7 @@ class AuthController {
             Response::error('نام کاربری و رمز عبور الزامی است.', 400);
         }
 
-        // پاک‌سازی ورودی‌ها
+ // پاک‌سازی ورودی‌ها
         $username = InputValidator::sanitize((string)$username);
         $requestedSection = InputValidator::sanitize((string)$requestedSection);
         $deviceModel = InputValidator::sanitize((string)$deviceModel);
@@ -66,7 +66,7 @@ class AuthController {
 
         $ipAddress = $this->request->getClientIp();
 
-        // قفل تلاش‌های ناموفق برای هر کاربر و IP جهت جلوگیری از brute-force (S-06)
+ // قفل تلاش‌های ناموفق برای هر کاربر و IP جهت جلوگیری از brute-force
         if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
             Response::versionGatedJson([
                 'success' => false,
@@ -76,7 +76,7 @@ class AuthController {
             ], 200, 429);
         }
 
-        // تلاش برای احراز هویت
+ // تلاش برای احراز هویت
         $user = $this->userService->verifyCredentials($username, (string)$password);
 
         $this->logger->info(
@@ -96,10 +96,10 @@ class AuthController {
 
         $this->loginAttemptLimiter->resetAttempts($username, $ipAddress);
 
-        // بارگذاری تنظیمات سطح دسترسی
+ // بارگذاری تنظیمات سطح دسترسی
         $userPermissions = $this->getUserPermissions($username, $user['userType']);
 
-        // بررسی دسترسی به بخش درخواستی (اگر ارسال شده باشد)
+ // بررسی دسترسی به بخش درخواستی (اگر ارسال شده باشد)
         $allowedAccess = true;
         if (!empty($requestedSection)) {
             $allowedAccess = $userPermissions[$requestedSection] ?? ($user['userType'] === 'admin');
@@ -114,7 +114,7 @@ class AuthController {
             ], 200, 403);
         }
 
-        // ایجاد یا به‌روزرسانی جلسه‌ی موبایل کاربر
+ // ایجاد یا به‌روزرسانی جلسه‌ی موبایل کاربر
         $sessionResult = $this->sessionService->createMobileSession(
             $username,
             $deviceId,
@@ -126,7 +126,7 @@ class AuthController {
         );
 
         if (!$sessionResult['success']) {
-            // خطای ورود همزمان از دستگاه دیگر؛ کد 409 برای مسیر ConflictSession در اندروید
+ // خطای ورود همزمان از دستگاه دیگر؛ کد 409 برای مسیر ConflictSession در اندروید
             Response::json([
                 'success' => false,
                 'message' => $sessionResult['message'],
@@ -134,7 +134,7 @@ class AuthController {
             ], 409);
         }
 
-        // ورود موفق؛ session_token برای سازگاری با نسخه‌های قدیمی اپ حفظ شده است
+ // ورود موفق؛ session_token برای سازگاری با نسخه‌های قدیمی اپ حفظ شده است
         Response::json([
             'success' => true,
             'message' => 'ورود موفقیت‌آمیز بود',
@@ -147,7 +147,7 @@ class AuthController {
         ]);
     }
 
-    // تمدید access token با استفاده از refresh token (فقط Router v2)
+ // تمدید access token با استفاده از refresh token (فقط Router v2)
     public function refresh(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -166,7 +166,7 @@ class AuthController {
         $refreshToken = (string)$refreshToken; // مقایسه‌ی دقیق با hash_equals؛ نباید توسط sanitize تغییر کند
         $ipAddress = $this->request->getClientIp();
 
-        // اعمال همان قفل تلاش ناموفق به‌عنوان لایه‌ی دوم در برابر اسپم/سوءاستفاده
+ // اعمال همان قفل تلاش ناموفق به‌عنوان لایه‌ی دوم در برابر اسپم/سوءاستفاده
         if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
             Response::error('تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.', 429);
         }
@@ -190,7 +190,7 @@ class AuthController {
         ]);
     }
 
-    // بررسی وضعیت نشست کاربر (check_session.php)
+ // بررسی وضعیت نشست کاربر (check_session.php)
     public function checkSession(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -208,7 +208,7 @@ class AuthController {
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
         $sessionToken = $sessionToken ? InputValidator::sanitize((string)$sessionToken) : null;
 
-        // اعتبارسنجی نشست با توکن معتبر، نه صرفاً username و deviceId (C-5)
+ // اعتبارسنجی نشست با توکن معتبر، نه صرفاً username و deviceId
         $userType = ($deviceId && $sessionToken)
             ? $this->sessionService->validateAndGetUserType($username, $deviceId, $sessionToken)
             : null;
@@ -230,7 +230,7 @@ class AuthController {
         }
     }
 
-    // خروج کاربر از سیستم (check_logout.php)
+ // خروج کاربر از سیستم (check_logout.php)
     public function logout(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -246,7 +246,7 @@ class AuthController {
         $username = InputValidator::sanitize((string)$username);
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
 
-        // بررسی توکن نشست از هدر برای جلوگیری از غیرفعال‌سازی نشست بدون احراز هویت
+ // بررسی توکن نشست از هدر برای جلوگیری از غیرفعال‌سازی نشست بدون احراز هویت
         $sessionToken = (string)($this->request->getHeader('X-Session-Token') ?? '');
         if (!$deviceId || !$this->sessionService->isValidToken($username, $deviceId, $sessionToken)) {
             Response::json(['success' => true, 'message' => 'خروج انجام شد.']);
@@ -260,7 +260,7 @@ class AuthController {
         ], $result['http_code'] ?? 200);
     }
 
-    // خواندن سطوح دسترسی کاربر از فایل permissions.json
+ // خواندن سطوح دسترسی کاربر از فایل permissions.json
     private function getUserPermissions(string $username, string $userType): array {
         return $this->permissionService->getUserPermissions($username, $userType);
     }

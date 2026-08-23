@@ -36,7 +36,7 @@ fun NavGraphBuilder.cargoDetailsScreen(navController: NavController, onSessionIn
             navController = navController,
             onSessionInvalid = onSessionInvalid,
             quotaNumber = route.quotaNumber,
-            // toRoute() مقادیر را از قبل decode می‌کند؛ decode دستی دوباره باعث کرش روی '%' و ناسازگاری می‌شد
+ // toRoute مقادیر را از قبل decode می‌کند؛ decode دستی دوباره باعث کرش روی '%' و ناسازگاری می‌شد
             shippingCompany = route.shippingCompany ?: "",
             warehouse = route.warehouse ?: "",
             cargoType = route.cargoType ?: "",

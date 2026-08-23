@@ -112,7 +112,7 @@ class TokenAuthenticatorTest {
 
     @Test
     fun `درخواست موازی قبلاً همین توکن را رفرش کرده - دوباره رفرش نمی‌کند`() {
-        // شبیه‌سازی race: درخواست موازی دیگری قبلاً رفرش را انجام داده؛ باید همان توکن تازه برگردد بدون فراخوانی دوباره‌ی TokenRefresher
+ // شبیه‌سازی race: درخواست موازی دیگری قبلاً رفرش را انجام داده؛ باید همان توکن تازه برگردد بدون فراخوانی دوباره‌ی TokenRefresher
         AuthSession.sessionToken = "already-refreshed-by-another-request"
         val tokenStore = mockk<TokenStore>()
         val authenticator = TokenAuthenticator("https://atk-nk.ir/", tokenStore)

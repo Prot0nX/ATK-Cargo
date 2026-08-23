@@ -55,7 +55,7 @@ class TokenRefresherTest {
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
-        // کد عمداً از فرمت query-string استفاده می‌کند (چون مسیر تمیز کار نمی‌کند)؛ این تست همان قرارداد را تثبیت می‌کند تا رگرسیون بی‌صدا نشود
+ // کد عمداً از فرمت query-string استفاده می‌کند (چون مسیر تمیز کار نمی‌کند)؛ این تست همان قرارداد را تثبیت می‌کند تا رگرسیون بی‌صدا نشود
         assertEquals(true, recorded.path?.contains("route=auth/refresh"))
         val body = recorded.body.readUtf8()
         assertEquals(true, body.contains("username=ali"))

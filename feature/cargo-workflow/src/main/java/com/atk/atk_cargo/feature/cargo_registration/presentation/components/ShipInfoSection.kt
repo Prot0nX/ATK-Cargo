@@ -104,7 +104,7 @@ fun ShipInfoSection(
         shadowElevation = 2.dp,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // هدر مینیمال
+ // هدر مینیمال
             TopHeader(
                 onToggle = onToggleVisibility,
                 loadedPercentage = loadedPercentage.toFloat(),
@@ -120,7 +120,7 @@ fun ShipInfoSection(
                 cargoOwner = shipInfo.cargoOwner
             )
 
-            // محتوای قابل گسترش
+ // محتوای قابل گسترش
             AnimatedVisibility(
                 visible = isInfoVisible,
                 enter = fadeIn() + expandVertically(),
@@ -174,13 +174,13 @@ private fun TopHeader(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // سطر ۱: نوع کالا | نام کشتی (راست) --- تناژ مجاز (چپ)
+ // سطر ۱: نوع کالا | نام کشتی (راست) --- تناژ مجاز (چپ)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // نوع کالا | نام کشتی
+ // نوع کالا | نام کشتی
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -214,7 +214,7 @@ private fun TopHeader(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // عنوان تناژ مجاز با آیکون
+ // عنوان تناژ مجاز با آیکون
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -236,7 +236,7 @@ private fun TopHeader(
                     }
                 }
 
-                // سطر ۲: کوتاژ | صاحب کالا (راست با وزن حداکثری جهت جلوگیری از ۲ خطی شدن) --- مقدار تناژ (چپ)
+ // سطر ۲: کوتاژ | صاحب کالا (راست با وزن حداکثری جهت جلوگیری از ۲ خطی شدن) --- مقدار تناژ (چپ)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -276,7 +276,7 @@ private fun TopHeader(
                     )
                 }
 
-                // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی)
+ // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی)
                 val truck10Color = Color(0xFFD97706) // زرد / امبر (Golden Yellow)
                 val truck18Color = Color(0xFF2563EB) // آبی (Vibrant Blue)
 
@@ -284,7 +284,7 @@ private fun TopHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // کامیون ۱۰ چرخ (اختصاصی - زرد)
+ // کامیون ۱۰ چرخ (اختصاصی - زرد)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -321,7 +321,7 @@ private fun TopHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // تریلی ۱۸ چرخ (اختصاصی - آبی)
+ // تریلی ۱۸ چرخ (اختصاصی - آبی)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -355,7 +355,7 @@ private fun TopHeader(
             }
         }
 
-        // نوار پیشرفت مینیمال
+ // نوار پیشرفت مینیمال
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -388,12 +388,12 @@ private fun ExpandedContent(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        // آمار سریع در دو ستون
+ // آمار سریع در دو ستون
         QuickStatsGrid(shipInfo)
         
         Spacer(modifier = Modifier.height(12.dp))
         
-        // اطلاعات تفصیلی در دو ستون
+ // اطلاعات تفصیلی در دو ستون
         DetailedInfoGrid(shipInfo)
     }
 }
@@ -519,7 +519,7 @@ private fun DetailedInfoGrid(shipInfo: ShipInfo) {
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // دو ستونه
+ // دو ستونه
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -604,7 +604,7 @@ fun CargoInfoRow(
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
     else 
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    // متغیر محلی لازم است چون exitDate/exitTime از ماژول دیگر smart-cast نمی‌شوند
+ // متغیر محلی لازم است چون exitDate/exitTime از ماژول دیگر smart-cast نمی‌شوند
     val exitDate = info.exitDate
     val exitTime = info.exitTime
     val displayDate = if (isExited && exitDate != null) exitDate else ""
@@ -616,18 +616,18 @@ fun CargoInfoRow(
             .clickable { onRowClick(info) }
             .padding(12.dp)
     ) {
-        // هدر: آیکون، شماره حواله و تاریخ
+ // هدر: آیکون، شماره حواله و تاریخ
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
-            // آیکون و شماره حواله
+ // آیکون و شماره حواله
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // آیکون دایره‌ای
+ // آیکون دایره‌ای
                 Box {
                     Surface(
                         shape = CircleShape,
@@ -649,7 +649,7 @@ fun CargoInfoRow(
                         }
                     }
                     
-                    // نشانگر تأیید/عدم تأیید برای حواله‌های ورودی
+ // نشانگر تأیید/عدم تأیید برای حواله‌های ورودی
                     if (!isExited) {
                         Surface(
                             shape = CircleShape,
@@ -675,7 +675,7 @@ fun CargoInfoRow(
                     }
                 }
                 
-                // شماره حواله
+ // شماره حواله
                 Column {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -687,7 +687,7 @@ fun CargoInfoRow(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
-                        // Badge وضعیت تأیید برای حواله‌های ورودی
+ // Badge وضعیت تأیید برای حواله‌های ورودی
                         if (!isExited) {
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
@@ -715,7 +715,7 @@ fun CargoInfoRow(
                 }
             }
 
-            // تاریخ
+ // تاریخ
             Surface(
                 shape = RoundedCornerShape(6.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -744,7 +744,7 @@ fun CargoInfoRow(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // گرید اطلاعات: تعداد نفرات | وزن خالص | ساعت
+ // گرید اطلاعات: تعداد نفرات | وزن خالص | ساعت
         Surface(
             shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -757,7 +757,7 @@ fun CargoInfoRow(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // تعداد نفرات
+ // تعداد نفرات
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -786,7 +786,7 @@ fun CargoInfoRow(
                     }
                 }
 
-                // جداکننده
+ // جداکننده
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -794,7 +794,7 @@ fun CargoInfoRow(
                         .background(MaterialTheme.colorScheme.outline)
                 )
 
-                // وزن خالص
+ // وزن خالص
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -813,7 +813,7 @@ fun CargoInfoRow(
                     )
                 }
 
-                // جداکننده
+ // جداکننده
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -821,7 +821,7 @@ fun CargoInfoRow(
                         .background(MaterialTheme.colorScheme.outline)
                 )
 
-                // ساعت
+ // ساعت
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically

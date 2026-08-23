@@ -5,17 +5,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-// ثابت‌های مشترک شعاع گوشه و افکت شیشه‌ای برای صفحات امنیتی — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// ثابت‌های مشترک شعاع گوشه و افکت شیشه‌ای برای صفحات امنیتی — از SecurityScreen.kt جدا شد
 internal object UIConfig {
     val CornerRadiusLarge = 28.dp
     val CornerRadiusMedium = 16.dp
     val CornerRadiusSmall = 12.dp
     
-    // انیمیشن‌های پس‌زمینه
+ // انیمیشن‌های پس‌زمینه
     const val BG_ANIMATION_DURATION_1 = 18000
     const val BG_ANIMATION_DURATION_2 = 24000
     
-    // رنگ‌ها به صورت داینامیک از تم سیستم مشتق می‌شوند
+ // رنگ‌ها به صورت داینامیک از تم سیستم مشتق می‌شوند
     @Composable
     fun getGlassBorderBrush(isDark: Boolean): Brush {
         return Brush.verticalGradient(

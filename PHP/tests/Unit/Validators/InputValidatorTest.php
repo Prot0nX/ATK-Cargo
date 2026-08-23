@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 // تست‌های واحد InputValidator، از جمله validatePassword برای حداقل طول رمز عبور
 final class InputValidatorTest extends TestCase {
 
-    // ===== sanitize =====
+ // ===== sanitize =====
 
     public function testSanitizeStripsHtmlTags(): void {
         $this->assertSame('alert(1)', InputValidator::sanitize('<script>alert(1)</script>'));
@@ -26,7 +26,7 @@ final class InputValidatorTest extends TestCase {
         $this->assertSame('hello', InputValidator::sanitize('  hello  '));
     }
 
-    // ===== validateRequired =====
+ // ===== validateRequired =====
 
     public function testValidateRequiredPassesWhenAllFieldsPresent(): void {
         $this->expectNotToPerformAssertions();
@@ -53,7 +53,7 @@ final class InputValidatorTest extends TestCase {
         }
     }
 
-    // ===== validateFloat =====
+ // ===== validateFloat =====
 
     public function testValidateFloatAcceptsPositiveNumber(): void {
         $this->assertSame(12.5, InputValidator::validateFloat('12.5', 'weight'));
@@ -74,7 +74,7 @@ final class InputValidatorTest extends TestCase {
         InputValidator::validateFloat('not-a-number', 'weight');
     }
 
-    // ===== validateDigits =====
+ // ===== validateDigits =====
 
     public function testValidateDigitsAcceptsDigitsOnly(): void {
         $this->expectNotToPerformAssertions();
@@ -91,7 +91,7 @@ final class InputValidatorTest extends TestCase {
         InputValidator::validateDigits('', 'receipt');
     }
 
-    // ===== validateUsername =====
+ // ===== validateUsername =====
 
     public function testValidateUsernameAcceptsThreeOrMoreCharacters(): void {
         $this->assertSame('abc', InputValidator::validateUsername('abc'));
@@ -102,7 +102,7 @@ final class InputValidatorTest extends TestCase {
         InputValidator::validateUsername('ab');
     }
 
-    // ===== validatePassword (Phase 1.2) =====
+ // ===== validatePassword =====
 
     public function testValidatePasswordAcceptsEightCharacters(): void {
         $this->assertSame('12345678', InputValidator::validatePassword('12345678'));
@@ -119,16 +119,16 @@ final class InputValidatorTest extends TestCase {
     }
 
     public function testValidatePasswordCountsMultiByteCharactersCorrectly(): void {
-        // ۸ کاراکتر فارسی (چندبایتی) باید هم مثل ۸ کاراکتر لاتین معتبر باشد
+ // ۸ کاراکتر فارسی (چندبایتی) باید هم مثل ۸ کاراکتر لاتین معتبر باشد
         $eightPersianChars = 'رمزعبوریک';
         $this->assertGreaterThanOrEqual(8, mb_strlen($eightPersianChars));
         $this->assertSame($eightPersianChars, InputValidator::validatePassword($eightPersianChars));
     }
 
-    // ===== validateIdentifier =====
+ // ===== validateIdentifier =====
 
     public function testValidateIdentifierPreservesAmpersandWithoutEscaping(): void {
-        // برخلاف sanitize، اینجا htmlspecialchars اعمال نمی‌شود چون مقدار مستقیم در prepared statement مقایسه می‌شود.
+ // برخلاف sanitize، اینجا htmlspecialchars اعمال نمی‌شود چون مقدار مستقیم در prepared statement مقایسه می‌شود.
         $this->assertSame('M&V', InputValidator::validateIdentifier('M&V'));
     }
 

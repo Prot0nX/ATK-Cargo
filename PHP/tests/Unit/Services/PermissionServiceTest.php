@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 // تست‌های integration-محور روی فایل واقعی config/permissions.json برای منطق fallback نقش به کاربر
 final class PermissionServiceTest extends TestCase {
     private PermissionService $service;
-    /** @var array<string, mixed> */
+ /** @var array<string, mixed> */
     private array $permissionsData;
 
     protected function setUp(): void {
@@ -63,7 +63,7 @@ final class PermissionServiceTest extends TestCase {
     }
 
     public function testPerUserOverrideTakesPrecedenceOverRolePermissions(): void {
-        // اولویت‌بندی override کاربر روی مجوزهای نقش با داده‌ی موقت بررسی می‌شود.
+ // اولویت‌بندی override کاربر روی مجوزهای نقش با داده‌ی موقت بررسی می‌شود.
         $reflection = new \ReflectionClass(PermissionService::class);
         $file = $reflection->getConstant('PERMISSIONS_FILE');
         $original = file_get_contents($file);
@@ -73,11 +73,11 @@ final class PermissionServiceTest extends TestCase {
             $withUserOverride['users']['custom_user'] = ['manage_users' => true];
             file_put_contents($file, json_encode($withUserOverride));
 
-            // apcu در این محیط فعال نیست، پس نیازی به forget کردن کش نیست.
+ // apcu در این محیط فعال نیست، پس نیازی به forget کردن کش نیست.
             $service = new PermissionService();
             $this->assertTrue($service->hasPermission('custom_user', 'operator', 'manage_users'));
 
-            // کاربری که override اختصاصی ندارد باید همچنان مجوز نقش خودش را بگیرد.
+ // کاربری که override اختصاصی ندارد باید همچنان مجوز نقش خودش را بگیرد.
             $this->assertFalse($service->hasPermission('other_operator', 'operator', 'manage_users'));
         } finally {
             file_put_contents($file, $original);

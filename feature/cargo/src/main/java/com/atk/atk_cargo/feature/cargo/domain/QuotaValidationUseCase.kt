@@ -92,7 +92,7 @@ class QuotaValidationUseCase(private val repository: QuotaRepository) {
     }
 
     fun validateTempTonnage(initialInfo: QuotaInfo): TempTonnageValidationResult {
-        // متغیر محلی لازم است چون property از ماژول دیگری می‌آید و Kotlin نمی‌تواند بعد از != null آن را smart-cast کند
+ // متغیر محلی لازم است چون property از ماژول دیگری می‌آید و Kotlin نمی‌تواند بعد از != null آن را smart-cast کند
         val tempTonnageAmount = initialInfo.tempTonnageAmount
         if (initialInfo.tempTonnageStatus && tempTonnageAmount != null) {
             if (tempTonnageAmount <= 0) {

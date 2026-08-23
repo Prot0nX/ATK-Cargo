@@ -36,7 +36,7 @@ class AuthViewModel(
     private val context: Context
 ) : ViewModel() {
 
-    // ===== STATE =====
+ // ===== STATE =====
 
     private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val loginState: StateFlow<LoginUiState> = _loginState.asStateFlow()
@@ -44,7 +44,7 @@ class AuthViewModel(
     private val _formState = MutableStateFlow(LoginFormState())
     val formState: StateFlow<LoginFormState> = _formState.asStateFlow()
 
-    // ===== HELPERS =====
+ // ===== HELPERS =====
 
     private fun getAppVersion(): String {
         return try {
@@ -54,9 +54,9 @@ class AuthViewModel(
         }
     }
 
-    // ===== CORE LOGIC =====
+ // ===== CORE LOGIC =====
 
-    // به‌روزرسانی نام کاربری در حالت فرم و ریست خطا
+ // به‌روزرسانی نام کاربری در حالت فرم و ریست خطا
     fun onUsernameChanged(value: String) {
         _formState.update { it.copy(username = value) }
         if (_loginState.value is LoginUiState.Error) {
@@ -64,7 +64,7 @@ class AuthViewModel(
         }
     }
 
-    // به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم و ریست خطا
+ // به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم و ریست خطا
     fun onPasswordChanged(value: String) {
         _formState.update { it.copy(password = value.filter { c -> c.isDigit() }) }
         if (_loginState.value is LoginUiState.Error) {
@@ -72,12 +72,12 @@ class AuthViewModel(
         }
     }
 
-    // تغییر وضعیت نمایش/پنهان کردن رمز عبور
+ // تغییر وضعیت نمایش/پنهان کردن رمز عبور
     fun togglePasswordVisibility() {
         _formState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    // شروع فرآیند ورود؛ هشینگ و درخواست شبکه داخل AuthRepository انجام می‌شود
+ // شروع فرآیند ورود؛ هشینگ و درخواست شبکه داخل AuthRepository انجام می‌شود
     fun login() {
         val form = _formState.value
         viewModelScope.launch {
@@ -95,7 +95,7 @@ class AuthViewModel(
         }
     }
 
-    // بازنشانی کامل وضعیت ورود و فرم هنگام خروج کاربر
+ // بازنشانی کامل وضعیت ورود و فرم هنگام خروج کاربر
     fun resetState() {
         _loginState.value = LoginUiState.Idle
         _formState.value = LoginFormState()

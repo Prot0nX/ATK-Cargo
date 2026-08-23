@@ -9,7 +9,7 @@ import com.atk.atk_cargo.feature.auth.data.LoginResult
 class LoginUseCase(
     private val authRepository: AuthRepository
 ) {
-    // پارامترها: نام کاربری تریم‌شده، رمز خام، نسخه جاری برنامه
+ // پارامترها: نام کاربری تریم‌شده، رمز خام، نسخه جاری برنامه
     suspend operator fun invoke(
         username: String,
         password: String,

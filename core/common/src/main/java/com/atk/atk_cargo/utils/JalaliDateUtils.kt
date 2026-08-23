@@ -11,20 +11,20 @@ object JalaliDateUtils {
         try {
             val instant = when {
                 input.length <= 10 && input.contains("-") -> {
-                    // YYYY-MM-DD
+ // YYYY-MM-DD
                     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
                     val ld = java.time.LocalDate.parse(input, formatter)
                     ld.atStartOfDay(ZoneId.of("Asia/Tehran")).toInstant()
                 }
                 input.contains("-") -> {
-                    // YYYY-MM-DD HH:mm:ss
+ // YYYY-MM-DD HH:mm:ss
                     val cleanInput = if (input.length > 19) input.take(19) else input
                     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                     val ldt = java.time.LocalDateTime.parse(cleanInput, formatter)
                     ldt.atZone(ZoneId.of("Asia/Tehran")).toInstant()
                 }
                 else -> {
-                    // Timestamp (Numeric)
+ // Timestamp (Numeric)
                     Instant.ofEpochMilli(input.toLong())
                 }
             }
@@ -65,7 +65,7 @@ object JalaliDateUtils {
         }
     }
 
-    // تاریخ جلالی امروز به فرمت YYYY/MM/DD بر اساس منطقه‌ی زمانی Tehran، مستقل از تنظیم دستگاه.
+ // تاریخ جلالی امروز به فرمت YYYY/MM/DD بر اساس منطقه‌ی زمانی Tehran، مستقل از تنظیم دستگاه.
     fun getCurrentJalaliDateString(): String {
         val zdt = java.time.ZonedDateTime.now(ZoneId.of("Asia/Tehran"))
         val jDate = gregorianToJalali(zdt.year, zdt.monthValue, zdt.dayOfMonth)
@@ -90,7 +90,7 @@ object JalaliDateUtils {
             gDayNo += gDaysInMonth[i]
         }
         
-        // Leap year check for February
+ // Leap year check for February
         if (gm_ > 1 && ((gy_ % 4 == 0 && gy_ % 100 != 0) || (gy_ % 400 == 0))) {
             gDayNo++
         }

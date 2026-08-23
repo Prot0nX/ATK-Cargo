@@ -8,8 +8,8 @@
 -- مسیرهای اپ.
 --
 -- با یک دیتابیس throwaway محلی (۱۰٬۰۰۰ ردیف تصادفی) تأیید شد:
---   قبل: type=ALL, rows=10000, Extra=Using where; Using filesort
---   بعد: type=ref, rows=1,      Extra=Using where (بدون filesort)
+-- قبل: type=ALL, rows=10000, Extra=Using where; Using filesort
+-- بعد: type=ref, rows=1, Extra=Using where (بدون filesort)
 --
 -- بدون قفل طولانی روی جدول تولید لازم نیست؛ افزودن ایندکس روی InnoDB به‌صورت
 -- online انجام می‌شود (ALGORITHM=INPLACE پیش‌فرض از MySQL 5.6 / MariaDB 10.0+).

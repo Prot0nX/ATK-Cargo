@@ -100,7 +100,7 @@ fun UserManagementDialog(
     var showForceLogoutConfirmation by remember { mutableStateOf<User?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    // Single expanded role state (accordion behavior - only one role open at a time)
+ // Single expanded role state (accordion behavior - only one role open at a time)
     var expandedRole by remember { mutableStateOf<String?>("admin") }
 
     val context = LocalContext.current
@@ -132,7 +132,7 @@ fun UserManagementDialog(
         fetchUsersWithStatus()
     }
 
-    // Filtered users logic
+ // Filtered users logic
     val filteredUsers = remember(users, searchQuery, selectedRoleFilter) {
         users.filter { user ->
             val matchesQuery = searchQuery.isEmpty() ||
@@ -150,7 +150,7 @@ fun UserManagementDialog(
         }
     }
 
-    // Grouping by role
+ // Grouping by role
     val groupedUsers = remember(filteredUsers) {
         val groups = LinkedHashMap<String, List<User>>()
         val roleOrder = listOf("admin", "operator", "verifier")
@@ -162,7 +162,7 @@ fun UserManagementDialog(
             }
         }
 
-        // Other roles if any
+ // Other roles if any
         val others = filteredUsers.filter { it.userType !in roleOrder }
         if (others.isNotEmpty()) {
             groups["other"] = others
@@ -196,7 +196,7 @@ fun UserManagementDialog(
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {
-                // Header Bar
+ // Header Bar
                 TopHeaderSection(
                     canAddUser = currentUserType == "admin" || userPermissions["manage_users"] == true,
                     onAddUserClick = { showAddDialog = true },
@@ -206,12 +206,12 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Dashboard Summary Cards
+ // Dashboard Summary Cards
                 DashboardSummaryRow(users = users)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Search Bar
+ // Search Bar
                 UserSearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it }
@@ -219,7 +219,7 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Filter Chips
+ // Filter Chips
                 RoleFilterChipRow(
                     selectedFilter = selectedRoleFilter,
                     totalCount = users.size,
@@ -231,7 +231,7 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Content Area
+ // Content Area
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -260,7 +260,7 @@ fun UserManagementDialog(
                                 groupedUsers.forEach { (role, roleUserList) ->
                                     val isExpanded = (expandedRole == role)
 
-                                    // Sticky Header for each role group
+ // Sticky Header for each role group
                                     stickyHeader(key = "header_$role") {
                                         RoleGroupHeader(
                                             role = role,
@@ -295,7 +295,7 @@ fun UserManagementDialog(
         }
     }
 
-    // ==================== DIALOGS ====================
+ // ==================== DIALOGS ====================
 
     if (showAddDialog) {
         EnhancedAddUserDialog(
@@ -834,7 +834,7 @@ private fun EnterpriseUserCard(
                 )
             }
 
-            // Actions dropdown menu
+ // Actions dropdown menu
             if (canManage) {
                 Box {
                     IconButton(

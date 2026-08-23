@@ -50,7 +50,7 @@ class UpdateManager(
 ) {
     private val appContext: Context = context.applicationContext
 
- // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، فاز۳ #۲۷) Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف...
+ // مشتق از HttpStack.shared (connection pool مشترک با API/رفرش توکن/تأیید امنیتی، ) Dispatcher اختصاصی حفظ شد چون ۴ chunk هم‌زمان به همان هاست دانلود می‌شوند و سقف...
     private val client = HttpStack.shared.newBuilder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -81,9 +81,9 @@ class UpdateManager(
     private var lastProgress: Float = 0f
     private lateinit var currentDownloadFile: File
 
-    // تعداد بخش‌های دانلود همزمان
+ // تعداد بخش‌های دانلود همزمان
     private val concurrentChunks = 4
-    // سایز هر بخش (8 مگابایت)
+ // سایز هر بخش (8 مگابایت)
     private val chunkSize = 8 * 1024 * 1024L
 
     sealed class DownloadState {
@@ -149,19 +149,19 @@ class UpdateManager(
                         response.isSuccessful -> {
                             val jsonResponse = JSONObject(responseBody)
 
-                            // ===== حداقل نسخه‌ی مجاز =====
+ // ===== حداقل نسخه‌ی مجاز =====
                             val minAllowed = jsonResponse.optString("min_allowed_version", "").ifEmpty {
                                 jsonResponse.optString("minAllowedVersion", "")
                             }
                             _minAllowedVersion.value = minAllowed.ifEmpty { null }
                             val isVersionAllowed = if (minAllowed.isNotEmpty()) {
-                                // compare > 0 => current newer; ==0 => equal; <0 => current older
+ // compare > 0 => current newer; ==0 => equal; <0 => current older
                                 compareVersions(currentAppVersion, minAllowed) >= 0
                             } else {
                                 true
                             }
 
-                            // ===== بررسی وجود نسخه جدید - پشتیبانی از هر دو فرمت (snake_case و camelCase) =====
+ // ===== بررسی وجود نسخه جدید - پشتیبانی از هر دو فرمت (snake_case و camelCase) =====
                             val latestVersion = jsonResponse.optString("latest_version", "").ifEmpty {
                                 jsonResponse.optString("latestVersion", "")
                             }
@@ -175,13 +175,13 @@ class UpdateManager(
 
                             if (hasUpdate) {
                                 _downloadState.value = DownloadState.Idle
-                                // پارس کردن version_constraints
+ // پارس کردن version_constraints
                                 val versionConstraints = jsonResponse.optJSONObject("version_constraints")
                                 val excludedVersionsList = versionConstraints?.optJSONArray("excluded_versions")?.let { array ->
                                     List(array.length()) { array.getString(it) }
                                 } ?: emptyList()
 
-                                // پشتیبانی از هر دو فرمت برای تمام فیلدها
+ // پشتیبانی از هر دو فرمت برای تمام فیلدها
                                 val downloadUrl = jsonResponse.optString("download_url", "").ifEmpty {
                                     jsonResponse.optString("downloadUrl", "")
                                 }
@@ -241,11 +241,11 @@ class UpdateManager(
 
  // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند
     internal fun compareVersions(version1: String, version2: String): Int {
-        // پاک‌سازی و نرمال‌سازی ورودی‌ها
+ // پاک‌سازی و نرمال‌سازی ورودی‌ها
         val v1Clean = version1.trim().replace(Regex("[^0-9.]"), "")
         val v2Clean = version2.trim().replace(Regex("[^0-9.]"), "")
         
-        // تبدیل به لیست اعداد صحیح
+ // تبدیل به لیست اعداد صحیح
         val v1Parts = v1Clean.split(".").mapNotNull { 
             it.toIntOrNull()?.takeIf { num -> num >= 0 }
         }
@@ -253,9 +253,9 @@ class UpdateManager(
             it.toIntOrNull()?.takeIf { num -> num >= 0 }
         }
         
-        // اگر هر دو خالی باشند، برابرند
+ // اگر هر دو خالی باشند، برابرند
         if (v1Parts.isEmpty() && v2Parts.isEmpty()) return 0
-        // اگر یکی خالی باشد، دیگری بزرگتر است
+ // اگر یکی خالی باشد، دیگری بزرگتر است
         if (v1Parts.isEmpty()) return -1
         if (v2Parts.isEmpty()) return 1
         
@@ -273,7 +273,7 @@ class UpdateManager(
         return 0
     }
     
-    // دریافت نسخه فعلی برنامه
+ // دریافت نسخه فعلی برنامه
     private fun getCurrentAppVersion(): String {
         return try {
             val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
@@ -283,7 +283,7 @@ class UpdateManager(
         }
     }
 
-    // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود.
+ // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود.
     internal fun isTrustedDownloadUrl(url: String, trustedBaseUrl: String = Constants.BASE_URL): Boolean = runCatching {
         val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
         val trustedHost = java.net.URI(trustedBaseUrl).host ?: return false
@@ -294,7 +294,7 @@ class UpdateManager(
     fun startDownload(downloadUrl: String, startPosition: Long = 0) {
         if (downloadJob?.isActive == true) return
 
-        // بدون این بررسی، نفوذ به سرور می‌تواند کلاینت را به دانلود APK دلخواه هدایت کند
+ // بدون این بررسی، نفوذ به سرور می‌تواند کلاینت را به دانلود APK دلخواه هدایت کند
         if (!isTrustedDownloadUrl(downloadUrl)) {
             _downloadState.value = DownloadState.Error("آدرس به‌روزرسانی نامعتبر است.")
             return
@@ -361,7 +361,7 @@ class UpdateManager(
                 if (downloadedBytes.get() >= totalBytes) {
                     val expectedSha256 = _updateInfo.value?.sha256.orEmpty()
                     if (expectedSha256.isEmpty()) {
-                        // fail-closed: بدون هش مرجع از سرور، فایل نامعتبر تلقی می‌شود
+ // fail-closed: بدون هش مرجع از سرور، فایل نامعتبر تلقی می‌شود
                         currentDownloadFile.delete()
                         _downloadState.value = DownloadState.Error("امکان تأیید یکپارچگی فایل وجود ندارد؛ به‌روزرسانی لغو شد.")
                     } else if (!verifyFileSha256(currentDownloadFile, expectedSha256)) {
@@ -526,7 +526,7 @@ class UpdateManager(
     fun resumeDownload() {
         when (val currentState = _downloadState.value) {
             is DownloadState.Paused -> {
-                // بازیابی وضعیت قبلی دانلود
+ // بازیابی وضعیت قبلی دانلود
                 downloadedBytes.set(currentState.downloadedBytes)
                 totalBytes = currentState.totalBytes
                 lastProgress = currentState.progress
@@ -564,17 +564,17 @@ class UpdateManager(
     @SuppressLint("QueryPermissionsNeeded")
     fun installUpdate(apkFile: File) {
         try {
-            // بررسی وجود فایل
+ // بررسی وجود فایل
             if (!apkFile.exists()) {
                 throw IOException("فایل نصب یافت نشد")
             }
 
-            // بررسی حجم فایل
+ // بررسی حجم فایل
             if (apkFile.length() == 0L) {
                 throw IOException("فایل نصب خالی است")
             }
 
-            // بررسی پسوند فایل
+ // بررسی پسوند فایل
             if (!apkFile.name.endsWith(".apk", ignoreCase = true)) {
                 throw IOException("فرمت فایل نصب نامعتبر است")
             }

@@ -35,7 +35,7 @@ import com.atk.atk_cargo.core.domain.AnimationManager
 import kotlin.math.cos
 import kotlin.math.sin
 
-// پس‌زمینه‌ی انیمیشنی اوربیتال و اسکنر رادار مشترک بین صفحات امنیتی — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// پس‌زمینه‌ی انیمیشنی اوربیتال و اسکنر رادار مشترک بین صفحات امنیتی — از SecurityScreen.kt جدا شد
 @Composable
 internal fun DynamicPremiumBackground(isDark: Boolean) {
     val t1: Float
@@ -74,10 +74,10 @@ internal fun DynamicPremiumBackground(isDark: Boolean) {
         val w = size.width
         val h = size.height
         
-        // رسم پس‌زمینه رنگ پایه
+ // رسم پس‌زمینه رنگ پایه
         drawRect(color = if (isDark) Color(0xFF0A0F1D) else Color(0xFFF1F5F9))
         
-        // هاله اوربیتال ۱ (قرمز هشدار)
+ // هاله اوربیتال ۱ (قرمز هشدار)
         val x1 = w * 0.5f + cos(t1) * (w * 0.25f)
         val y1 = h * 0.35f + sin(t1) * (h * 0.12f)
         drawCircle(
@@ -93,7 +93,7 @@ internal fun DynamicPremiumBackground(isDark: Boolean) {
             center = Offset(x1, y1)
         )
         
-        // هاله اوربیتال ۲ (آبی اصلی تم)
+ // هاله اوربیتال ۲ (آبی اصلی تم)
         val x2 = w * 0.5f + sin(t2) * (w * 0.3f)
         val y2 = h * 0.65f + cos(t2) * (h * 0.15f)
         drawCircle(
@@ -173,7 +173,7 @@ internal fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
         modifier = modifier.size(160.dp),
         contentAlignment = Alignment.Center
     ) {
-        // حلقه بیرونی خط‌چین متحرک
+ // حلقه بیرونی خط‌چین متحرک
         Canvas(modifier = Modifier.fillMaxSize().rotate(rotation1)) {
             drawCircle(
                 color = primaryColor.copy(alpha = 0.25f),
@@ -184,7 +184,7 @@ internal fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
             )
         }
         
-        // حلقه میانی نقطه‌چین معکوس
+ // حلقه میانی نقطه‌چین معکوس
         Canvas(modifier = Modifier.size(120.dp).rotate(rotation2)) {
             drawCircle(
                 color = errorColor.copy(alpha = 0.35f),
@@ -195,7 +195,7 @@ internal fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
             )
         }
         
-        // هاله رادار میانی
+ // هاله رادار میانی
         Box(
             modifier = Modifier
                 .size(75.dp)
@@ -209,7 +209,7 @@ internal fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
             contentAlignment = Alignment.Center
         ) {}
         
-        // آیکون شیلد مرکزی
+ // آیکون شیلد مرکزی
         Icon(
             imageVector = Icons.Default.Shield,
             contentDescription = null,
@@ -217,7 +217,7 @@ internal fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
             tint = primaryColor
         )
         
-        // خط اسکن لیزری متحرک
+ // خط اسکن لیزری متحرک
         Box(
             modifier = Modifier
                 .width(110.dp)

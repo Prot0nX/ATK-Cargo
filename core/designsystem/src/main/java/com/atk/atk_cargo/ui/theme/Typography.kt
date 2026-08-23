@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.sp
 fun createTypography(): Typography {
     val vazirmatn = VazirmatnFontFamily.create()
 
-    // با remember از ساخت دوباره‌ی بیش از ۱۵ شیء TextStyle در هر recomposition والد جلوگیری می‌شود، چون فقط به هویت فونت (که خودش remember شده) وابسته است
+ // با remember از ساخت دوباره‌ی بیش از ۱۵ شیء TextStyle در هر recomposition والد جلوگیری می‌شود، چون فقط به هویت فونت (که خودش remember شده) وابسته است
     return remember(vazirmatn) {
     Typography(
         displayLarge = TextStyle(

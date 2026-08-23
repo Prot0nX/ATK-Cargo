@@ -36,7 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.QuotaCompletionData
 import com.atk.atk_cargo.data.model.QuotaGroupingMode
 
-// دیالوگ نمایش کامل کوتاژهای یک صاحب کالا با کلیک طولانی — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// دیالوگ نمایش کامل کوتاژهای یک صاحب کالا با کلیک طولانی — از QuotaAnalysisSection.kt جدا شد
 @Composable
 internal fun OwnerQuotasDialog(
     owner: String,
@@ -131,7 +131,7 @@ internal fun OwnerQuotasDialog(
                     ) {
                         items(
                             items = quotas,
-                            // loadingQuotaNumber + shipName به‌تنهایی یکتا نیست؛ کلید ترکیبی لازم است تا از کرش LazyColumn با کلید تکراری جلوگیری شود
+ // loadingQuotaNumber + shipName به‌تنهایی یکتا نیست؛ کلید ترکیبی لازم است تا از کرش LazyColumn با کلید تکراری جلوگیری شود
                             key = { quota ->
                                 "${quota.loadingQuotaNumber}_${quota.shipName}_${quota.shippingCompany}_" +
                                     "${quota.warehouse}_${quota.cargoType}"

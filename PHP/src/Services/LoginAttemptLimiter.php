@@ -12,10 +12,10 @@ final class LoginAttemptLimiter {
     private const LOCKOUT_WINDOW_SECONDS = 900; // ۱۵ دقیقه
     private const CACHE_PREFIX = 'login_gate_attempts_';
 
-    /** @var callable(string, string, string): void */
+ /** @var callable(string, string, string): void */
     private $alerter;
 
-    // alerter قابل تزریق است تا تست واحد بدون درخواست شبکه‌ی واقعی اجرا شود
+ // alerter قابل تزریق است تا تست واحد بدون درخواست شبکه‌ی واقعی اجرا شود
     public function __construct(?callable $alerter = null) {
         $this->alerter = $alerter ?? static function (string $event, string $message, string $dedupeKey): void {
             SecurityAlerter::getInstance()->alert($event, $message, $dedupeKey);
@@ -31,7 +31,7 @@ final class LoginAttemptLimiter {
         $userAttempts = $this->increment($this->userKey($username));
         $ipAttempts = $this->increment($this->ipKey($ipAddress));
 
-        // اعلان فقط دقیقاً در لحظه‌ی عبور از سقف ارسال می‌شود تا اسپم نشود
+ // اعلان فقط دقیقاً در لحظه‌ی عبور از سقف ارسال می‌شود تا اسپم نشود
         if ($userAttempts === self::MAX_USER_ATTEMPTS) {
             ($this->alerter)(
                 'ACCOUNT_LOCKED',
@@ -49,7 +49,7 @@ final class LoginAttemptLimiter {
     }
 
     public function resetAttempts(string $username, string $ipAddress): void {
-        // فقط شمارنده‌ی username پاک می‌شود؛ شمارنده‌ی IP برای محدودسازی همچنان باقی می‌ماند
+ // فقط شمارنده‌ی username پاک می‌شود؛ شمارنده‌ی IP برای محدودسازی همچنان باقی می‌ماند
         $this->clear($this->userKey($username));
     }
 

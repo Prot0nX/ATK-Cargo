@@ -197,7 +197,7 @@ fun PersianDatePickerDialog(
         val monthListState = rememberLazyListState()
         val dayListState = rememberLazyListState()
 
-        // Auto-center year
+ // Auto-center year
         LaunchedEffect(selectedYear, isOpen) {
             val index = years.indexOf(selectedYear)
             if (index >= 0) {
@@ -208,7 +208,7 @@ fun PersianDatePickerDialog(
             }
         }
 
-        // Auto-center month
+ // Auto-center month
         LaunchedEffect(selectedMonth, isOpen) {
             val index = selectedMonth - 1
             if (index >= 0) {
@@ -219,7 +219,7 @@ fun PersianDatePickerDialog(
             }
         }
 
-        // Auto-center day
+ // Auto-center day
         LaunchedEffect(selectedDay, isOpen) {
             val index = selectedDay - 1
             if (index >= 0) {
@@ -249,7 +249,7 @@ fun PersianDatePickerDialog(
                         .padding(ATKCargoTheme.spacing.dialogContentPadding)
                         .fillMaxWidth()
                 ) {
-                    // Header
+ // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -284,7 +284,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xl))
 
-                    // Year Selector
+ // Year Selector
                     Text(
                         text = "سال",
                         style = MaterialTheme.typography.labelMedium,
@@ -314,7 +314,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
-                    // Month Selector
+ // Month Selector
                     Text(
                         text = "ماه",
                         style = MaterialTheme.typography.labelMedium,
@@ -345,7 +345,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
-                    // Day Selector
+ // Day Selector
                     Text(
                         text = "روز",
                         style = MaterialTheme.typography.labelMedium,
@@ -397,7 +397,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxl))
 
-                    // Actions
+ // Actions
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End

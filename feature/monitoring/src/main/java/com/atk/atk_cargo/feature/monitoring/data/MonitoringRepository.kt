@@ -9,7 +9,7 @@ interface MonitoringRepository {
 
     suspend fun getSummary(): MonitoringSummaryResponse
 
-    /** @param status یکی از open، acknowledged یا all */
+ /** @param status یکی از open، acknowledged یا all */
     suspend fun getEvents(status: String, limit: Int = 100, beforeId: Int? = null): List<MonitoringEvent>
 
     suspend fun acknowledgeEvent(id: Int): AcknowledgeResult

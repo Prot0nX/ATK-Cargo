@@ -66,9 +66,9 @@ data class Ship(
     val quotaCount: Int,
     val totalTonnage: Float,
     val remainingTonnage: Float,
-    // این فیلد از قبل محاسبه‌شده از سرور می‌آید؛ کلاینت نباید totalTonnage - remainingTonnage را دوباره حساب کند
+ // این فیلد از قبل محاسبه‌شده از سرور می‌آید؛ کلاینت نباید totalTonnage - remainingTonnage را دوباره حساب کند
     val loadedTonnage: Float = 0f,
-    // getShipsList این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و warehouses را null می‌گذاشت (کرش پنهان)
+ // getShipsList این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و warehouses را null می‌گذاشت (کرش پنهان)
     val totalVoucherCount: Int = 0,
     val isActive: Boolean,
     val warehouses: List<Warehouse> = emptyList()
@@ -117,7 +117,7 @@ data class Warehouse(
     val totalTonnage: Float,
     val loadedTonnage: Float,
     val remainingTonnage: Float,
-    // getShipDetails این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و این فیلدها را null می‌گذاشت (کرش پنهان)
+ // getShipDetails این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و این فیلدها را null می‌گذاشت (کرش پنهان)
     val quotas: List<Quota> = emptyList(),
     val availableExitDates: List<String> = emptyList()
 )
@@ -199,7 +199,7 @@ data class ExistingQuota(
 data class DateInfo(
     val jalaliDate: String,
     val dayName: String,
-    // مرزهای دقیق «روز کاری» (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)؛ nullable چون سرورهای قدیمی‌تر ممکن است این فیلدها را نفرستند
+ // مرزهای دقیق «روز کاری» (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)؛ nullable چون سرورهای قدیمی‌تر ممکن است این فیلدها را نفرستند
     val windowStartDate: String? = null,
     val windowStartTime: String? = null,
     val windowEndDate: String? = null,

@@ -7,7 +7,7 @@ import com.atk.atk_cargo.data.model.User
 // قرارداد لایه داده مدیریت کاربران که ارتباط مستقیم UserManagementViewModel با ApiServiceV2 را حذف می‌کند
 interface AdminRepository {
 
-    // اگر users/status در دسترس نباشد (سرور قدیمی)، به‌صورت داخلی به getAllUsers بازمی‌گردد
+ // اگر users/status در دسترس نباشد (سرور قدیمی)، به‌صورت داخلی به getAllUsers بازمی‌گردد
     suspend fun fetchUsersWithStatus(): List<User>
 
     suspend fun updateUser(request: UpdateUserRequest): AdminOperationResult

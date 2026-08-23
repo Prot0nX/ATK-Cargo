@@ -37,7 +37,7 @@ class CargoViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk(relaxed = true)
         userPreferencesManager = mockk(relaxed = true)
-        // ioDispatcher = همان StandardTestDispatcher، وگرنه withContext(Dispatchers.IO) به ترد پس‌زمینه‌ی واقعی می‌رفت که advanceUntilIdle() با آن هماهنگ نمی‌شود
+ // ioDispatcher = همان StandardTestDispatcher، وگرنه withContext(Dispatchers.IO) به ترد پس‌زمینه‌ی واقعی می‌رفت که advanceUntilIdle با آن هماهنگ نمی‌شود
         viewModel = CargoViewModel(repository, userPreferencesManager, ioDispatcher = dispatcher)
     }
 
@@ -102,7 +102,7 @@ class CargoViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
     }
 
-    // ===== loadCargoInfoList =====
+ // ===== loadCargoInfoList =====
 
     @Test
     fun `loadCargoInfoList - success maps CargoInfo to Cargo and stores initialInfo`() = runTest(dispatcher) {
@@ -155,7 +155,7 @@ class CargoViewModelTest {
         assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
-    // dismissDuplicateDialog seeded via a real duplicate load, not a test-only setter.
+ // dismissDuplicateDialog seeded via a real duplicate load, not a test-only setter.
     @Test
     fun `dismissDuplicateDialog - clears duplicate state after a duplicate load`() = runTest(dispatcher) {
         stubCargoInfo(
@@ -170,9 +170,9 @@ class CargoViewModelTest {
         assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
-    // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست؛ به یک derived value محلی در CargoDetailsScreen.kt منتقل شد و اینجا قابل‌تست نیست
+ // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست؛ به یک derived value محلی در CargoDetailsScreen.kt منتقل شد و اینجا قابل‌تست نیست
 
-    // ===== updateCargoConfirmation (seeded via a real load) =====
+ // ===== updateCargoConfirmation (seeded via a real load) =====
 
     @Test
     fun `updateCargoConfirmation - marks matching cargo confirmed and stamps missing exit time-date`() = runTest(dispatcher) {
@@ -212,7 +212,7 @@ class CargoViewModelTest {
         )
     }
 
-    // ===== pure state, no seeding needed =====
+ // ===== pure state, no seeding needed =====
 
     @Test
     fun `updateSelectedShips - replaces selection set`() {
@@ -220,7 +220,7 @@ class CargoViewModelTest {
         assertEquals(setOf("Ship-1", "Ship-2"), viewModel.uiState.value.selectedShipNames)
     }
 
-    // ===== repository.getLoadableTonnage — از appServiceV2 مستقیم به Repository منتقل شد (فاز۳ #۲۲) =====
+ // ===== repository.getLoadableTonnage — از appServiceV2 مستقیم به Repository منتقل شد =====
 
     @Test
     fun `loadCargoInfoList - applies loadable tonnage from repository with forceRefresh`() = runTest(dispatcher) {
@@ -246,7 +246,7 @@ class CargoViewModelTest {
         assertEquals(42f, state.loadableTonnage)
         assertEquals(2, state.loadableTrucks18Wheeler)
         assertEquals(3, state.loadableTrucks10Wheeler)
-        // ViewModel همیشه initialInfo.loadingQuotaNumber (عدد) را به رشته تبدیل و صدا می‌زند، نه پارامتر رشته‌ای ورودی loadCargoInfoList
+ // ViewModel همیشه initialInfo.loadingQuotaNumber (عدد) را به رشته تبدیل و صدا می‌زند، نه پارامتر رشته‌ای ورودی loadCargoInfoList
         coVerify {
             repository.getLoadableTonnage("1", "Co-1", "WH-1", "Type-1", forceRefresh = true)
         }

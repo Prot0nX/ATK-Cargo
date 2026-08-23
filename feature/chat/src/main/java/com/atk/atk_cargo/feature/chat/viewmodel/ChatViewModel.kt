@@ -23,7 +23,7 @@ class ChatViewModel(
     private val userPreferencesManager: ChatPreferencesStore
 ) : ViewModel() {
 
-    // جریان پیام‌ها از دیتابیس لوکال
+ // جریان پیام‌ها از دیتابیس لوکال
     val messages: StateFlow<List<ChatMessageEntity>> = repository.messages
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -58,15 +58,15 @@ class ChatViewModel(
         private const val POLLING_INTERVAL = 5000L // 5 ثانیه (کمی بیشتر برای کاهش بار سرور)
     }
 
-    // لیست کاربران برای تگ کردن
+ // لیست کاربران برای تگ کردن
     private val _users = MutableStateFlow<List<com.atk.atk_cargo.data.model.User>>(emptyList())
     val users: StateFlow<List<com.atk.atk_cargo.data.model.User>> = _users.asStateFlow()
 
-    // لیست کشتی‌ها برای ضمیمه کردن اطلاعات
+ // لیست کشتی‌ها برای ضمیمه کردن اطلاعات
     private val _ships = MutableStateFlow<com.atk.atk_cargo.data.model.ShipsData?>(null)
     val ships: StateFlow<com.atk.atk_cargo.data.model.ShipsData?> = _ships.asStateFlow()
 
-    // لیست کوتاژهای کشتی انتخاب شده
+ // لیست کوتاژهای کشتی انتخاب شده
     private val _shipQuotas = MutableStateFlow<List<com.atk.atk_cargo.data.model.Quota>>(emptyList())
     val shipQuotas: StateFlow<List<com.atk.atk_cargo.data.model.Quota>> = _shipQuotas.asStateFlow()
 
@@ -126,7 +126,7 @@ class ChatViewModel(
         viewModelScope.launch {
             while (isPolling) {
                 delay(POLLING_INTERVAL)
-                // فقط رفرش بی‌صدا انجام می‌دهیم
+ // فقط رفرش بی‌صدا انجام می‌دهیم
                 try {
                     Log.d("ATK_CHAT_DEBUG", "Polling: Refreshing messages...")
                     repository.refreshMessages()
@@ -144,7 +144,7 @@ class ChatViewModel(
     fun refreshMessages() {
         viewModelScope.launch {
             try {
-                // _isLoading.value = true // برای پولینگ شاید لودینگ لازم نباشد، فقط برای رفرش دستی
+ // _isLoading.value = true // برای پولینگ شاید لودینگ لازم نباشد، فقط برای رفرش دستی
                 repository.refreshMessages()
             } catch (e: Exception) {
                 _error.value = "خطا در بروزرسانی پیام‌ها"
@@ -159,7 +159,7 @@ class ChatViewModel(
             val currentMessages = messages.value
             if (currentMessages.isEmpty()) return@launch
 
-            // ترتیب DAO نزولی است (جدیدترین اول)، پس قدیمی‌ترین پیام آخرین آیتم لیست است
+ // ترتیب DAO نزولی است (جدیدترین اول)، پس قدیمی‌ترین پیام آخرین آیتم لیست است
 
             val oldestId = currentMessages.minOfOrNull { it.id } ?: return@launch
 

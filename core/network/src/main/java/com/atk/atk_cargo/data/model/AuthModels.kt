@@ -26,10 +26,10 @@ data class LoginResponse(
     val message: String,
     @SerializedName("userType")
     val userType: String? = null,
-    // سرور این فیلد را با کلید session_token (snake_case) می‌فرستد؛ بدون این SerializedName توکن نشست همیشه null می‌ماند
+ // سرور این فیلد را با کلید session_token (snake_case) می‌فرستد؛ بدون این SerializedName توکن نشست همیشه null می‌ماند
     @SerializedName("session_token")
     val sessionToken: String? = null,
-    // فیلدهای جدید و افزایشی؛ نصب‌های قدیمی اپ این فیلدها را نادیده می‌گیرند چون Gson فیلد ناشناخته را ساکت رد می‌کند
+ // فیلدهای جدید و افزایشی؛ نصب‌های قدیمی اپ این فیلدها را نادیده می‌گیرند چون Gson فیلد ناشناخته را ساکت رد می‌کند
     @SerializedName("access_token_expires_in")
     val accessTokenExpiresIn: Int? = null,
     @SerializedName("refresh_token")
@@ -147,7 +147,7 @@ data class User(
     val userType: String,
     val createdAt: String? = null,
     val updatedAt: String? = null,
-    // ===== فیلدهای وضعیت آنلاین — از endpoint getAllUsersWithStatus =====
+ // ===== فیلدهای وضعیت آنلاین — از endpoint getAllUsersWithStatus =====
     @com.google.gson.annotations.SerializedName("is_online")
     val isOnline: Boolean = false,
     @com.google.gson.annotations.SerializedName("last_activity")

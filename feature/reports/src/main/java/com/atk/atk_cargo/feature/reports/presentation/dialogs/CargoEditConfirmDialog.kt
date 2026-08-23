@@ -31,7 +31,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.CargoInfo
 
-// دیالوگ تأیید نهایی قبل از ذخیره‌ی ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// دیالوگ تأیید نهایی قبل از ذخیره‌ی ویرایش حواله — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 fun CargoEditConfirmDialog(
     cargoInfo: CargoInfo,

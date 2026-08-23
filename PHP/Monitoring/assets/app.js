@@ -35,7 +35,7 @@
         }
     };
 
-    /* --- ارتباط با سرور -------------------------------------------------- */
+ /* --- ارتباط با سرور -------------------------------------------------- */
     function request(action, method, params) {
         var query = new URLSearchParams(params || {});
         query.set('action', action);
@@ -61,7 +61,7 @@
         });
     }
 
-    /* --- توست ------------------------------------------------------------ */
+ /* --- توست ------------------------------------------------------------ */
     function toast(message, type) {
         var node = document.createElement('div');
         node.className = 'toast toast-' + (type || 'success');
@@ -70,7 +70,7 @@
         setTimeout(function () { node.remove(); }, 3500);
     }
 
-    /* --- قالب‌بندی ------------------------------------------------------- */
+ /* --- قالب‌بندی ------------------------------------------------------- */
     function formatDateTime(value) {
         if (!value) { return '—'; }
         var date = new Date(value.replace(' ', 'T'));
@@ -91,7 +91,7 @@
         return formatDateTime(value);
     }
 
-    /* --- ساخت جدول ------------------------------------------------------- */
+ /* --- ساخت جدول ------------------------------------------------------- */
     function cell(text, className) {
         var td = document.createElement('td');
         if (className) { td.className = className; }
@@ -199,7 +199,7 @@
         el.stats.healthHint.textContent = 'بررسی: ' + formatDateTime(health.checkedAt);
     }
 
-    /* --- بارگذاری داده --------------------------------------------------- */
+ /* --- بارگذاری داده --------------------------------------------------- */
     function findEvent(id) {
         return state.events.filter(function (item) {
             return String(item.id) === String(id);
@@ -235,7 +235,7 @@
         state.refreshTimer = setInterval(load, REFRESH_INTERVAL_MS);
     }
 
-    /* --- تأیید رویداد ------------------------------------------------------ */
+ /* --- تأیید رویداد ------------------------------------------------------ */
     function acknowledgeEvent(id) {
         return request('acknowledge', 'POST', { id: id })
             .then(function (data) {
@@ -247,7 +247,7 @@
             });
     }
 
-    /* --- جزئیات ---------------------------------------------------------- */
+ /* --- جزئیات ---------------------------------------------------------- */
     function showDetails(event) {
         state.selectedId = event.id;
 
@@ -280,7 +280,7 @@
         el.details.showModal();
     }
 
-    /* --- پوسته ----------------------------------------------------------- */
+ /* --- پوسته ----------------------------------------------------------- */
     function currentTheme() {
         var explicit = document.documentElement.dataset.theme;
         if (explicit) { return explicit; }
@@ -293,7 +293,7 @@
         document.cookie = 'monitoring_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
-    /* --- اتصال رویدادها -------------------------------------------------- */
+ /* --- اتصال رویدادها -------------------------------------------------- */
     document.querySelectorAll('.chip[data-status]').forEach(function (chip) {
         chip.addEventListener('click', function () {
             document.querySelectorAll('.chip[data-status]').forEach(function (other) {

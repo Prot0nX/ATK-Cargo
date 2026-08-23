@@ -6,10 +6,10 @@ import java.util.Locale
 
 fun formatNumber(value: String): String {
     return try {
-        // حذف کاما و تبدیل به عدد
+ // حذف کاما و تبدیل به عدد
         val number = value.replace(",", "").toDoubleOrNull() ?: return toEnglishNumbers(value)
 
-        // فرمت‌بندی با کاما و اعداد انگلیسی
+ // فرمت‌بندی با کاما و اعداد انگلیسی
         DecimalFormat("#,###.##", DecimalFormatSymbols(Locale.ENGLISH)).format(number)
     } catch (_: Exception) {
         toEnglishNumbers(value)
@@ -23,12 +23,12 @@ fun toEnglishNumbers(input: String): String {
 
     var result = input
 
-    // تبدیل اعداد فارسی به انگلیسی
+ // تبدیل اعداد فارسی به انگلیسی
     for (i in persianNumbers.indices) {
         result = result.replace(persianNumbers[i], englishNumbers[i])
     }
 
-    // تبدیل اعداد عربی به انگلیسی
+ // تبدیل اعداد عربی به انگلیسی
     for (i in arabicNumbers.indices) {
         result = result.replace(arabicNumbers[i], englishNumbers[i])
     }

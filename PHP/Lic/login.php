@@ -29,16 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
         $error = 'توکن امنیتی نامعتبر است. لطفاً دوباره تلاش کنید.';
     } elseif ($passwordHash === '') {
-        // همان رفتار PermissionManager: بدون پیکربندی، ورود ممکن نیست — نه اینکه به یک مقدار پیش‌فرض برگردد.
+ // همان رفتار PermissionManager: بدون پیکربندی، ورود ممکن نیست — نه اینکه به یک مقدار پیش‌فرض برگردد.
         $error = 'خطای پیکربندی: متغیر LIC_ADMIN_PASSWORD_HASH در فایل .env تنظیم نشده است.';
         $logger->security('Lic panel login attempted while LIC_ADMIN_PASSWORD_HASH is unset');
     } elseif ($limiter->isLocked(LIC_ACTOR, $clientIp)) {
-        // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به سقف تلاش رسیده یا صرفاً رمز را غلط زده.
+ // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به سقف تلاش رسیده یا صرفاً رمز را غلط زده.
         $error = 'رمز عبور نادرست است.';
     } elseif (password_verify((string)($_POST['password'] ?? ''), $passwordHash)) {
         $limiter->resetAttempts(LIC_ACTOR, $clientIp);
 
-        // جلوگیری از session fixation: شناسه‌ی نشست پس از احراز هویت عوض می‌شود تا شناسه‌ای که مهاجم از قبل به قربانی داده بی‌اثر شود.
+ // جلوگیری از session fixation: شناسه‌ی نشست پس از احراز هویت عوض می‌شود تا شناسه‌ای که مهاجم از قبل به قربانی داده بی‌اثر شود.
         session_regenerate_id(true);
         $_SESSION[LIC_SESSION_KEY] = true;
         $_SESSION['last_activity'] = time();
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: index.php');
         exit;
     } else {
-        // registerFailedAttempt خودش تأخیر تصاعدی (۲/۴/۸ ثانیه) اعمال می‌کند.
+ // registerFailedAttempt خودش تأخیر تصاعدی (۲/۴/۸ ثانیه) اعمال می‌کند.
         $limiter->registerFailedAttempt(LIC_ACTOR, $clientIp);
         $logger->security("Lic panel login failed from {$clientIp}");
         $error = 'رمز عبور نادرست است.';

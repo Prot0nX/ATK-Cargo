@@ -15,21 +15,21 @@ class NotificationActionReceiver : BroadcastReceiver() {
     
     companion object {
 
-        // اکشن‌ها
+ // اکشن‌ها
         const val ACTION_MUTE_SHIP = "com.atk.atk_cargo.MUTE_SHIP"
         const val ACTION_UNMUTE_SHIP = "com.atk.atk_cargo.UNMUTE_SHIP"
         const val ACTION_CLEAR_MUTED_SHIPS = "com.atk.atk_cargo.CLEAR_MUTED_SHIPS"
         const val ACTION_DISABLE_SHIFT_NOTIFICATIONS = "com.atk.atk_cargo.DISABLE_SHIFT_NOTIFICATIONS"
         const val ACTION_REFRESH_NOTIFICATIONS = "com.atk.atk_cargo.REFRESH_NOTIFICATIONS"
         
-        // پارامترها
+ // پارامترها
         const val EXTRA_SHIP_NAME = "ship_name"
     }
     
     override fun onReceive(context: Context, intent: Intent) {
 
         when (intent.action) {
-            // غیرفعال کردن نوتیفیکیشن یک کشتی
+ // غیرفعال کردن نوتیفیکیشن یک کشتی
             ACTION_MUTE_SHIP -> {
                 val shipName = intent.getStringExtra(EXTRA_SHIP_NAME)
                 if (shipName != null) {
@@ -38,7 +38,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             }
             
-            // فعال کردن مجدد نوتیفیکیشن یک کشتی
+ // فعال کردن مجدد نوتیفیکیشن یک کشتی
             ACTION_UNMUTE_SHIP -> {
                 val shipName = intent.getStringExtra(EXTRA_SHIP_NAME)
                 if (shipName != null) {
@@ -48,14 +48,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
             }
 
-            // پاک کردن لیست کشتی‌های غیرفعال شده
+ // پاک کردن لیست کشتی‌های غیرفعال شده
             ACTION_CLEAR_MUTED_SHIPS -> {
                 val notificationManager = AppNotificationManager(context)
                 notificationManager.clearMutedShips()
                 enqueueImmediateLoadingRefresh(context)
             }
             
-            // غیرفعال کردن نوتیفیکیشن‌ها برای شیفت فعلی
+ // غیرفعال کردن نوتیفیکیشن‌ها برای شیفت فعلی
             ACTION_DISABLE_SHIFT_NOTIFICATIONS -> {
                 val prefs = context.getSharedPreferences("ShiftNotificationsPrefs", Context.MODE_PRIVATE)
                 val shiftInfo = prefs.getString("current_shift_id", "") ?: ""
@@ -63,7 +63,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 if (shiftInfo.isNotEmpty()) {
                     prefs.edit { putBoolean("disabled_$shiftInfo", true) }
 
-                    // نمایش پیام برای اطلاع‌رسانی به کاربر
+ // نمایش پیام برای اطلاع‌رسانی به کاربر
                     val shiftType = if (shiftInfo.contains("day")) "روز" else if (shiftInfo.contains("night")) "شب" else "فعلی"
                     Toast.makeText(
                         context, 
@@ -72,19 +72,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     ).show()
                 }
                 
-                // پاک کردن نوتیفیکیشن‌های فعلی
+ // پاک کردن نوتیفیکیشن‌های فعلی
                 val notificationManager = AppNotificationManager(context)
                 notificationManager.clearAll()
             }
             
-            // بروزرسانی نوتیفیکیشن‌ها
+ // بروزرسانی نوتیفیکیشن‌ها
             ACTION_REFRESH_NOTIFICATIONS -> {
                 enqueueImmediateLoadingRefresh(context)
             }
         }
     }
 
-    // اجرای یک‌بار فوری LoadingNotificationWorker به‌جای منتظر ماندن برای چرخه‌ی دوره‌ای بعدی
+ // اجرای یک‌بار فوری LoadingNotificationWorker به‌جای منتظر ماندن برای چرخه‌ی دوره‌ای بعدی
     private fun enqueueImmediateLoadingRefresh(context: Context) {
         val workRequest = OneTimeWorkRequestBuilder<LoadingNotificationWorker>()
             .setInputData(workDataOf(LoadingNotificationWorker.KEY_IS_REFRESH to true))

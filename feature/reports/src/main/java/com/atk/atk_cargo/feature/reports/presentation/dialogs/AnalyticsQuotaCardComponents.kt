@@ -33,7 +33,7 @@ import com.atk.atk_cargo.data.model.QuotaGroupingMode
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import kotlin.math.roundToInt
 
-// چیپ آماری و کارت جزئیات یک کوتاژ در بخش تحلیل — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// چیپ آماری و کارت جزئیات یک کوتاژ در بخش تحلیل — از QuotaAnalysisSection.kt جدا شد
 @Composable
 internal fun AnalyticsStatChip(
     value: String,

@@ -126,7 +126,7 @@ fun CargoDetailsScreen(
     val messageType by viewModel.messageType.collectAsStateWithLifecycle()
     var selectedCargoInfo by remember { mutableStateOf<Cargo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    // filteredCargoInfoList دیگر در ViewModel نگه‌داری نمی‌شود؛ محلی از cargoInfoList و searchQuery مشتق می‌شود
+ // filteredCargoInfoList دیگر در ViewModel نگه‌داری نمی‌شود؛ محلی از cargoInfoList و searchQuery مشتق می‌شود
     val filteredCargoInfoList = remember(cargoInfoList, searchQuery) {
         if (searchQuery.isEmpty()) {
             cargoInfoList
@@ -144,7 +144,7 @@ fun CargoDetailsScreen(
         snackbarMessage = SnackbarMessage(message, type)
     }
     
-    // باگ رفع‌شده: remember بدون کلید باعث می‌شد groupedCargoList پس از اولین بار هرگز بروز نشود؛ اکنون با کلید filteredCargoInfoList دوباره محاسبه می‌شود
+ // باگ رفع‌شده: remember بدون کلید باعث می‌شد groupedCargoList پس از اولین بار هرگز بروز نشود؛ اکنون با کلید filteredCargoInfoList دوباره محاسبه می‌شود
     val groupedCargoList = remember(filteredCargoInfoList) {
         filteredCargoInfoList.groupBy { it.confirm == CargoConfirmStatus.CONFIRMED.wireValue }
             .toSortedMap(compareBy { it })
@@ -154,7 +154,7 @@ fun CargoDetailsScreen(
         try {
             when (validateServerSession(tokenStore)) {
                 SessionValidationOutcome.Valid -> {
-                    // نشست معتبر است، ادامه می‌دهد
+ // نشست معتبر است، ادامه می‌دهد
                 }
                 SessionValidationOutcome.Invalid -> {
                     startupViewModel.notifySessionExpired()
@@ -173,7 +173,7 @@ fun CargoDetailsScreen(
 
     LaunchedEffect(Unit) {
         if (quotaNumber.isNotBlank()) {
-            // پارامترهای ورودی از قبل decode شده‌اند؛ decode دوباره باعث ناسازگاری و کرش روی '%' می‌شد
+ // پارامترهای ورودی از قبل decode شده‌اند؛ decode دوباره باعث ناسازگاری و کرش روی '%' می‌شد
             viewModel.loadCargoInfoList(
                 quotaNumber = quotaNumber,
                 shippingCompany = shippingCompany,
@@ -199,7 +199,7 @@ fun CargoDetailsScreen(
             while (true) {
                 delay(30000.milliseconds)
                 if (quotaNumber.isNotBlank()) {
-                    // این بروزرسانی خودکار هر ۳۰ ثانیه است، برخلاف refresh دستی، پیام موفقیت نمایش داده نمی‌شود
+ // این بروزرسانی خودکار هر ۳۰ ثانیه است، برخلاف refresh دستی، پیام موفقیت نمایش داده نمی‌شود
                     refreshData(
                         viewModel = viewModel,
                         quotaNumber = quotaNumber,
@@ -278,7 +278,7 @@ fun CargoDetailsScreen(
                 )
             }
 
-            // منوی شناور پایین صفحه (۲ آیتم: ۱. تغییر کوتاژ، ۲. تغییر کشتی)
+ // منوی شناور پایین صفحه (۲ آیتم: ۱. تغییر کوتاژ، ۲. تغییر کشتی)
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -295,7 +295,7 @@ fun CargoDetailsScreen(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // آیتم ۱: تغییر کوتاژ
+ // آیتم ۱: تغییر کوتاژ
                         FloatingActionButtonItem(
                             text = "تغییر کوتاژ",
                             icon = Icons.Default.ConfirmationNumber,
@@ -307,7 +307,7 @@ fun CargoDetailsScreen(
                             }
                         )
 
-                        // آیتم ۲: تغییر کشتی
+ // آیتم ۲: تغییر کشتی
                         FloatingActionButtonItem(
                             text = "تغییر کشتی",
                             icon = Icons.Default.DirectionsBoat,
@@ -321,7 +321,7 @@ fun CargoDetailsScreen(
                     }
                 }
 
-                // دکمه اصلی شناور (FAB)
+ // دکمه اصلی شناور (FAB)
                 FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
                     modifier = Modifier.size(56.dp),
@@ -380,7 +380,7 @@ fun CargoDetailsScreen(
             showDialog = true,
             onDismiss = { showQuotaEntryDialog = false },
             onConfirm = { selectedQuota ->
-                // QuotaEntryDialog پیش از این اعتبارسنجی کوتاژ را انجام داده؛ switchQuota اطلاعات کامل را از سرور می‌خواند
+ // QuotaEntryDialog پیش از این اعتبارسنجی کوتاژ را انجام داده؛ switchQuota اطلاعات کامل را از سرور می‌خواند
                 viewModel.switchQuota(selectedQuota)
                 showQuotaEntryDialog = false
             },

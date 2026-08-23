@@ -85,7 +85,7 @@ fun ScannerGuideOverlay(
         val left = (width - scanAreaWidth) / 2
         val top = (height - scanAreaHeight) / 2
 
-        // Main rectangle frame
+ // Main rectangle frame
         drawRect(
             color = guideColor,
             topLeft = Offset(left, top),
@@ -93,10 +93,10 @@ fun ScannerGuideOverlay(
             style = Stroke(width = guideThickness)
         )
 
-        // Corner indicators
+ // Corner indicators
         val cornerSize = 20f
 
-        // Top-left corner
+ // Top-left corner
         drawLine(
             color = guideColor,
             start = Offset(left, top),
@@ -110,7 +110,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
-        // Top-right corner
+ // Top-right corner
         drawLine(
             color = guideColor,
             start = Offset(left + scanAreaWidth, top),
@@ -124,7 +124,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
-        // Bottom-left corner
+ // Bottom-left corner
         drawLine(
             color = guideColor,
             start = Offset(left, top + scanAreaHeight),
@@ -138,7 +138,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
-        // Bottom-right corner
+ // Bottom-right corner
         drawLine(
             color = guideColor,
             start = Offset(left + scanAreaWidth, top + scanAreaHeight),
@@ -152,7 +152,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
-        // Horizontal guide line
+ // Horizontal guide line
         drawLine(
             color = guideColor.copy(alpha = 0.4f),
             start = Offset(left, top + scanAreaHeight / 2),
@@ -177,20 +177,20 @@ fun EnhancedCameraPreview(
     val lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     val executor = ContextCompat.getMainExecutor(context)
 
-    // Weight detection state
+ // Weight detection state
     var detectedNumber by remember { mutableStateOf<String?>(null) }
     var isValidWeight by remember { mutableStateOf(false) }
     var processingActive by remember { mutableStateOf(true) }
 
-    // AI Analysis state
+ // AI Analysis state
     var isAIAnalyzing by remember { mutableStateOf(false) }
     var analysisSource by remember { mutableStateOf<String?>(null) }
 
-    // Camera status
+ // Camera status
     var hasTorch by remember { mutableStateOf(false) }
     var isTorchOn by remember { mutableStateOf(false) }
 
-    // Scanner guide parameters
+ // Scanner guide parameters
     val guideColor = Color.Green.copy(alpha = 0.7f)
     val guideThickness = 2.dp
     val scanAreaSize = 0.7f // 70% of screen width
@@ -293,14 +293,14 @@ fun EnhancedCameraPreview(
             modifier = Modifier.matchParentSize()
         )
 
-        // Scanner guide overlay
+ // Scanner guide overlay
         ScannerGuideOverlay(
             scanAreaSize = scanAreaSize,
             guideColor = guideColor,
             guideThickness = guideThickness.value
         )
 
-        // Header با اطلاعات حالت اسکن
+ // Header با اطلاعات حالت اسکن
         Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -315,7 +315,7 @@ fun EnhancedCameraPreview(
             ) {
                 val successColor = ATKCargoTheme.semanticColors.success
 
-                // نمایش حالت اسکن فعال
+ // نمایش حالت اسکن فعال
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
@@ -352,7 +352,7 @@ fun EnhancedCameraPreview(
             }
         }
 
-        // Display detected weight با انیمیشن نرم
+ // Display detected weight با انیمیشن نرم
         AnimatedVisibility(
             visible = detectedNumber != null,
             enter = fadeIn(animationSpec = tween(400)) + slideInVertically(
@@ -418,7 +418,7 @@ fun EnhancedCameraPreview(
             }
         }
 
-        // نمایش وضعیت تحلیل AI
+ // نمایش وضعیت تحلیل AI
         AnimatedVisibility(
             visible = isAIAnalyzing,
             enter = fadeIn(animationSpec = tween(300)) + expandIn(
@@ -458,7 +458,7 @@ fun EnhancedCameraPreview(
             }
         }
 
-        // Capture button
+ // Capture button
         var isCapturing by remember { mutableStateOf(false) }
 
         Surface(
@@ -514,7 +514,7 @@ fun EnhancedCameraPreview(
             }
         }
 
-        // Flashlight button
+ // Flashlight button
         if (hasTorch) {
             Surface(
                 modifier = Modifier

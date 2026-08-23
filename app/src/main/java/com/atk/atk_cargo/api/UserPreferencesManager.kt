@@ -30,7 +30,7 @@ class UserPreferencesManager(
 ) : TokenStore, UserPreferencesStore, ChatPreferencesStore, UserSettingsStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
-    // مدیریت خطای خواندن preferences دیسک و صدور مقادیر پیش‌فرض در صورت وقوع IOException.
+ // مدیریت خطای خواندن preferences دیسک و صدور مقادیر پیش‌فرض در صورت وقوع IOException.
     private val safePreferences: Flow<Preferences> = dataStore.data.catch { exception ->
         if (exception is IOException) {
             emit(emptyPreferences())
@@ -60,7 +60,7 @@ class UserPreferencesManager(
 
     override val sessionToken: Flow<String> = preference(SESSION_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
-    // I-05: refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
+ // refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
     val refreshToken: Flow<String> = preference(REFRESH_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
     override val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
@@ -79,7 +79,7 @@ class UserPreferencesManager(
 
     val lastNotifiedMessageId: Flow<Int> = preference(LAST_NOTIFIED_MESSAGE_ID_KEY, 0)
 
-    // ===== رنگ تم برنامه =====
+ // ===== رنگ تم برنامه =====
     override val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
 
  // ===== پیاده‌سازی TokenStore (مرز core:network
@@ -105,7 +105,7 @@ class UserPreferencesManager(
                 preferences[PERMISSIONS_KEY] = cryptoManager.encrypt(json)
             }
         }
-        // به‌روزرسانی آنی AuthSession برای دسترسی فوری ریکوئست‌های بعدی API به هدرهای احراز هویت.
+ // به‌روزرسانی آنی AuthSession برای دسترسی فوری ریکوئست‌های بعدی API به هدرهای احراز هویت.
         AuthSession.username = username
         if (deviceId.isNotEmpty()) AuthSession.deviceId = deviceId
         if (sessionToken.isNotEmpty()) AuthSession.sessionToken = sessionToken
@@ -118,7 +118,7 @@ class UserPreferencesManager(
         AuthSession.sessionToken = sessionToken
     }
 
-    // ذخیره‌ی همزمان جفت توکن جدید پس از refresh موفق توکن‌ها (I-05).
+ // ذخیره‌ی همزمان جفت توکن جدید پس از refresh موفق توکن‌ها.
     override suspend fun saveRefreshedTokens(accessToken: String, refreshToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(accessToken)
@@ -197,7 +197,7 @@ class UserPreferencesManager(
         }
         AuthSession.clear()
 
-        // پاکسازی ترجیحات مربوط به بارگیری
+ // پاکسازی ترجیحات مربوط به بارگیری
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
     }
@@ -235,19 +235,19 @@ class UserPreferencesManager(
         private val BATTERY_OPTIMIZATION_REQUESTED_KEY = booleanPreferencesKey("battery_optimization_requested")
         private val LAST_SESSION_VERIFIED_TIMESTAMP_KEY = longPreferencesKey("last_session_verified_timestamp")
 
-        // Chat Settings
+ // Chat Settings
         private val CHAT_FONT_SIZE_KEY = intPreferencesKey("chat_font_size")
         private val CHAT_MY_BUBBLE_COLOR_KEY = longPreferencesKey("chat_my_bubble_color")
         private val CHAT_OTHER_BUBBLE_COLOR_KEY = longPreferencesKey("chat_other_bubble_color")
         private val CHAT_BACKGROUND_ID_KEY = intPreferencesKey("chat_background_id")
         private val CHAT_BUBBLE_SHAPE_KEY = intPreferencesKey("chat_bubble_shape")
 
-        // Notification
+ // Notification
         private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
         private val LOADING_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("loading_notifications_enabled")
         private val CHAT_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("chat_notifications_enabled")
 
-        // Theme
+ // Theme
         val APP_THEME_COLOR_KEY = longPreferencesKey("app_theme_color")
         const val DEFAULT_THEME_COLOR = 0xFF137fecL
     }

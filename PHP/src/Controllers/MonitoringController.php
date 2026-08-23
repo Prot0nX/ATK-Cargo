@@ -16,7 +16,7 @@ class MonitoringController {
         $this->repository = $repository ?? new MonitoringRepository();
     }
 
-    /** @return array<int,array<string,mixed>> */
+ /** @return array<int,array<string,mixed>> */
     public function listEvents(string $status, int $limit, ?int $beforeId): array {
         $status = in_array($status, ['open', 'acknowledged', 'all'], true) ? $status : 'open';
         return array_map([$this, 'presentEvent'], $this->repository->listEvents($status, $limit, $beforeId));
@@ -39,9 +39,9 @@ class MonitoringController {
         }
     }
 
-    /** @return array<string,mixed> */
+ /** @return array<string,mixed> */
     public function summary(): array {
-        // خودِ وضعیت سلامت زنده محاسبه می‌شود (همان evaluateHealth که health_monitor.php هم صدا می‌زند) نه از یک ردیف ذخیره‌شده، تا جدول monitoring_events با heartbeat هر ۵ دقیقه شلوغ نشود.
+ // خودِ وضعیت سلامت زنده محاسبه می‌شود (همان evaluateHealth که health_monitor.php هم صدا می‌زند) نه از یک ردیف ذخیره‌شده، تا جدول monitoring_events با heartbeat هر ۵ دقیقه شلوغ نشود.
         $health = (new DiagnosticsController())->evaluateHealth();
 
         return [
@@ -55,10 +55,10 @@ class MonitoringController {
         ];
     }
 
-    /**
-     * @param array<string,mixed> $row
-     * @return array<string,mixed>
-     */
+ /**
+ * @param array<string,mixed> $row
+ * @return array<string,mixed>
+ */
     private function presentEvent(array $row): array {
         return [
             'id' => (int)$row['id'],

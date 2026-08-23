@@ -26,14 +26,14 @@ $safeCall = static function (callable $fn) {
     } catch (ApiException $e) {
         Response::json(['error' => $e->getMessage()] + ($e->getDetails() ?? []), $e->getStatusCode());
     } catch (\Throwable $e) {
-        // فقط ApiException به کلاینت می‌رود؛ بقیه فقط لاگ می‌شوند تا ساختار DB افشا نشود
+ // فقط ApiException به کلاینت می‌رود؛ بقیه فقط لاگ می‌شوند تا ساختار DB افشا نشود
         error_log('api_v2 safeCall: ' . $e->getMessage());
         Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
     }
 };
 
 return [
-    // ===== SHIPS =====
+ // ===== SHIPS =====
     [
         'method' => 'GET',
         'path' => 'ships',
@@ -42,7 +42,7 @@ return [
         'handler' => function () use ($safeCall): void {
             $safeCall(function () {
                 $ships = (new ShipService())->getShipsList();
-                // ETag فقط از activeShips/inactiveShips محاسبه می‌شود، نه از statistics.timestamp همیشه‌متغیر
+ // ETag فقط از activeShips/inactiveShips محاسبه می‌شود، نه از statistics.timestamp همیشه‌متغیر
                 $etagSource = [
                     'activeShips' => $ships['data']['activeShips'] ?? [],
                     'inactiveShips' => $ships['data']['inactiveShips'] ?? [],
@@ -76,7 +76,7 @@ return [
         },
     ],
     [
-        // permission عمداً null است چون این route هنگام ثبت حواله هم توسط کلاینت صدا زده می‌شود، نه فقط فیچر گزارش‌ها
+ // permission عمداً null است چون این route هنگام ثبت حواله هم توسط کلاینت صدا زده می‌شود، نه فقط فیچر گزارش‌ها
         'method' => 'GET',
         'path' => 'ships/{shipName}/quotas',
         'auth' => true,
@@ -89,7 +89,7 @@ return [
         },
     ],
 
-    // ===== QUOTAS (خواندنی) =====
+ // ===== QUOTAS (خواندنی) =====
     [
         'method' => 'GET',
         'path' => 'quotas/filtered',
@@ -122,7 +122,7 @@ return [
                 if ($shipName === '' || $warehouseName === '' || $selectedQuota === '' || $startDateTime === '' || $endDateTime === '') {
                     throw new \Exception('پارامترهای ورودی ناقص هستند');
                 }
-                // getFilteredSummary یک رشته‌ی JSON آماده برمی‌گرداند، پس مستقیم echo می‌شود
+ // getFilteredSummary یک رشته‌ی JSON آماده برمی‌گرداند، پس مستقیم echo می‌شود
                 $summary = (new ShipService())->getFilteredSummary($shipName, $warehouseName, $selectedQuota, $startDateTime, $endDateTime);
                 header('Content-Type: application/json; charset=UTF-8');
                 echo $summary;
@@ -211,13 +211,13 @@ return [
         },
     ],
 
-    // ===== QUOTAS (نوشتنی — مطابق قرارداد WRITE_ACTIONS در v1، همه POST) =====
+ // ===== QUOTAS (نوشتنی — مطابق قرارداد WRITE_ACTIONS در v1، همه POST) =====
     [
         'method' => 'POST',
         'path' => 'quotas/edit',
         'auth' => true,
         'permission' => 'manage_quotas',
-        // امضای closure پنج‌پارامتری است چون Router هم request/params و هم username احرازشده را پاس می‌دهد (Phase3 #26)
+ // امضای closure پنج‌پارامتری است چون Router هم request/params و هم username احرازشده را پاس می‌دهد
         'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
             $safeCall(function () use ($request, $username) {
                 $body = $request->all();
@@ -335,7 +335,7 @@ return [
         },
     ],
 
-    // ===== REAL-TIME (نسخه‌ی سبک، همان چیزی که app_api.php?action=getRealTimeData برمی‌گرداند) =====
+ // ===== REAL-TIME (نسخه‌ی سبک، همان چیزی که app_api.php?action=getRealTimeData برمی‌گرداند) =====
     [
         'method' => 'GET',
         'path' => 'realtime/ships',
@@ -353,13 +353,13 @@ return [
         },
     ],
 
-    // ===== AUTH — متدهای مستقل AuthController؛ auth=false چون این‌ها خودِ ورودی به سیستم‌اند =====
+ // ===== AUTH — متدهای مستقل AuthController؛ auth=false چون این‌ها خودِ ورودی به سیستم‌اند =====
     [
         'method' => 'POST', 'path' => 'auth/login', 'auth' => false, 'permission' => null,
         'handler' => function () { (new AuthController())->login(); },
     ],
     [
-        // عمداً فقط روی v2؛ auth=>false چون دقیقاً زمانی صدا زده می‌شود که access token منقضی شده، اعتبارسنجی واقعی داخل AuthController::refresh است
+ // عمداً فقط روی v2؛ auth=>false چون دقیقاً زمانی صدا زده می‌شود که access token منقضی شده، اعتبارسنجی واقعی داخل AuthController::refresh است
         'method' => 'POST', 'path' => 'auth/refresh', 'auth' => false, 'permission' => null,
         'handler' => function () { (new AuthController())->refresh(); },
     ],
@@ -372,13 +372,13 @@ return [
         'handler' => function () { (new AuthController())->logout(); },
     ],
 
-    // ===== CARGO — الگوی Direct passthrough؛ auth/permission هر route دقیقاً مطابق چک داخلی خودِ متد است =====
+ // ===== CARGO — الگوی Direct passthrough؛ auth/permission هر route دقیقاً مطابق چک داخلی خودِ متد است =====
     [
         'method' => 'POST', 'path' => 'cargo', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->saveOrUpdate($username, $userType); },
     ],
     [
-        // PATCH — قبلاً POST بود، با هماهنگی کلاینت اندروید به فعل معنایی درست تغییر کرد
+ // PATCH — قبلاً POST بود، با هماهنگی کلاینت اندروید به فعل معنایی درست تغییر کرد
         'method' => 'PATCH', 'path' => 'cargo/update', 'auth' => true, 'permission' => 'edit_cargo',
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->updateCargoInfo($username, $userType); },
     ],
@@ -387,7 +387,7 @@ return [
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new CargoController())->confirmCargo($username, $userType); },
     ],
     [
-        // DELETE — همان دلیل بالا
+ // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'cargo/delete', 'auth' => true, 'permission' => 'delete_cargo',
         'handler' => function (array $params, Request $request, ?string $username) { (new CargoController())->deleteCargoInfo($username); },
     ],
@@ -412,29 +412,29 @@ return [
         'handler' => function () { (new CargoController())->checkScaleReceipt(); },
     ],
     [
-        // «ships/active» عمداً از «ships» بالاتر جداست، مسیر سبک‌تر برای جریان ثبت حواله نه گزارش‌گیری
+ // «ships/active» عمداً از «ships» بالاتر جداست، مسیر سبک‌تر برای جریان ثبت حواله نه گزارش‌گیری
         'method' => 'GET', 'path' => 'ships/active', 'auth' => true, 'permission' => null,
         'handler' => function () { (new CargoController())->getActiveShips(); },
     ],
 
-    // ===== UTILITY =====
+ // ===== UTILITY =====
     [
         'method' => 'POST', 'path' => 'utility/check-existence', 'auth' => true, 'permission' => null,
         'handler' => function () { (new UtilityController())->checkExistence(); },
     ],
     [
-        // auth=>true با ApiAuthGate (که توکن را هم بررسی می‌کند) شکاف اعتبارسنجی v1 را برای مسیر v2 می‌بندد
+ // auth=>true با ApiAuthGate (که توکن را هم بررسی می‌کند) شکاف اعتبارسنجی v1 را برای مسیر v2 می‌بندد
         'method' => 'POST', 'path' => 'utility/sync-permissions', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { (new UtilityController())->syncPermissions($username, $userType); },
     ],
 
-    // ===== USERS — الگوی Shim؛ ADMIN_ONLY_ACTIONS باید با UserController هماهنگ بماند. updateUser عمداً permission=>null دارد چون تمایز خودِکاربر/ادمین داخلی است =====
+ // ===== USERS — الگوی Shim؛ ADMIN_ONLY_ACTIONS باید با UserController هماهنگ بماند. updateUser عمداً permission=>null دارد چون تمایز خودِکاربر/ادمین داخلی است =====
     [
         'method' => 'GET', 'path' => 'users', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getAllUsers'; (new UserController())->handle($username, $userType); },
     ],
     [
-        // بعد از قفل شدن getAllUsers پشت manage_users، این دو action محدودتر برای هر کاربر احرازشده باز ماندند
+ // بعد از قفل شدن getAllUsers پشت manage_users، این دو action محدودتر برای هر کاربر احرازشده باز ماندند
         'method' => 'GET', 'path' => 'users/self', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'getSelfProfile'; (new UserController())->handle($username, $userType); },
     ],
@@ -455,7 +455,7 @@ return [
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'createUser'; (new UserController())->handle($username, $userType); },
     ],
     [
-        // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
+ // PATCH — با Request::isWrite هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'users/{id}/update', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) {
             $_GET['action'] = 'updateUser';
@@ -464,7 +464,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا
+ // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'users/{id}/delete', 'auth' => true, 'permission' => 'manage_users',
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) {
             $_GET['action'] = 'deleteUser';
@@ -477,7 +477,7 @@ return [
         'handler' => function (array $params, Request $request, ?string $username, ?string $userType) { $_GET['action'] = 'forceLogout'; (new UserController())->handle($username, $userType); },
     ],
 
-    // ===== CHAT — الگوی Shim؛ کنترل دسترسی واقعی داخل ChatController است، اینجا permission=>null و auth=>true فقط معتبربودن نشست را تضمین می‌کند =====
+ // ===== CHAT — الگوی Shim؛ کنترل دسترسی واقعی داخل ChatController است، اینجا permission=>null و auth=>true فقط معتبربودن نشست را تضمین می‌کند =====
     [
         'method' => 'GET', 'path' => 'chat/messages', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getMessages'; (new ChatController())->handleChatRequest($username); },
@@ -487,7 +487,7 @@ return [
         'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest($username); },
     ],
     [
-        // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
+ // PATCH — با Request::isWrite هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'chat/messages/{id}/edit', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username) {
             $_GET['action'] = 'editMessage';
@@ -496,7 +496,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا
+ // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'chat/messages/{id}/delete', 'auth' => true, 'permission' => null,
         'handler' => function (array $params, Request $request, ?string $username) {
             $_GET['action'] = 'deleteMessage';
@@ -504,7 +504,7 @@ return [
             (new ChatController())->handleChatRequest($username);
         },
     ],
-    // ===== ANALYTICS / REAL-TIME — الگوی Shim؛ هر ۴ اکشن دقیقاً همین یک permission ('view_reports') را چک می‌کنند =====
+ // ===== ANALYTICS / REAL-TIME — الگوی Shim؛ هر ۴ اکشن دقیقاً همین یک permission ('view_reports') را چک می‌کنند =====
     [
         'method' => 'GET', 'path' => 'analytics/kotazh', 'auth' => true, 'permission' => 'view_reports',
         'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'getKotazhInfo'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
@@ -522,7 +522,7 @@ return [
         'handler' => function (array $params, Request $request, ?string $username) { $_GET['action'] = 'logAnalyticsExport'; (new AnalyticsController())->handleRealTimeLoadingData($username); },
     ],
 
-    // ===== DIAGNOSTICS — عمداً بدون auth: health باید برای مانیتورینگ خارجی و گزارش کرش حتی بدون نشست معتبر در دسترس باشد =====
+ // ===== DIAGNOSTICS — عمداً بدون auth: health باید برای مانیتورینگ خارجی و گزارش کرش حتی بدون نشست معتبر در دسترس باشد =====
     [
         'method' => 'GET', 'path' => 'health', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->health(); },
@@ -532,10 +532,10 @@ return [
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
     ],
 
-    // ===== MONITORING — نوشتن رویداد از داخل SecurityAlerter::alert() انجام می‌شود؛ این مسیرها فقط خواندن/تایید REST هستند
+ // ===== MONITORING — نوشتن رویداد از داخل SecurityAlerter::alert انجام می‌شود؛ این مسیرها فقط خواندن/تایید REST هستند
  // =====.
     [
-        // auth=>false مشابه health اصلی: همان دلیل دسترسی عمومی، همان کنترلر صدا زده می‌شود
+ // auth=>false مشابه health اصلی: همان دلیل دسترسی عمومی، همان کنترلر صدا زده می‌شود
         'method' => 'GET', 'path' => 'monitoring/health', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->health(); },
     ],
@@ -562,7 +562,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
+ // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
         'method' => 'DELETE', 'path' => 'monitoring/events/{id}/delete', 'auth' => true, 'permission' => 'view_monitoring',
         'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
             $safeCall(function () use ($params) {
@@ -580,7 +580,7 @@ return [
         },
     ],
 
-    // ===== AUDIT LOG — تب «لاگ تغییرات» صفحه مانیتورینگ؛ فقط خواندن، نوشتن از App\Services\AuditLogger::log() انجام می‌شود؛ همان مجوز view_monitoring چون بخشی از همان صفحه است =====
+ // ===== AUDIT LOG — تب «لاگ تغییرات» صفحه مانیتورینگ؛ فقط خواندن، نوشتن از App\Services\AuditLogger::log انجام می‌شود؛ همان مجوز view_monitoring چون بخشی از همان صفحه است =====
     [
         'method' => 'GET', 'path' => 'audit-log', 'auth' => true, 'permission' => 'view_monitoring',
         'handler' => function (array $params, Request $request) use ($safeCall): void {
@@ -596,7 +596,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
+ // DELETE — همان دلیل بالا (users/{id}/delete و chat/messages/{id}/delete)
         'method' => 'DELETE', 'path' => 'audit-log/{id}/delete', 'auth' => true, 'permission' => 'view_monitoring',
         'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
             $safeCall(function () use ($params) {
@@ -606,7 +606,7 @@ return [
         },
     ],
 
-    // ===== این ۶ مسیر جایگزین shimهای مستقل حذف‌شده‌ی ریشه‌ی PHP/ شدند و اکنون تنها راه دسترسی‌اند؛ هشدار: URLهای قدیمی هنوز در کلاینت hardcode هستند و اکنون ۴۰۴ می‌دهند =====
+ // ===== این ۶ مسیر جایگزین shimهای مستقل حذف‌شده‌ی ریشه‌ی PHP/ شدند و اکنون تنها راه دسترسی‌اند؛ هشدار: URLهای قدیمی هنوز در کلاینت hardcode هستند و اکنون ۴۰۴ می‌دهند =====
     [
         'method' => 'POST', 'path' => 'utility/check-signature', 'auth' => false, 'permission' => null,
         'handler' => function () { (new UtilityController())->checkSignature(); },

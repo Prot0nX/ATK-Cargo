@@ -284,7 +284,7 @@ private fun StartupErrorScreen(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(24.dp))
-            // onRetry فقط برای خطاهای واقعاً قابل‌تکرار نمایش داده می‌شود؛ ناسازگاری ABI با retry حل نمی‌شود
+ // onRetry فقط برای خطاهای واقعاً قابل‌تکرار نمایش داده می‌شود؛ ناسازگاری ABI با retry حل نمی‌شود
             if (onRetry != null) {
                 Button(onClick = onRetry) {
                     Text("تلاش مجدد")

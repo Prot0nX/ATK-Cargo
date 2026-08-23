@@ -76,7 +76,7 @@ private fun ShipCardContent(
             .fillMaxWidth()
             .padding(14.dp)
     ) {
-        // ردیف اول: نام کشتی | محموله + مقدار کل
+ // ردیف اول: نام کشتی | محموله + مقدار کل
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -106,7 +106,7 @@ private fun ShipCardContent(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // نام کشتی | محموله در سمت راست
+ // نام کشتی | محموله در سمت راست
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.End
@@ -138,12 +138,12 @@ private fun ShipCardContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // ردیف دوم: بارگیری و مانده
+ // ردیف دوم: بارگیری و مانده
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            // بارگیری
+ // بارگیری
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(10.dp),
@@ -170,7 +170,7 @@ private fun ShipCardContent(
                 }
             }
 
-            // مانده منفی یعنی اضافه‌بارگیری یا ناسازگاری داده و باید به‌صورت هشدار نمایش داده شود
+ // مانده منفی یعنی اضافه‌بارگیری یا ناسازگاری داده و باید به‌صورت هشدار نمایش داده شود
             StatBox(
                 value = "↓ ${formatNumber(ship.remainingTonnage.roundToInt())}",
                 isWarning = ship.remainingTonnage < 0f,

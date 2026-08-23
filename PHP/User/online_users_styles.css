@@ -11,16 +11,16 @@
 
 /* ===== Variables ===== */
 :root {
-    /* Custom Colors */
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+ /* Custom Colors */
+ --glass-border: rgba(255, 255, 255, 0.2);
+ --glass-bg: rgba(255, 255, 255, 0.7);
+ --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
 .dark {
-    --glass-border: rgba(255, 255, 255, 0.05);
-    --glass-bg: rgba(17, 24, 39, 0.7);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+ --glass-border: rgba(255, 255, 255, 0.05);
+ --glass-bg: rgba(17, 24, 39, 0.7);
+ --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* ===== Base Styles ===== */

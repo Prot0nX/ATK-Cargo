@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
-// دیالوگ اعلام نیاز به بروزرسانی نسخه‌ی منقضی‌شده — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// دیالوگ اعلام نیاز به بروزرسانی نسخه‌ی منقضی‌شده — از SecurityScreen.kt جدا شد
 @Composable
 fun VersionExpiredDialog(
     onExit: () -> Unit
@@ -45,7 +45,7 @@ fun VersionExpiredDialog(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            // ۱. پس‌زمینه داینامیک روان
+ // ۱. پس‌زمینه داینامیک روان
             DynamicPremiumBackground(isDark = isDark)
 
             val scaleAnim = remember { Animatable(0.85f) }
@@ -84,7 +84,7 @@ fun VersionExpiredDialog(
                     modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // انیمیشن آیکون دانلود و آپدیت
+ // انیمیشن آیکون دانلود و آپدیت
                     AnimatedUpdateIcon(isDark = isDark)
 
                     Spacer(modifier = Modifier.height(24.dp))

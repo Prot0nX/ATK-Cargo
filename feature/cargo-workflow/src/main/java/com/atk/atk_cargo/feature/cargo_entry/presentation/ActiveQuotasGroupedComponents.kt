@@ -74,10 +74,10 @@ internal fun ShipCard(
         (completedVouchers.toFloat() / totalVouchers) * 100f
     } else 0f
 
-    // گروه‌بندی در remember تا در هر recomposition دوباره اجرا نشود
+ // گروه‌بندی در remember تا در هر recomposition دوباره اجرا نشود
     val warehouseGroups = remember(ships) { ships.groupBy { it.loadingWarehouse } }
 
-    // فیلتر (فقط انبارهای دارای حواله) + مرتب‌سازی نزولی بر اساس حواله‌های باقیمانده، هر دو در remember
+ // فیلتر (فقط انبارهای دارای حواله) + مرتب‌سازی نزولی بر اساس حواله‌های باقیمانده، هر دو در remember
     val sortedWarehouseEntries = remember(warehouseGroups) {
         warehouseGroups.entries
             .filter { (_, ships) -> ships.any { it.entryVouchers + it.exitVouchers > 0 } }
@@ -92,7 +92,7 @@ internal fun ShipCard(
             )
     }
 
-    // حفظ وضعیت باز/بسته بودن هر انبار
+ // حفظ وضعیت باز/بسته بودن هر انبار
     var expandedWarehouse by remember { mutableStateOf<String?>(null) }
 
     val cardColor = when {
@@ -128,7 +128,7 @@ internal fun ShipCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // سربرگ کشتی با طراحی جدید
+ // سربرگ کشتی با طراحی جدید
             ShipHeader(
                 shipName = shipName,
                 cargoType = ships.firstOrNull()?.cargoType ?: "",
@@ -143,7 +143,7 @@ internal fun ShipCard(
                 onBackgroundColor = onBackgroundColor
             )
 
-            // نمایش محتوای گروه‌بندی شده کشتی وقتی باز است
+ // نمایش محتوای گروه‌بندی شده کشتی وقتی باز است
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(),
@@ -153,9 +153,9 @@ internal fun ShipCard(
                     modifier = Modifier.padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // نمایش انبارها به ترتیب نزولی حواله‌های باقیمانده
+ // نمایش انبارها به ترتیب نزولی حواله‌های باقیمانده
                     sortedWarehouseEntries.forEach { (warehouseName, warehouseShips) ->
-                            // فیلتر کردن بر اساس متن جستجو
+ // فیلتر کردن بر اساس متن جستجو
                             val filteredShips = if (searchQuery.isEmpty()) {
                                 warehouseShips.filter { it.entryVouchers + it.exitVouchers > 0 }
                             } else {
@@ -209,7 +209,7 @@ private fun ShipHeader(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // آیکون کشتی با طراحی جدید
+ // آیکون کشتی با طراحی جدید
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -226,7 +226,7 @@ private fun ShipHeader(
                     modifier = Modifier.size(32.dp)
                 )
 
-                // نمایش درصد پیشرفت دور آیکون
+ // نمایش درصد پیشرفت دور آیکون
                 if (totalVouchers > 0) {
                     CircularProgressIndicator(
                         progress = { progressPercentage / 100f },
@@ -240,7 +240,7 @@ private fun ShipHeader(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // اطلاعات کشتی
+ // اطلاعات کشتی
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -292,7 +292,7 @@ private fun ShipHeader(
                 }
             }
 
-            // نمایش تعداد حواله‌های باقیمانده
+ // نمایش تعداد حواله‌های باقیمانده
             if (remainingVouchers > 0) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -308,7 +308,7 @@ private fun ShipHeader(
                     )
                 }
             } else if (totalVouchers > 0) {
-                // نمایش برچسب تکمیل شده برای کشتی‌هایی که همه حواله‌هایشان خروج شده
+ // نمایش برچسب تکمیل شده برای کشتی‌هایی که همه حواله‌هایشان خروج شده
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = QuotasAccentBg,
@@ -339,7 +339,7 @@ private fun ShipHeader(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // آیکون باز/بسته کردن
+ // آیکون باز/بسته کردن
             Icon(
                 imageVector = Icons.Default.ExpandLess,
                 contentDescription = if (expanded) "بستن" else "باز کردن",
@@ -352,7 +352,7 @@ private fun ShipHeader(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // نوار پیشرفت با طراحی جدید
+ // نوار پیشرفت با طراحی جدید
         LinearProgressIndicator(
             progress = { progressPercentage / 100f },
             modifier = Modifier
@@ -367,7 +367,7 @@ private fun ShipHeader(
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // نمایش درصد پیشرفت به صورت متنی
+ // نمایش درصد پیشرفت به صورت متنی
             Text(
                 text = "${progressPercentage.toInt()}% تکمیل شده",
                 style = MaterialTheme.typography.bodySmall,
@@ -387,7 +387,7 @@ private fun WarehouseSection(
     onExpandChange: (Boolean) -> Unit,
     searchQuery: String
 ) {
-    // حذف + مرتب‌سازی (نزولی بر اساس حواله‌های باقیمانده، سپس کل حواله‌ها) در یک remember تا با early return بعدی به‌هم نریزد
+ // حذف + مرتب‌سازی (نزولی بر اساس حواله‌های باقیمانده، سپس کل حواله‌ها) در یک remember تا با early return بعدی به‌هم نریزد
     val sortedShipsWithVouchers = remember(ships) {
         ships.filter { it.entryVouchers + it.exitVouchers > 0 }
             .sortedWith(
@@ -402,7 +402,7 @@ private fun WarehouseSection(
     }
     val shipsWithVouchers = sortedShipsWithVouchers
 
-    // اگر هیچ کشتی‌ای حواله نداشته باشد، چیزی نمایش نمی‌دهیم
+ // اگر هیچ کشتی‌ای حواله نداشته باشد، چیزی نمایش نمی‌دهیم
     if (shipsWithVouchers.isEmpty()) return
 
     val totalVouchers = shipsWithVouchers.sumOf { it.entryVouchers + it.exitVouchers }
@@ -442,7 +442,7 @@ private fun WarehouseSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // اطلاعات انبار
+ // اطلاعات انبار
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -460,7 +460,7 @@ private fun WarehouseSection(
                                     MaterialTheme.colorScheme.surfaceVariant
                             )
                     ) {
-                        // آیکون مناسب با وضعیت انبار
+ // آیکون مناسب با وضعیت انبار
                         Icon(
                             imageVector = if (isCompleted)
                                 Icons.Outlined.CheckCircle
@@ -480,7 +480,7 @@ private fun WarehouseSection(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Column {
-                        // نام انبار با هایلایت کردن متن جستجو شده
+ // نام انبار با هایلایت کردن متن جستجو شده
                         if (searchQuery.isNotEmpty() && warehouseName.contains(searchQuery, ignoreCase = true)) {
                             val parts = warehouseName.split(
                                 searchQuery,
@@ -513,7 +513,7 @@ private fun WarehouseSection(
                             )
                         }
 
-                        // وضعیت تکمیل انبار
+ // وضعیت تکمیل انبار
                         if (isCompleted) {
                             Text(
                                 text = "تکمیل شده",
@@ -524,11 +524,11 @@ private fun WarehouseSection(
                     }
                 }
 
-                // آمار حواله‌ها و وزن انبار
+ // آمار حواله‌ها و وزن انبار
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // نمایش تعداد حواله‌های باقیمانده
+ // نمایش تعداد حواله‌های باقیمانده
                     if (remainingVouchers > 0) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -546,7 +546,7 @@ private fun WarehouseSection(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 
-                    // نمایش آمار عددی و وزن انبار
+ // نمایش آمار عددی و وزن انبار
                     Column(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -578,7 +578,7 @@ private fun WarehouseSection(
 
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    // آیکون باز/بسته کردن
+ // آیکون باز/بسته کردن
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.Info,
                         contentDescription = if (expanded) "بستن" else "جزئیات بیشتر",
@@ -590,7 +590,7 @@ private fun WarehouseSection(
                 }
             }
 
-            // نوار پیشرفت انبار
+ // نوار پیشرفت انبار
             if (totalVouchers > 0) {
                 val progressPercentage = (completedVouchers.toFloat() / totalVouchers) * 100f
 
@@ -610,7 +610,7 @@ private fun WarehouseSection(
                 )
             }
 
-            // لیست کوتاژها
+ // لیست کوتاژها
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(),
@@ -620,7 +620,7 @@ private fun WarehouseSection(
                     modifier = Modifier.padding(top = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // مرتب‌سازی کوتاژها بر اساس حواله‌های باقیمانده (نزولی) و سپس بر اساس کل حواله‌ها
+ // مرتب‌سازی کوتاژها بر اساس حواله‌های باقیمانده (نزولی) و سپس بر اساس کل حواله‌ها
                     shipsWithVouchers
                         .sortedWith(
                             compareByDescending<ActiveShipInfo> { ship ->
@@ -650,7 +650,7 @@ private fun QuotaItem(
 ) {
     val totalVouchers = quota.entryVouchers + quota.exitVouchers
 
-    // اگر حواله نداشته باشد، نمایش نمی‌دهیم
+ // اگر حواله نداشته باشد، نمایش نمی‌دهیم
     if (totalVouchers == 0) return
 
     val remainingVouchers = totalVouchers - quota.exitVouchers
@@ -675,12 +675,12 @@ private fun QuotaItem(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // نمایش شماره کوتاژ با هایلایت اگر جستجو شده باشد
+ // نمایش شماره کوتاژ با هایلایت اگر جستجو شده باشد
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.width(70.dp)
             ) {
-                // نمایش آیکون تیک برای کوتاژهای تکمیل شده
+ // نمایش آیکون تیک برای کوتاژهای تکمیل شده
                 if (isCompleted) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
@@ -692,7 +692,7 @@ private fun QuotaItem(
                     Spacer(modifier = Modifier.width(4.dp))
                 }
 
-                // هایلایت متن جستجو شده در شماره کوتاژ
+ // هایلایت متن جستجو شده در شماره کوتاژ
                 val shortQuotaNumber = extractLastDigits(quotaNumber)
                 if (searchQuery.isNotEmpty() && quotaNumber.contains(searchQuery, ignoreCase = true)) {
                     val parts = quotaNumber.split(
@@ -737,7 +737,7 @@ private fun QuotaItem(
                 }
             }
 
-            // نوار پیشرفت با حالت گرادیانت
+ // نوار پیشرفت با حالت گرادیانت
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -778,16 +778,16 @@ private fun QuotaItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // نمایش آمار حواله‌ها و وزن خالص خروج شده
+ // نمایش آمار حواله‌ها و وزن خالص خروج شده
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // آمار حواله‌ها
+ // آمار حواله‌ها
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // تعداد حواله‌های باقیمانده
+ // تعداد حواله‌های باقیمانده
                     if (remainingVouchers > 0) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -805,7 +805,7 @@ private fun QuotaItem(
                         Spacer(modifier = Modifier.width(4.dp))
                     }
 
-                    // آمار کلی حواله‌ها
+ // آمار کلی حواله‌ها
                     Text(
                         text = "${quota.exitVouchers}/$totalVouchers",
                         style = MaterialTheme.typography.bodySmall,
@@ -816,7 +816,7 @@ private fun QuotaItem(
                     )
                 }
 
-                // وزن خالص خروج شده (تناژ خروجی)
+ // وزن خالص خروج شده (تناژ خروجی)
                 Text(
                     text = "${formatNumber(quota.totalNetWeight)} kg",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),

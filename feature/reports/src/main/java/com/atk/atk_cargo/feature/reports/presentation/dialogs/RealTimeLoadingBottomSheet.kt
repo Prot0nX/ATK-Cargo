@@ -126,14 +126,14 @@ fun RealTimeLoadingBottomSheet(
     uiState: RealTimeUiState,
     shiftOffset: Int,
     shipColorMap: Map<String, Color>,
-    // caller این را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند و تا لغو (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ) suspend می‌ماند
+ // caller این را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند و تا لغو (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ) suspend می‌ماند
     onStartPolling: suspend () -> Unit,
     onShiftOffsetChange: (Int) -> Unit,
-    // پیام خطای واقعی پس از پایان درخواست را برمی‌گرداند (null یعنی موفق) تا دکمه refresh Toast مناسب نشان دهد
+ // پیام خطای واقعی پس از پایان درخواست را برمی‌گرداند (null یعنی موفق) تا دکمه refresh Toast مناسب نشان دهد
     onManualRefresh: suspend () -> String?,
     onShare: (List<RealTimeLoadingData>, ShiftInfo) -> String
 ) {
-    // وقتی بسته است نباید loadingData را پردازش کند تا آپدیت‌های Real-Time باعث بازترسیم بی‌مورد نشوند
+ // وقتی بسته است نباید loadingData را پردازش کند تا آپدیت‌های Real-Time باعث بازترسیم بی‌مورد نشوند
     if (!isOpen) return
 
     var expandedShip by remember { mutableStateOf<String?>(null) }
@@ -156,7 +156,7 @@ fun RealTimeLoadingBottomSheet(
         }
     }
 
-    // آمار سربرگ عمداً از filteredLoadingData محاسبه می‌شود نه داده خام، تا با آنچه کاربر پس از جستجو می‌بیند هماهنگ باشد
+ // آمار سربرگ عمداً از filteredLoadingData محاسبه می‌شود نه داده خام، تا با آنچه کاربر پس از جستجو می‌بیند هماهنگ باشد
     val totalEntryVouchers = remember(filteredLoadingData, isCurrentShift) {
         if (isCurrentShift) filteredLoadingData.sumOf { it.entryVouchers } else 0
     }
@@ -189,7 +189,7 @@ fun RealTimeLoadingBottomSheet(
                         onRefreshClick = {
                             if (!uiState.isRefreshing) {
                                 scope.launch {
-                                    // Toast فقط بر اساس مقدار واقعی برگشتی از onManualRefresh نمایش داده می‌شود؛ isRefreshing و شمارنده از uiState می‌آیند
+ // Toast فقط بر اساس مقدار واقعی برگشتی از onManualRefresh نمایش داده می‌شود؛ isRefreshing و شمارنده از uiState می‌آیند
                                     val error = onManualRefresh()
                                     if (error != null) {
                                         Toast.makeText(context, error, Toast.LENGTH_LONG).show()
@@ -284,7 +284,7 @@ fun RealTimeLoadingBottomSheet(
                                 )
                         }
 
-                        // LazyColumn پایدار با key و Modifier.animateItem() جایگزین AnimatedContent شد تا موقعیت اسکرول با هر polling ریست نشود
+ // LazyColumn پایدار با key و Modifier.animateItem جایگزین AnimatedContent شد تا موقعیت اسکرول با هر polling ریست نشود
                         val listState = rememberLazyListState()
                         LazyColumn(
                             state = listState,
@@ -742,7 +742,7 @@ private fun DialogHeader(
                         .size(26.dp)
                         .background(RealTimeAccentBg, CircleShape)
                 ) {
-                    // animateFloatAsState برای چرخش بی‌نهایت مناسب نیست؛ Animatable با حلقه‌ی چرخش صریح الگوی درستی است
+ // animateFloatAsState برای چرخش بی‌نهایت مناسب نیست؛ Animatable با حلقه‌ی چرخش صریح الگوی درستی است
                     val rotation = remember { Animatable(0f) }
                     LaunchedEffect(isRefreshing) {
                         if (isRefreshing) {

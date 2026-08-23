@@ -151,7 +151,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // پس‌زمینه زنده صنعتی با گرادیان ملایم و عدم ضربه به کنتراست
+ // پس‌زمینه زنده صنعتی با گرادیان ملایم و عدم ضربه به کنتراست
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 val width = size.width
                 val height = size.height
@@ -189,7 +189,7 @@ fun HomeScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
-                // هدر مدیریت کاربری و خلاصه هشدارهای عملیاتی
+ // هدر مدیریت کاربری و خلاصه هشدارهای عملیاتی
                 Header(
                     username = username,
                     userType = userType,
@@ -208,7 +208,7 @@ fun HomeScreen(
                         getMenuItemsForUserType(userPermissions)
                     }
 
-                    // شبکه منوی دسته‌بندی‌شده و تطبیقی (Responsive Adaptive Operational Grid)
+ // شبکه منوی دسته‌بندی‌شده و تطبیقی (Responsive Adaptive Operational Grid)
                     CategorizedMenuGrid(
                         menuItems = menuItems,
                         showAnimation = showGridAnimation,
@@ -320,7 +320,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
         label = "button_scale"
     )
 
-    // انیمیشن پالس فقط وقتی هشدار وجود دارد و انیمیشن‌ها فعال‌اند اجرا می‌شود
+ // انیمیشن پالس فقط وقتی هشدار وجود دارد و انیمیشن‌ها فعال‌اند اجرا می‌شود
     val badgeScale: Float = if (warningsCount > 0 && AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
         val scale by infiniteTransition.animateFloat(
@@ -456,7 +456,7 @@ private fun SystemAwarenessBanner() {
     val networkText = if (isOnline) "آنلاین" else "آفلاین"
     val syncText = if (isOnline) "همگام" else "در انتظار شبکه"
 
-    // پالس تزئینی وضعیت آنلاین/آفلاین، فقط تابع تنظیم سیستمی «حذف انیمیشن‌ها»
+ // پالس تزئینی وضعیت آنلاین/آفلاین، فقط تابع تنظیم سیستمی «حذف انیمیشن‌ها»
     val pulseAlpha: Float
     val pulseScale: Float
     if (AnimationManager.areAnimationsEnabled) {
@@ -480,7 +480,7 @@ private fun SystemAwarenessBanner() {
             label = "status_pulse_scale"
         ).value
     } else {
-        // حلقه پالس مخفی می‌شود و فقط نقطه توپر ثابت وضعیت را نشان می‌دهد
+ // حلقه پالس مخفی می‌شود و فقط نقطه توپر ثابت وضعیت را نشان می‌دهد
         pulseAlpha = 0f
         pulseScale = 1f
     }
@@ -737,7 +737,7 @@ private fun CompactMenuCard(
         else -> Pair(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary)
     }
 
-    // کارت‌های عملیات فعال (ثبت/تعریف/مدیریت) با پس‌زمینه رنگی برجسته می‌شوند تا از کارت‌های نظارتی/فهرستی متمایز شوند
+ // کارت‌های عملیات فعال (ثبت/تعریف/مدیریت) با پس‌زمینه رنگی برجسته می‌شوند تا از کارت‌های نظارتی/فهرستی متمایز شوند
     val isCreationAction = item.route == "select_info" || item.route == "initial_info" || item.route == "manage_users"
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f

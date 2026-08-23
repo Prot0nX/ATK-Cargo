@@ -5,11 +5,11 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-// توکن CSRF مشترک برای پنل‌های تحت‌وب مبتنی بر نشست؛ پیش‌نیاز: session_start() قبلاً اجرا شده باشد
+// توکن CSRF مشترک برای پنل‌های تحت‌وب مبتنی بر نشست؛ پیش‌نیاز: session_start قبلاً اجرا شده باشد
 final class Csrf {
     private const SESSION_KEY = 'csrf_token';
 
-    // توکن نشست جاری؛ اگر وجود نداشته باشد ساخته می‌شود
+ // توکن نشست جاری؛ اگر وجود نداشته باشد ساخته می‌شود
     public static function token(): string {
         if (empty($_SESSION[self::SESSION_KEY]) || !is_string($_SESSION[self::SESSION_KEY])) {
             $_SESSION[self::SESSION_KEY] = bin2hex(random_bytes(32));
@@ -17,7 +17,7 @@ final class Csrf {
         return $_SESSION[self::SESSION_KEY];
     }
 
-    // مقایسه‌ی زمان‌ثابت توکن ورودی با توکن نشست؛ ورودی نامعتبر صریحاً false برمی‌گرداند
+ // مقایسه‌ی زمان‌ثابت توکن ورودی با توکن نشست؛ ورودی نامعتبر صریحاً false برمی‌گرداند
     public static function validate(mixed $token): bool {
         if (!is_string($token) || $token === '') {
             return false;
@@ -29,7 +29,7 @@ final class Csrf {
         return hash_equals($expected, $token);
     }
 
-    // نسخه‌ی JSON: در صورت نامعتبربودن، پاسخ 403 می‌فرستد و اجرا را متوقف می‌کند
+ // نسخه‌ی JSON: در صورت نامعتبربودن، پاسخ 403 می‌فرستد و اجرا را متوقف می‌کند
     public static function requireValid(mixed $token): void {
         if (!self::validate($token)) {
             Logger::getInstance()->security('CSRF token validation failed for ' . ($_SERVER['REQUEST_URI'] ?? 'unknown'));
@@ -37,7 +37,7 @@ final class Csrf {
         }
     }
 
-    // حذف توکن هنگام خروج از حساب تا روی نشست جدید قابل استفاده نباشد
+ // حذف توکن هنگام خروج از حساب تا روی نشست جدید قابل استفاده نباشد
     public static function forget(): void {
         unset($_SESSION[self::SESSION_KEY]);
     }

@@ -72,7 +72,7 @@ fun RealTimeLoadingCard(
         border = BorderStroke(1.dp, RealTimeCardBorder),
     ) {
         val verticalLineColor = RealTimeAccent
-        // Path با remember یک‌بار نگه داشته می‌شود تا در هر draw pass ساخته نشود و GC churn کم شود
+ // Path با remember یک‌بار نگه داشته می‌شود تا در هر draw pass ساخته نشود و GC churn کم شود
         val verticalLinePath = remember { Path() }
 
         Box(
@@ -128,7 +128,7 @@ fun RealTimeLoadingCard(
                         color = RealTimeMutedText
                     )
 
-                    // نمایش شرکت باربری در هدر حذف شد چون ردیف آماری پایین با برچسب صریح خواناتر است
+ // نمایش شرکت باربری در هدر حذف شد چون ردیف آماری پایین با برچسب صریح خواناتر است
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface,
@@ -228,7 +228,7 @@ fun RealTimeLoadingCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                // ترتیب برچسب باید با مقادیر زیرش که همیشه با textDirection = Ltr چاپ می‌شوند یکی باشد
+ // ترتیب برچسب باید با مقادیر زیرش که همیشه با textDirection = Ltr چاپ می‌شوند یکی باشد
                                 text = if (showEntry) "خروج/ورود" else "خروجی",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)

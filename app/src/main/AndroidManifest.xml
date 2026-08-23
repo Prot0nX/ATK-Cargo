@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- بخش queries برای دسترسی به پکیج‌ها در Android 11 و بالاتر -->
+ <!-- بخش queries برای دسترسی به پکیج‌ها در Android 11 و بالاتر -->
     <queries>
         <package android:name="${applicationId}" />
         <intent>
@@ -13,21 +13,21 @@
         </intent>
     </queries>
 
-    <!-- مجوزهای مربوط به سیستم و بوت -->
+ <!-- مجوزهای مربوط به سیستم و بوت -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     
-    <!-- مجوزهای مربوط به شبکه -->
+ <!-- مجوزهای مربوط به شبکه -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
-    <!-- مجوزهای مربوط به رابط کاربری و نوتیفیکیشن -->
+ <!-- مجوزهای مربوط به رابط کاربری و نوتیفیکیشن -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
-    <!-- مجوزهای مربوط به دسترسی فایل و نصب -->
+ <!-- مجوزهای مربوط به دسترسی فایل و نصب -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"
@@ -35,7 +35,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     
-    <!-- مجوزهای مربوط به دوربین -->
+ <!-- مجوزهای مربوط به دوربین -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -55,7 +55,7 @@
         android:hardwareAccelerated="true"
         tools:targetApi="34">
 
-        <!-- اکتیویتی اصلی با نقطه ورود -->
+ <!-- اکتیویتی اصلی با نقطه ورود -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -69,11 +69,11 @@
             </intent-filter>
         </activity>
         
-        <!-- سایر اکتیویتی‌ها حذف شدند (Single Activity Architecture) -->
+ <!-- سایر اکتیویتی‌ها حذف شدند (Single Activity Architecture) -->
 
-        <!-- سرویس نوتیفیکیشن بارگیری لحظه‌ای قبلاً Foreground Service دائمی بود، اکنون با LoadingNotificationWorker (WorkManager) جایگزین شده -->
+ <!-- سرویس نوتیفیکیشن بارگیری لحظه‌ای قبلاً Foreground Service دائمی بود، اکنون با LoadingNotificationWorker (WorkManager) جایگزین شده -->
 
-        <!-- دریافت کننده رویداد بوت دستگاه -->
+ <!-- دریافت کننده رویداد بوت دستگاه -->
         <receiver
             android:name=".api.BootReceiver"
             android:enabled="true"
@@ -85,7 +85,7 @@
             </intent-filter>
         </receiver>
         
-        <!-- دریافت کننده اکشن‌های نوتیفیکیشن -->
+ <!-- دریافت کننده اکشن‌های نوتیفیکیشن -->
         <receiver
             android:name=".api.NotificationActionReceiver"
             android:enabled="true"
@@ -95,7 +95,7 @@
             </intent-filter>
         </receiver>
         
-        <!-- پروایدرها -->
+ <!-- پروایدرها -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -33,12 +33,12 @@ fun ColorWheel(
 ) {
     val density = LocalDensity.current.density
     
-    // HSV State
+ // HSV State
     var hue by remember { mutableFloatStateOf(0f) }
     var saturation by remember { mutableFloatStateOf(1f) }
     var value by remember { mutableFloatStateOf(1f) }
 
-    // محاسبه تقریبی مقدار اولیه؛ تبدیل دقیق initialColor به HSV هنوز انجام نشده
+ // محاسبه تقریبی مقدار اولیه؛ تبدیل دقیق initialColor به HSV هنوز انجام نشده
 
     Box(modifier = modifier.aspectRatio(1f)) {
         Canvas(
@@ -80,7 +80,7 @@ fun ColorWheel(
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = min(size.width, size.height) / 2f
             
-            // Draw Color Wheel
+ // Draw Color Wheel
             val sweepGradient = Brush.sweepGradient(
                 colors = listOf(
                     Color.Red, Color.Magenta, Color.Blue, Color.Cyan,
@@ -95,7 +95,7 @@ fun ColorWheel(
                 center = center
             )
             
-            // Saturation Overlay (White in center)
+ // Saturation Overlay (White in center)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.White, Color.Transparent),
@@ -106,7 +106,7 @@ fun ColorWheel(
                 center = center
             )
             
-            // Selector Indicator
+ // Selector Indicator
             val selectorAngleRad = (hue * Math.PI / 180)
             val selectorDist = saturation * radius
             val selectorX = center.x + selectorDist * cos(selectorAngleRad).toFloat()

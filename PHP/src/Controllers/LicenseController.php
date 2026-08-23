@@ -13,16 +13,16 @@ use App\Repositories\LicenseRepository;
 
 class LicenseController {
 
-    // ===== CONFIGURATION =====
+ // ===== CONFIGURATION =====
 
-    // سقف درخواست‌های مجاز در هر پنجره‌ی زمانی (هر بار اجرای اپ ۲ درخواست می‌فرستد)
+ // سقف درخواست‌های مجاز در هر پنجره‌ی زمانی (هر بار اجرای اپ ۲ درخواست می‌فرستد)
     private const RATE_LIMIT_MAX    = 100;
-    // مدت پنجره‌ی زمانی نرخ‌سنجی به ثانیه
+ // مدت پنجره‌ی زمانی نرخ‌سنجی به ثانیه
     private const RATE_LIMIT_WINDOW = 60;
-    // پیشوند کلید کش برای جداسازی از شمارنده‌های دیگر
+ // پیشوند کلید کش برای جداسازی از شمارنده‌های دیگر
     private const RATE_CACHE_PREFIX = 'lic_rate_';
 
-    // ===== DEPENDENCIES =====
+ // ===== DEPENDENCIES =====
 
     private LicenseRepository $licenses;
     private Logger $logger;
@@ -34,14 +34,14 @@ class LicenseController {
         $this->request  = new Request();
     }
 
-    // ===== PUBLIC ENDPOINTS =====
+ // ===== PUBLIC ENDPOINTS =====
 
-    // POST license/validate — اعتبارسنجی کلید لایسنس توسط اپ اندروید
+ // POST license/validate — اعتبارسنجی کلید لایسنس توسط اپ اندروید
     public function validateLicense(): void {
         $this->sendJsonHeaders();
         $this->enforceRateLimit();
 
-        // خواندن و پارس بدنه‌ی JSON
+ // خواندن و پارس بدنه‌ی JSON
         $rawData = file_get_contents('php://input');
         if (!$rawData) {
             Response::json(['success' => false, 'message' => 'داده‌های ورودی نامعتبر است']);
@@ -52,7 +52,7 @@ class LicenseController {
             Response::json(['success' => false, 'message' => 'فرمت داده‌های ورودی نامعتبر است']);
         }
 
-        // استخراج و اعتبارسنجی اولیه‌ی کلید (همیشه ۳۲ کاراکتر hex است)
+ // استخراج و اعتبارسنجی اولیه‌ی کلید (همیشه ۳۲ کاراکتر hex است)
         $licenseKey      = trim((string)($data['licenseKey'] ?? ''));
         $updateLastCheck = $data['update_last_check'] ?? true;
 
@@ -67,14 +67,14 @@ class LicenseController {
                 Response::json(['success' => false, 'message' => 'لایسنس نامعتبر است']);
             }
 
-            // ثبت زمان آخرین بررسی فقط در صورت درخواست صریح
+ // ثبت زمان آخرین بررسی فقط در صورت درخواست صریح
             if ($updateLastCheck) {
                 $this->licenses->touchLastCheck($licenseKey);
             }
 
             $lastCheck = $updateLastCheck ? date('Y-m-d H:i:s') : $license['last_check'];
 
-            // وضعیت مؤثر از Repository خوانده می‌شود تا با پنل ادمین یکسان باشد
+ // وضعیت مؤثر از Repository خوانده می‌شود تا با پنل ادمین یکسان باشد
             $status = (string)($license['effective_status'] ?? 'active');
 
             if ($status === 'active') {
@@ -85,7 +85,7 @@ class LicenseController {
                 ]);
             }
 
-            // تفکیک «منقضی» از «غیرفعال» برای راحتی تیم پشتیبانی
+ // تفکیک «منقضی» از «غیرفعال» برای راحتی تیم پشتیبانی
             if ($status === 'expired') {
                 Response::json([
                     'success' => false,
@@ -99,7 +99,7 @@ class LicenseController {
                 ]);
             }
 
-            // هر وضعیت دیگری = غیرفعال‌شده توسط ادمین
+ // هر وضعیت دیگری = غیرفعال‌شده توسط ادمین
             Response::json([
                 'success' => false,
                 'code'    => 'license_inactive',
@@ -116,7 +116,7 @@ class LicenseController {
         }
     }
 
-    // GET license/info — دریافت اطلاعات کامل لایسنس (کلید در هدر، نه query string)
+ // GET license/info — دریافت اطلاعات کامل لایسنس (کلید در هدر، نه query string)
     public function getLicenseInfo(): void {
         $this->sendJsonHeaders();
 
@@ -126,7 +126,7 @@ class LicenseController {
 
         $this->enforceRateLimit();
 
-        // کلید از هدر خوانده می‌شود تا در لاگ وب‌سرور ثبت نشود
+ // کلید از هدر خوانده می‌شود تا در لاگ وب‌سرور ثبت نشود
         $licenseKey = trim((string)($this->request->getHeader('X-License-Key') ?? ''));
 
         if ($licenseKey === '' || strlen($licenseKey) !== 32) {
@@ -143,7 +143,7 @@ class LicenseController {
             Response::json([
                 'success' => true,
                 'message' => 'اطلاعات لایسنس با موفقیت دریافت شد',
-                // createdAt فقط در این endpoint اضافه می‌شود (در validate لازم نیست)
+ // createdAt فقط در این endpoint اضافه می‌شود (در validate لازم نیست)
                 'license' => $this->presentLicense($license, $license['last_check']) + [
                     'createdAt' => $license['created_at'],
                 ],
@@ -155,9 +155,9 @@ class LicenseController {
         }
     }
 
-    // ===== CORE LOGIC =====
+ // ===== CORE LOGIC =====
 
-    // شکل یکسان فیلدهای license در تمام پاسخ‌های موفق
+ // شکل یکسان فیلدهای license در تمام پاسخ‌های موفق
     private function presentLicense(array $license, ?string $lastCheck): array {
         return [
             'licenseKey'     => (string)$license['license_key'],
@@ -170,9 +170,9 @@ class LicenseController {
         ];
     }
 
-    // ===== HELPERS =====
+ // ===== HELPERS =====
 
-    // هدرهای امنیتی و Content-Type مشترک هر دو endpoint
+ // هدرهای امنیتی و Content-Type مشترک هر دو endpoint
     private function sendJsonHeaders(): void {
         header('Content-Type: application/json');
         header('X-Content-Type-Options: nosniff');
@@ -181,7 +181,7 @@ class LicenseController {
         date_default_timezone_set('Asia/Tehran');
     }
 
-    // بررسی و افزایش شمارنده‌ی نرخ — اگر از سقف گذشت، 429 برمی‌گرداند
+ // بررسی و افزایش شمارنده‌ی نرخ — اگر از سقف گذشت، 429 برمی‌گرداند
     private function enforceRateLimit(): void {
         $key   = self::RATE_CACHE_PREFIX . $this->request->getClientIp();
         $count = $this->incrementRateCounter($key);
@@ -191,14 +191,14 @@ class LicenseController {
         }
     }
 
-    // افزایش اتمیک شمارنده با APCu (ترجیحی) یا فایل (جایگزین)
+ // افزایش اتمیک شمارنده با APCu (ترجیحی) یا فایل (جایگزین)
     private function incrementRateCounter(string $key): int {
         if (function_exists('apcu_add') && function_exists('apcu_inc')) {
             apcu_add($key, 0, self::RATE_LIMIT_WINDOW);
             return (int)apcu_inc($key);
         }
 
-        // فایل جایگزین برای محیط‌هایی که APCu ندارند
+ // فایل جایگزین برای محیط‌هایی که APCu ندارند
         $safeKey = preg_replace('/[^a-zA-Z0-9_]/', '_', $key) ?? 'unknown';
         $dir     = APP_ROOT . '/log';
         if (!is_dir($dir)) {
@@ -211,7 +211,7 @@ class LicenseController {
 
         if (file_exists($file)) {
             $raw = json_decode((string)file_get_contents($file), true);
-            // اگر پنجره هنوز باز است داده‌ی قبلی را نگه می‌داریم، وگرنه ریست می‌شود
+ // اگر پنجره هنوز باز است داده‌ی قبلی را نگه می‌داریم، وگرنه ریست می‌شود
             if (is_array($raw) && ($raw['expires'] ?? 0) > $now) {
                 $data = $raw;
             }

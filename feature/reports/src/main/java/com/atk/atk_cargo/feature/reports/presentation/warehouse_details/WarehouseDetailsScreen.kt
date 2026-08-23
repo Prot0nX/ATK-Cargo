@@ -502,7 +502,7 @@ fun QuotaChip(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // dotAlpha باید فقط وقتی isSelected==true فعال شود تا مثل باگ badgeScale اجرای بی‌مورد نداشته باشد
+ // dotAlpha باید فقط وقتی isSelected==true فعال شود تا مثل باگ badgeScale اجرای بی‌مورد نداشته باشد
     val dotAlpha: Float = if (isSelected && AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "dot pulse")
         infiniteTransition.animateFloat(

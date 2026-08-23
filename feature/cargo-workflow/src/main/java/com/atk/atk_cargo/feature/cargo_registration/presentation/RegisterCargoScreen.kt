@@ -206,7 +206,7 @@ fun RegisterCargoScreen(
     val loadableTrucks18Wheeler = cargoUiState.loadableTrucks18Wheeler
     val loadableTrucks10Wheeler = cargoUiState.loadableTrucks10Wheeler
     val listState = rememberLazyListState()
-    // duplicateTrackingNumbers هم برای دیالوگ و هم هایلایت ردیف‌های تکراری در لیست لازم است
+ // duplicateTrackingNumbers هم برای دیالوگ و هم هایلایت ردیف‌های تکراری در لیست لازم است
     val duplicateTrackingNumbers = (cargoUiState.dialog as? CargoDialog.Duplicates)?.trackingNumbers ?: emptyList()
     val isSubmitting = cargoUiState.isSubmitting
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
@@ -226,19 +226,19 @@ fun RegisterCargoScreen(
         }
     }
 
-    // با تغییر شماره حواله، مقادیر کسری/اضافه که مخصوص حواله‌ی قبلی بودند صفر می‌شوند
+ // با تغییر شماره حواله، مقادیر کسری/اضافه که مخصوص حواله‌ی قبلی بودند صفر می‌شوند
     LaunchedEffect(trackingNumber) {
         shortageWeight = ""
         excessWeight = ""
         if (scaleReceiptNumber.isNotEmpty()) {
-            // عمداً از updateScaleReceiptNumber استفاده نشد چون درخواست شبکه هم می‌زند
+ // عمداً از updateScaleReceiptNumber استفاده نشد چون درخواست شبکه هم می‌زند
             viewModel.hideNetWeightDialog()
         }
     }
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // فیلتر و مرتب‌سازی برای جلوگیری از محاسبه‌ی تکراری در هر بازترکیب، در remember جمع شده‌اند
+ // فیلتر و مرتب‌سازی برای جلوگیری از محاسبه‌ی تکراری در هر بازترکیب، در remember جمع شده‌اند
     val (nonExitedCargos, exitedCargos) = remember(cargoInfoList, searchQuery) {
         val filtered = if (searchQuery.isEmpty()) {
             cargoInfoList
@@ -339,7 +339,7 @@ fun RegisterCargoScreen(
             }
         }
     ) { paddingValues ->
-        // کل صفحه یک LazyColumn واحد است تا با باز بودن هدرها اسکرول صفحه ناقص نشود
+ // کل صفحه یک LazyColumn واحد است تا با باز بودن هدرها اسکرول صفحه ناقص نشود
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -431,7 +431,7 @@ fun RegisterCargoScreen(
                                     }
                                 }
 
-                                // این دکمه فقط برای ثبت ورود یا کسری/اضافه است؛ خروج از مسیر اسکن بارکد انجام می‌شود
+ // این دکمه فقط برای ثبت ورود یا کسری/اضافه است؛ خروج از مسیر اسکن بارکد انجام می‌شود
                                 viewModel.submitCargoInfo(
                                     trackingNumber,
                                     "",
@@ -476,7 +476,7 @@ fun RegisterCargoScreen(
                     }
                 }
 
-                // نوار ابزار جستجو و بروزرسانی مدرن صنعتی
+ // نوار ابزار جستجو و بروزرسانی مدرن صنعتی
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -522,7 +522,7 @@ fun RegisterCargoScreen(
 
                     var isRefreshing by remember { mutableStateOf(false) }
                     var rotationState by remember { mutableFloatStateOf(0f) }
-    // پیش‌فرض غیرفعال است؛ فقط با لمس طولانی دکمه‌ی بروزرسانی فعال می‌شود
+ // پیش‌فرض غیرفعال است؛ فقط با لمس طولانی دکمه‌ی بروزرسانی فعال می‌شود
                     var isAutoRefreshEnabled by remember { mutableStateOf(false) }
                     var secondsUntilNextRefresh by remember { mutableIntStateOf(AUTO_REFRESH_INTERVAL_SECONDS) }
                     val rotation = animateFloatAsState(
@@ -531,7 +531,7 @@ fun RegisterCargoScreen(
                         label = "rotation"
                     )
 
-                    // لمس دستی: نتیجه فقط با Snackbar نشان داده می‌شود، نه دیالوگ پیام
+ // لمس دستی: نتیجه فقط با Snackbar نشان داده می‌شود، نه دیالوگ پیام
                     fun triggerManualRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -548,7 +548,7 @@ fun RegisterCargoScreen(
                         }
                     }
 
-                    // تیک خودکار هر ۶۰ ثانیه مستقیماً لیست را بارگذاری می‌کند و پیام جدا می‌سازد
+ // تیک خودکار هر ۶۰ ثانیه مستقیماً لیست را بارگذاری می‌کند و پیام جدا می‌سازد
                     fun triggerSilentAutoRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -573,7 +573,7 @@ fun RegisterCargoScreen(
                         }
                     }
 
-                    // با ترک صفحه polling متوقف می‌شود و با بازگشت دوباره غیرفعال شروع می‌گردد
+ // با ترک صفحه polling متوقف می‌شود و با بازگشت دوباره غیرفعال شروع می‌گردد
                     LaunchedEffect(isAutoRefreshEnabled) {
                         if (isAutoRefreshEnabled) {
                             secondsUntilNextRefresh = AUTO_REFRESH_INTERVAL_SECONDS

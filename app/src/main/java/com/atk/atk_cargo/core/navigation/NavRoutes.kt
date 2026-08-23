@@ -9,13 +9,13 @@ object NavRoutes {
     const val MANAGE_SHIPS = "manage_ships"
     const val ADMIN_CHAT = "admin_chat"
     
-    // Cargo Details Route Builder
+ // Cargo Details Route Builder
     const val CARGO_DETAILS_ROUTE = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}"
     fun cargoDetails(quotaNumber: String, shippingCompany: String, warehouse: String, cargoType: String): String {
         return "cargoDetailsScreen/$quotaNumber/$shippingCompany/$warehouse/$cargoType"
     }
 
-    // Reports sub-navigation (internal to reports feature)
+ // Reports sub-navigation (internal to reports feature)
     const val SHIPS_LIST = "shipsList"
     const val SHIP_DETAILS_ROUTE = "shipDetails/{shipName}"
     fun shipDetails(shipName: String): String = "shipDetails/$shipName"

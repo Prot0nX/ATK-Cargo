@@ -111,7 +111,7 @@ $theme = mon_theme();
         </section>
     </main>
 
-    <!-- جزئیات رویداد -->
+ <!-- جزئیات رویداد -->
     <dialog id="detailsDialog" class="dialog">
         <div class="dialog-body">
             <header class="dialog-header">

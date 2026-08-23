@@ -50,7 +50,7 @@ class MonitoringViewModel(
         viewModelScope.launch { refresh() }
     }
 
-    // فقط زمانی که صفحه در حال نمایش است باید فعال باشد؛ فراخوان‌کننده (Composable) با DisposableEffect مدیریتش می‌کند
+ // فقط زمانی که صفحه در حال نمایش است باید فعال باشد؛ فراخوان‌کننده (Composable) با DisposableEffect مدیریتش می‌کند
     fun startAutoRefresh() {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
@@ -127,7 +127,7 @@ class MonitoringViewModel(
         }
     }
 
-    // بارگذاری تنبل — فقط اولین بار ورود به تب «لاگ تغییرات» صدا زده می‌شود؛ برخلاف رویدادها بخشی از حلقه‌ی ۳۰ثانیه‌ای نیست چون audit_log پرحجم‌تر و کم‌تغییرتر است
+ // بارگذاری تنبل — فقط اولین بار ورود به تب «لاگ تغییرات» صدا زده می‌شود؛ برخلاف رویدادها بخشی از حلقه‌ی ۳۰ثانیه‌ای نیست چون audit_log پرحجم‌تر و کم‌تغییرتر است
     fun loadAuditLogsIfNeeded() {
         if (_uiState.value.auditLogsLoaded || _uiState.value.auditLogsLoading) return
         loadAuditLogs()

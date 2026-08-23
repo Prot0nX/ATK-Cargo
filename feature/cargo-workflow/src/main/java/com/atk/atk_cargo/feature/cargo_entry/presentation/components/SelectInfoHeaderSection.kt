@@ -70,7 +70,7 @@ fun AnimatedHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Right Side: Title and Subtitle
+ // Right Side: Title and Subtitle
                 Column(
                     horizontalAlignment = Alignment.Start
                 ) {
@@ -120,12 +120,12 @@ fun AnimatedHeader(
                     }
                 }
 
-                // Left Side: Buttons
+ // Left Side: Buttons
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Refresh Button
+ // Refresh Button
                     Surface(
                         onClick = onRefresh,
                         shape = RoundedCornerShape(12.dp),
@@ -152,7 +152,7 @@ fun AnimatedHeader(
                         }
                     }
 
-                    // Ship Selection Button
+ // Ship Selection Button
                     Surface(
                         onClick = onSelectShips,
                         shape = RoundedCornerShape(12.dp),
@@ -169,7 +169,7 @@ fun AnimatedHeader(
                         }
                     }
 
-                    // Count Badge
+ // Count Badge
                     Surface(
                         onClick = onClickCount,
                         shape = RoundedCornerShape(12.dp),

@@ -28,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
-// فرم‌های قابل‌ویرایش اطلاعات حواله در حالت ویرایش دیالوگ نتیجه‌ی جستجو — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// فرم‌های قابل‌ویرایش اطلاعات حواله در حالت ویرایش دیالوگ نتیجه‌ی جستجو — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 internal fun EditableCargoMainInfo(
     trackingNumber: String,

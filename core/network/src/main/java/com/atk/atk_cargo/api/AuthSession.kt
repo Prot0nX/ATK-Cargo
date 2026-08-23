@@ -14,7 +14,7 @@ object AuthSession {
     @Volatile
     var sessionToken: String = ""
 
-    // refresh token هرگز در هدر درخواست‌های معمولی فرستاده نمی‌شود، فقط توسط TokenAuthenticator برای POST /auth/refresh خوانده می‌شود
+ // refresh token هرگز در هدر درخواست‌های معمولی فرستاده نمی‌شود، فقط توسط TokenAuthenticator برای POST /auth/refresh خوانده می‌شود
     @Volatile
     var refreshToken: String = ""
 
@@ -25,7 +25,7 @@ object AuthSession {
         readyDeferred.complete(Unit)
     }
 
-    // فقط باید از یک thread پس‌زمینه (مثل thread دیسپچر OkHttp) صدا زده شود، نه از Main
+ // فقط باید از یک thread پس‌زمینه (مثل thread دیسپچر OkHttp) صدا زده شود، نه از Main
     fun awaitReady() {
         if (!readyDeferred.isCompleted) {
             runBlocking { readyDeferred.await() }

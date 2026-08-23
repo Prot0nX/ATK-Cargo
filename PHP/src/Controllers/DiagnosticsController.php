@@ -12,7 +12,7 @@ use App\Services\CrashReportRateLimiter;
 use PDOException;
 use Throwable;
 
-// health-check و دریافت گزارش کرش، عمداً بدون گیت auth تا برای مانیتورینگ و کرش پیش از لاگین در دسترس باشند (Phase2.13)
+// health-check و دریافت گزارش کرش، عمداً بدون گیت auth تا برای مانیتورینگ و کرش پیش از لاگین در دسترس باشند
 class DiagnosticsController {
     private Request $request;
     private CrashReportRateLimiter $rateLimiter;
@@ -26,14 +26,14 @@ class DiagnosticsController {
         $this->rateLimiter = new CrashReportRateLimiter();
     }
 
-    // فهرست جداول لازم برای «سالم» دانستن سیستم، مطابق schema.sql (Phase 2.3)
+ // فهرست جداول لازم برای «سالم» دانستن سیستم، مطابق schema.sql
     private const REQUIRED_TABLES = [
         'Users', 'user_sessions', 'CargoInfo', 'InitialInfo',
         'admin_chat_messages', 'admin_chat_reads', 'audit_log',
     ];
 
-    // منطق واقعی health-check جدا از HTTP؛ health_monitor.php این متد را مستقیم صدا می‌زند (Phase3 #28)
-    /** @return array{healthy: bool, status: array, missingTables: array} */
+ // منطق واقعی health-check جدا از HTTP؛ health_monitor.php این متد را مستقیم صدا می‌زند
+ /** @return array{healthy: bool, status: array, missingTables: array} */
     public function evaluateHealth(): array {
         $status = [
             'database' => false,
@@ -55,7 +55,7 @@ class DiagnosticsController {
             }
             $status['requiredTables'] = empty($missingTables);
         } catch (PDOException|Throwable $e) {
-            // پیام خام اتصال هرگز به پاسخ نمی‌رود تا host/db name افشا نشود، فقط لاگ می‌شود
+ // پیام خام اتصال هرگز به پاسخ نمی‌رود تا host/db name افشا نشود، فقط لاگ می‌شود
             error_log('DiagnosticsController::evaluateHealth - ' . $e->getMessage());
         }
 
@@ -92,14 +92,14 @@ class DiagnosticsController {
             Response::json(['success' => false, 'message' => 'stackTrace الزامی است'], 400);
         }
 
-        // ثبت فقط برای مرجع/دیباگ؛ username معتبرشده نیست چون این endpoint گیت auth ندارد
+ // ثبت فقط برای مرجع/دیباگ؛ username معتبرشده نیست چون این endpoint گیت auth ندارد
         $entry = [
             'timestamp' => date('Y-m-d H:i:s'),
             'username' => $this->request->sanitize((string)$this->request->get('username', '')),
             'appVersion' => $this->request->sanitize((string)$this->request->get('appVersion', '')),
             'deviceModel' => $this->request->sanitize((string)$this->request->get('deviceModel', '')),
             'androidVersion' => $this->request->sanitize((string)$this->request->get('androidVersion', '')),
-            // stackTrace عمداً sanitize نمی‌شود تا برای deobfuscate با mapping.txt خوانا بماند؛ طولش محدود می‌شود
+ // stackTrace عمداً sanitize نمی‌شود تا برای deobfuscate با mapping.txt خوانا بماند؛ طولش محدود می‌شود
             'stackTrace' => mb_substr($stackTrace, 0, 8000),
         ];
 
@@ -110,7 +110,7 @@ class DiagnosticsController {
             }
             $logFile = $logDir . '/crash_reports.log';
 
-            // نوشتن متوقف می‌شود اگر فایل از سقف عبور کند، چون logrotate روزانه برای این سرعت حمله کند است
+ // نوشتن متوقف می‌شود اگر فایل از سقف عبور کند، چون logrotate روزانه برای این سرعت حمله کند است
             if (!file_exists($logFile) || filesize($logFile) <= self::MAX_CRASH_LOG_BYTES) {
                 file_put_contents(
                     $logFile,
@@ -120,7 +120,7 @@ class DiagnosticsController {
             }
         } catch (Throwable $e) {
             error_log('DiagnosticsController::reportCrash - ' . $e->getMessage());
-            // best-effort: حتی اگر نوشتن لاگ شکست بخورد، success برمی‌گردانیم تا کلاینت retry نکند
+ // best-effort: حتی اگر نوشتن لاگ شکست بخورد، success برمی‌گردانیم تا کلاینت retry نکند
         }
 
         Response::json(['success' => true]);

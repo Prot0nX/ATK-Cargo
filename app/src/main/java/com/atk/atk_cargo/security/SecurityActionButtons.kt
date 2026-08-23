@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// دکمه‌های تعاملی تلاش مجدد و خروج امن از برنامه — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// دکمه‌های تعاملی تلاش مجدد و خروج امن از برنامه — از SecurityScreen.kt جدا شد
 @Composable
 internal fun RetryButton(
     onClick: () -> Unit

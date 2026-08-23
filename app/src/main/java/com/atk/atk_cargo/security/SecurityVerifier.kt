@@ -52,7 +52,7 @@ class SecurityVerifier(private val context: Context) {
 
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
 
- // مشتق از HttpStack.shared (connection pool مشترک با API/دانلود آپدیت، فاز۳ #۲۷) جایگزین HttpURLConnection خام قبلی، با همان BUFFER_DURATION برای connect و read.
+ // مشتق از HttpStack.shared (connection pool مشترک با API/دانلود آپدیت، ) جایگزین HttpURLConnection خام قبلی، با همان BUFFER_DURATION برای connect و read.
     private val securityHttpClient: OkHttpClient by lazy {
         HttpStack.shared.newBuilder()
             .connectTimeout(BUFFER_DURATION.toLong(), TimeUnit.MILLISECONDS)
@@ -63,18 +63,18 @@ class SecurityVerifier(private val context: Context) {
     suspend fun verifySecurityStatus(): Pair<Boolean, SecurityErrorType?> = withContext(Dispatchers.IO) {
         repeat(CONNECTION_ATTEMPTS) { attemptNumber ->
             try {
-                // بررسی امضای برنامه به صورت محلی
+ // بررسی امضای برنامه به صورت محلی
                 val isSignatureValid = verifyLocalAppSignature()
                 if (!isSignatureValid) {
                     return@withContext Pair(false, SecurityErrorType.TAMPERED)
                 }
 
-                // بررسی محیط اجرا (دیباگر/Frida/Xposed) — با اقدام واقعی، نه فقط لاگ
+ // بررسی محیط اجرا (دیباگر/Frida/Xposed) — با اقدام واقعی، نه فقط لاگ
                 if (isEnvironmentCompromised()) {
                     return@withContext Pair(false, SecurityErrorType.TAMPERED)
                 }
 
-                // اجرای درخواست‌های شبکه به صورت موازی
+ // اجرای درخواست‌های شبکه به صورت موازی
                 val signatureAuthDeferred = async { authenticateSignatureWithServer() }
                 val licenseDeferred = async { validateLicenseWithServer() }
 

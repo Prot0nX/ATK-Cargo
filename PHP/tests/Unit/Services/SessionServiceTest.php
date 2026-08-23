@@ -11,7 +11,7 @@ use App\Repositories\UserRepository;
 use App\Services\SessionService;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد تصمیم‌های SessionService (I-05: رفرش توکن، تشخیص reuse، محدودیت تک‌دستگاهی) با repositoryهای mock شده
+// تست‌های واحد تصمیم‌های SessionService با repositoryهای mock شده
 final class SessionServiceTest extends TestCase {
     private SessionRepository $sessionRepository;
     private UserRepository $userRepository;
@@ -23,7 +23,7 @@ final class SessionServiceTest extends TestCase {
         $this->service = new SessionService($this->sessionRepository, $this->userRepository);
     }
 
-    // ===== refreshTokens =====
+ // ===== refreshTokens =====
 
     public function testRefreshTokensRejectsEmptyParameters(): void {
         $this->sessionRepository->expects($this->never())->method('getActiveSessionByDevice');
@@ -50,7 +50,7 @@ final class SessionServiceTest extends TestCase {
             'refresh_token_expires_at' => date('Y-m-d H:i:s', time() + 3600),
         ]);
 
-        // I-05: توکن نامنطبق نشانه‌ی reuse است و باید همه‌ی نشست‌های کاربر را باطل کند.
+ // توکن نامنطبق نشانه‌ی reuse است و باید همه‌ی نشست‌های کاربر را باطل کند.
         $this->sessionRepository->expects($this->once())
             ->method('deactivateAllSessions')
             ->with('user1');
@@ -98,7 +98,7 @@ final class SessionServiceTest extends TestCase {
         $this->assertArrayHasKey('session_token', $result);
     }
 
-    // ===== isValidToken =====
+ // ===== isValidToken =====
 
     public function testIsValidTokenReturnsFalseForEmptyParametersWithoutHittingRepository(): void {
         $this->sessionRepository->expects($this->never())->method('isValidToken');
@@ -122,7 +122,7 @@ final class SessionServiceTest extends TestCase {
         $this->assertFalse($this->service->isValidToken('user1', 'device1', 'wrong-token'));
     }
 
-    // ===== validateAndGetUserType (گیت AuthenticatesRequests) =====
+ // ===== validateAndGetUserType (گیت AuthenticatesRequests) =====
 
     public function testValidateAndGetUserTypeReturnsNullForEmptyParameters(): void {
         $this->sessionRepository->expects($this->never())->method('validateTokenAndGetUserType');
@@ -146,7 +146,7 @@ final class SessionServiceTest extends TestCase {
         $this->assertNull($this->service->validateAndGetUserType('user1', 'device1', 'bad-token'));
     }
 
-    // ===== deactivateSession =====
+ // ===== deactivateSession =====
 
     public function testDeactivateSessionReturns404WhenUserDoesNotExist(): void {
         $this->userRepository->method('getByUsername')->willReturn(null);
@@ -183,7 +183,7 @@ final class SessionServiceTest extends TestCase {
         $this->assertSame(3, $result['affected_sessions']);
     }
 
-    // ===== createMobileSession =====
+ // ===== createMobileSession =====
 
     public function testCreateMobileSessionRotatesTokensForSameDeviceReLogin(): void {
         $this->sessionRepository->method('getActiveSession')->willReturn([

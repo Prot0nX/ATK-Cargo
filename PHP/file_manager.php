@@ -36,7 +36,7 @@ function scanPHPFiles($directory = '.') {
             
             $fullPath = $directory . DIRECTORY_SEPARATOR . $file;
             
-            // Check if it's a PHP file
+ // Check if it's a PHP file
             if (is_file($fullPath) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
                 $phpFiles[] = [
                     'name' => $file,
@@ -47,7 +47,7 @@ function scanPHPFiles($directory = '.') {
             }
         }
         
-        // Sort files by name
+ // Sort files by name
         usort($phpFiles, function($a, $b) {
             return strcmp($a['name'], $b['name']);
         });
@@ -60,7 +60,7 @@ function scanPHPFiles($directory = '.') {
 }
 
 function logAccess($action, $file = null, $clientIP = null) {
-    // Ensure log directory exists
+ // Ensure log directory exists
     if (!is_dir('log')) {
         mkdir('log', 0755, true);
     }
@@ -80,7 +80,7 @@ function logAccess($action, $file = null, $clientIP = null) {
 }
 
 try {
-    // Log the file listing access
+ // Log the file listing access
     logAccess('LIST_FILES');
     
     $phpFiles = scanPHPFiles();

@@ -73,12 +73,12 @@ fun QuotaSelectionDialog(
             Column(
                 modifier = Modifier.padding(18.dp)
             ) {
-                // Header Section
+ // Header Section
                 DialogHeader(ship = ship, quotaCount = matchingQuotas.size, onDismiss = onDismiss)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Quotas List
+ // Quotas List
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier

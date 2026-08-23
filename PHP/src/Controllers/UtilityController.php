@@ -25,7 +25,7 @@ class UtilityController {
         $this->request = new Request();
     }
 
-    // بررسی امضای اپلیکیشن (POST utility/check-signature)
+ // بررسی امضای اپلیکیشن (POST utility/check-signature)
     public function checkSignature(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -79,7 +79,7 @@ class UtilityController {
         }
     }
 
-    // بررسی وجود اطلاعات (checkExistence.php) هویت از Router::dispatch (auth=>true) تضمین می‌شود؛ احراز هویت داخلی حذف شد.
+ // بررسی وجود اطلاعات (checkExistence.php) هویت از Router::dispatch (auth=>true) تضمین می‌شود؛ احراز هویت داخلی حذف شد.
     public function checkExistence(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -120,15 +120,15 @@ class UtilityController {
         }
     }
 
-    // بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
+ // بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
     public function checkUpdate(): void {
         header('Content-Type: application/json');
         header('X-Content-Type-Options: nosniff');
         header('Cache-Control: no-store, no-cache, must-revalidate');
 
-        // خواندن کلید از هدر (نه query string) با مقایسه‌ی ثابت‌زمان hash_equals؛ پشتیبانی از پارامتر قدیمی api_key برای سازگاری (S-3)
+ // خواندن کلید از هدر (نه query string) با مقایسه‌ی ثابت‌زمان hash_equals؛ پشتیبانی از پارامتر قدیمی api_key برای سازگاری
         $apiKey = (string)($this->request->getHeader('X-Api-Key') ?? $this->request->get('api_key', ''));
-        // رد صریح حالت پیکربندی‌نشده چون hash_equals('', '') خودش true برمی‌گرداند (S-13)
+ // رد صریح حالت پیکربندی‌نشده چون hash_equals('', '') خودش true برمی‌گرداند
         if (UPDATE_CHECK_API_KEY === '' || !hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
             Response::error('دسترسی غیرمجاز', 403);
         }
@@ -146,11 +146,11 @@ class UtilityController {
 
         $hasUpdate = version_compare((string)$currentVersion, (string)$config['latest_version'], '<');
         $sha256 = $hasUpdate ? ($config['sha256'] ?? '') : '';
-        // fail-closed: بدون هش معتبر، download_url برگردانده نمی‌شود تا کلاینت APK تأییدنشده نصب نکند (Phase1.5)
+ // fail-closed: بدون هش معتبر، download_url برگردانده نمی‌شود تا کلاینت APK تأییدنشده نصب نکند
         $downloadUrl = ($hasUpdate && $sha256 !== '') ? $config['download_url'] : '';
 
         $response = [
-            // has_update اضافه شد تا کلاینت به تصمیم سرور اعتماد کند، نه محاسبه‌ی خودش
+ // has_update اضافه شد تا کلاینت به تصمیم سرور اعتماد کند، نه محاسبه‌ی خودش
             'hasUpdate' => $hasUpdate,
             'has_update' => $hasUpdate,
             'latestVersion' => $config['latest_version'],
@@ -159,7 +159,7 @@ class UtilityController {
             'minRequiredVersion' => $config['min_required_version'],
             'minAllowedVersion' => $config['min_allowed_version'] ?? $config['min_required_version'],
             'sha256' => $sha256,
-            // فیلدهای مسطح snake_case در ریشه‌ی پاسخ چون کلاینت از updateInfo تودرتو نمی‌خواند (S-1)
+ // فیلدهای مسطح snake_case در ریشه‌ی پاسخ چون کلاینت از updateInfo تودرتو نمی‌خواند
             'update_priority' => $hasUpdate ? ($config['update_priority'] ?? 'normal') : null,
             'update_message' => $hasUpdate ? ($config['update_message'] ?? '') : null,
             'force_update' => $hasUpdate ? ($config['force_update'] ?? false) : null,
@@ -170,7 +170,7 @@ class UtilityController {
                 'min_app_version' => $config['version_constraints']['min_app_version'] ?? '1.0',
                 'excluded_versions' => $config['version_constraints']['excluded_versions'] ?? [],
             ] : null,
-            // ساختار قدیمی تودرتو برای سازگاری با نسخه‌های قدیمی‌تر کلاینت حفظ شده
+ // ساختار قدیمی تودرتو برای سازگاری با نسخه‌های قدیمی‌تر کلاینت حفظ شده
             'updateInfo' => $hasUpdate ? [
                 'priority' => $config['update_priority'] ?? 'normal',
                 'message' => $config['update_message'] ?? '',
@@ -185,7 +185,7 @@ class UtilityController {
         exit;
     }
 
-    // همگام‌سازی دسترسی‌ها (sync_permissions.php)؛ $username/$userType از Router::dispatch (auth=>true) می‌آیند — احراز هویت مبتنی‌بر توکن آنجا هم‌راستا با سایر endpointها انجام می‌شود.
+ // همگام‌سازی دسترسی‌ها (sync_permissions.php)؛ $username/$userType از Router::dispatch (auth=>true) می‌آیند — احراز هویت مبتنی‌بر توکن آنجا هم‌راستا با سایر endpointها انجام می‌شود.
     public function syncPermissions(?string $username, ?string $userType): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -198,7 +198,7 @@ class UtilityController {
 
         try {
             $userType = (string)$userType;
-            // استفاده از همان PermissionService::getUserPermissions مشترک با AuthController/AppApiController (Phase2.7)
+ // استفاده از همان PermissionService::getUserPermissions مشترک با AuthController/AppApiController
             $userPermissions = (new PermissionService())->getUserPermissions(
                 (string)$username,
                 $userType

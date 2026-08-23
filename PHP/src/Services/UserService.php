@@ -15,7 +15,7 @@ class UserService {
         $this->userRepository = new UserRepository();
     }
 
-    // بررسی اعتبار کاربر با استراتژی هشینگ دومسیره: هم bcrypt(رمز خام) و هم bcrypt(SHA-256(رمز)) برای دستگاه‌های قدیمی امتحان می‌شود و هش با موفقیت بی‌صدا ارتقا می‌یابد
+ // بررسی اعتبار کاربر با استراتژی هشینگ دومسیره: هم bcrypt(رمز خام) و هم bcrypt(SHA-256(رمز)) برای دستگاه‌های قدیمی امتحان می‌شود و هش با موفقیت بی‌صدا ارتقا می‌یابد
     public function verifyCredentials(string $username, string $password): ?array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -24,7 +24,7 @@ class UserService {
 
         $storedPassword = $user['password'];
 
-        // ===== حالت ۱: bcrypt(رمز خام) — طرح جدید =====
+ // ===== حالت ۱: bcrypt(رمز خام) — طرح جدید =====
         if (password_verify($password, $storedPassword)) {
             if (password_needs_rehash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12])) {
                 $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
@@ -32,7 +32,7 @@ class UserService {
             return $user;
         }
 
-        // ===== حالت ۲: bcrypt(SHA-256(رمز)) — طرح قبلی، کلاینت هنوز آپدیت نشده =====
+ // ===== حالت ۲: bcrypt(SHA-256(رمز)) — طرح قبلی، کلاینت هنوز آپدیت نشده =====
         if (password_verify(hash('sha256', $password), $storedPassword)) {
             $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
             return $user;
@@ -45,7 +45,7 @@ class UserService {
         return $this->userRepository->getAll();
     }
 
-    // پروفایل خودِ کاربر احرازشده، بدون افشای کل فهرست کاربران به کاربرانی که مجوز manage_users ندارند
+ // پروفایل خودِ کاربر احرازشده، بدون افشای کل فهرست کاربران به کاربرانی که مجوز manage_users ندارند
     public function getSelfProfile(string $username): ?array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -55,18 +55,18 @@ class UserService {
         return $user;
     }
 
-    // فهرست کاربران admin، برای پرکردن مقصدهای «چت با مدیر» در دسترس هر کاربر احرازشده
+ // فهرست کاربران admin، برای پرکردن مقصدهای «چت با مدیر» در دسترس هر کاربر احرازشده
     public function getAdminUsers(): array {
         return $this->userRepository->getByUserType('admin');
     }
 
-    // دریافت تمامی کاربران به همراه وضعیت آنلاین (فعالیت در ۵ دقیقه اخیر) و آخرین فعالیت
+ // دریافت تمامی کاربران به همراه وضعیت آنلاین (فعالیت در ۵ دقیقه اخیر) و آخرین فعالیت
     public function getAllUsersWithStatus(): array {
         $users = $this->userRepository->getAll();
         $sessionRepo = new \App\Repositories\SessionRepository();
         $latestSessions = $sessionRepo->getLatestSessionsForAllUsers();
 
-        // ساخت Map از strtolower(username) → session برای تطبیق دقیق و Case-Insensitive
+ // ساخت Map از strtolower(username) → session برای تطبیق دقیق و Case-Insensitive
         $sessionMap = [];
         foreach ($latestSessions as $session) {
             if (!empty($session['username'])) {
@@ -81,11 +81,11 @@ class UserService {
             $isActive    = $session ? ((int)($session['is_active'] ?? 0) === 1) : false;
             $idleSeconds = $session ? (int)($session['idle_time'] ?? PHP_INT_MAX) : PHP_INT_MAX;
 
-            // آنلاین بودن: داشتن نشست فعال + فعالیت در ۵ دقیقه اخیر (۳۰۰ ثانیه)
+ // آنلاین بودن: داشتن نشست فعال + فعالیت در ۵ دقیقه اخیر (۳۰۰ ثانیه)
             $isOnline    = $isActive && ($idleSeconds <= 300);
             $idleMinutes = ($session && $idleSeconds < PHP_INT_MAX) ? (int)floor($idleSeconds / 60) : null;
 
-            // استخراج تاریخ آخرین بازدید با فرمت شمسی در صورت امکان
+ // استخراج تاریخ آخرین بازدید با فرمت شمسی در صورت امکان
             $rawLastActivity = $session['last_activity'] ?? $session['login_time'] ?? $user['updatedAt'] ?? $user['createdAt'] ?? null;
             $lastActivityFormatted = null;
             if (!empty($rawLastActivity)) {
@@ -114,18 +114,18 @@ class UserService {
     }
 
     public function createUser(array $data, ?string $actorUsername = null): array {
-        // فیلتر کردن و اعتبارسنجی مقادیر
+ // فیلتر کردن و اعتبارسنجی مقادیر
         $username = trim($data['username']);
         $fullName = trim($data['fullName']);
         $password = $data['password'];
         $userType = trim($data['userType']);
 
-        // بررسی تکراری نبودن نام کاربری
+ // بررسی تکراری نبودن نام کاربری
         if ($this->userRepository->getByUsername($username) !== null) {
             throw new ApiException('این نام کاربری قبلاً ثبت شده است', 400);
         }
 
-        // ذخیره پسورد با bcrypt؛ ورودی از پنل ادمین به‌صورت متن خام دریافت می‌شود
+ // ذخیره پسورد با bcrypt؛ ورودی از پنل ادمین به‌صورت متن خام دریافت می‌شود
         $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
         $userId = $this->userRepository->create([
@@ -172,7 +172,7 @@ class UserService {
         }
 
         if (isset($data['password'])) {
-            // ذخیره پسورد جدید با bcrypt
+ // ذخیره پسورد جدید با bcrypt
             $updates['password'] = password_hash($data['password'], PASSWORD_BCRYPT, ['cost' => 12]);
         }
 
@@ -194,7 +194,7 @@ class UserService {
         }
 
         if ($actorUsername !== null) {
-            // فقط نام فیلدهای تغییریافته ثبت می‌شود، نه مقدار رمز عبور
+ // فقط نام فیلدهای تغییریافته ثبت می‌شود، نه مقدار رمز عبور
             AuditLogger::log($actorUsername, 'updateUser', 'user', (string)$id, [
                 'changedFields' => array_keys($updates),
             ]);
@@ -212,7 +212,7 @@ class UserService {
             throw new ApiException('کاربری با این شناسه یافت نشد', 404);
         }
 
-        // بررسی تعداد مدیران
+ // بررسی تعداد مدیران
         if ($user['userType'] === 'admin') {
             $adminCount = $this->userRepository->getAdminCount();
             if ($adminCount <= 1) {
@@ -222,7 +222,7 @@ class UserService {
 
         $this->userRepository->delete($id);
 
-        // غیرفعال کردن تمامی جلسات کاربر حذف شده
+ // غیرفعال کردن تمامی جلسات کاربر حذف شده
         $sessionRepo = new \App\Repositories\SessionRepository();
         $sessionRepo->deactivateAllSessions($user['username']);
 

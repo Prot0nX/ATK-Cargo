@@ -37,9 +37,9 @@ class AtkCargoApplication : Application() {
         val animatorDurationScale = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
         AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
 
-        // Initialize Koin DI
+ // Initialize Koin DI
         val koinApp = startKoin {
-            // لاگ verbose فقط در build های debug — در release نباید فعال باشد
+ // لاگ verbose فقط در build های debug — در release نباید فعال باشد
             if (BuildConfig.DEBUG) {
                 androidLogger()
             }
@@ -61,12 +61,12 @@ class AtkCargoApplication : Application() {
             )
         }
 
-        // WorkManager از قبل توسط InitializationProvider مقداردهی می‌شود؛ فراخوانی دستی initialize() اینجا همیشه IllegalStateException می‌داد
+ // WorkManager از قبل توسط InitializationProvider مقداردهی می‌شود؛ فراخوانی دستی initialize اینجا همیشه IllegalStateException می‌داد
 
-        // AuthSession درون‌حافظه‌ای است و با کشته‌شدن پروسه خالی می‌شود؛ اینجا از DataStore پر می‌شود تا هدرهای احراز هویت از اولین درخواست درست ارسال شوند
+ // AuthSession درون‌حافظه‌ای است و با کشته‌شدن پروسه خالی می‌شود؛ اینجا از DataStore پر می‌شود تا هدرهای احراز هویت از اولین درخواست درست ارسال شوند
         val userPreferencesManager = koinApp.koin.get<UserPreferencesManager>()
 
-        // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است.
+ // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است.
         if (Secrets.isAvailable) {
  // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد
             RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
@@ -83,7 +83,7 @@ class AtkCargoApplication : Application() {
             }
 
             if (Secrets.isAvailable) {
-                // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
+ // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
                 CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)
             }
         }

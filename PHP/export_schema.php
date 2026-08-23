@@ -33,17 +33,17 @@ class DatabaseSchemaExporter
         }
     }
 
-    // اجرای فرایند استخراج ساختار و ذخیره در فایل
+ // اجرای فرایند استخراج ساختار و ذخیره در فایل
     public function export(): bool
     {
-        // بررسی وجود دیتابیس
+ // بررسی وجود دیتابیس
         $stmt = $this->pdo->prepare("SHOW DATABASES LIKE :dbname");
         $stmt->execute([':dbname' => $this->dbName]);
         if (!$stmt->fetch()) {
             throw new RuntimeException("پایگاه داده '{$this->dbName}' روی سرور یافت نشد.");
         }
 
-        // انتخاب دیتابیس
+ // انتخاب دیتابیس
         $this->pdo->exec("USE `{$this->dbName}`");
 
         $sqlContent = [];
@@ -59,7 +59,7 @@ class DatabaseSchemaExporter
         $sqlContent[] = "SET time_zone = \"+00:00\";";
         $sqlContent[] = "";
 
-        // دریافت لیست جداول
+ // دریافت لیست جداول
         $tables = $this->getTables();
         $sqlContent[] = "-- ------------------------------------------------------------";
         $sqlContent[] = "-- Tables Structure (" . count($tables) . " tables)";
@@ -73,14 +73,14 @@ class DatabaseSchemaExporter
             $sqlContent[] = "DROP TABLE IF EXISTS `{$table}`;";
 
             $createStmt = $this->getCreateTableStatement($table);
-            // نرمال‌سازی AUTO_INCREMENT به 1 برای داشتن فایل شکیلی از Schema اصلی
+ // نرمال‌سازی AUTO_INCREMENT به 1 برای داشتن فایل شکیلی از Schema اصلی
             $cleanCreateStmt = preg_replace('/AUTO_INCREMENT=\d+/i', 'AUTO_INCREMENT=1', $createStmt);
             
             $sqlContent[] = $cleanCreateStmt . ";";
             $sqlContent[] = "";
         }
 
-        // استخراج Views در صورت وجود
+ // استخراج Views در صورت وجود
         $views = $this->getViews();
         if (!empty($views)) {
             $sqlContent[] = "-- ------------------------------------------------------------";
@@ -99,7 +99,7 @@ class DatabaseSchemaExporter
             }
         }
 
-        // استخراج Triggers در صورت وجود
+ // استخراج Triggers در صورت وجود
         $triggers = $this->getTriggers();
         if (!empty($triggers)) {
             $sqlContent[] = "-- ------------------------------------------------------------";
@@ -137,7 +137,7 @@ class DatabaseSchemaExporter
         return true;
     }
 
-    // دریافت اسامی تمام جداول (بدون ویوها)
+ // دریافت اسامی تمام جداول (بدون ویوها)
     private function getTables(): array
     {
         $stmt = $this->pdo->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
@@ -148,7 +148,7 @@ class DatabaseSchemaExporter
         return $tables;
     }
 
-    // دریافت اسامی تمام ویوها
+ // دریافت اسامی تمام ویوها
     private function getViews(): array
     {
         $stmt = $this->pdo->query("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
@@ -159,7 +159,7 @@ class DatabaseSchemaExporter
         return $views;
     }
 
-    // دریافت دستور CREATE TABLE
+ // دریافت دستور CREATE TABLE
     private function getCreateTableStatement(string $table): string
     {
         $stmt = $this->pdo->query("SHOW CREATE TABLE `{$table}`");
@@ -167,7 +167,7 @@ class DatabaseSchemaExporter
         return $row['Create Table'] ?? '';
     }
 
-    // دریافت دستور CREATE VIEW
+ // دریافت دستور CREATE VIEW
     private function getCreateViewStatement(string $view): string
     {
         $stmt = $this->pdo->query("SHOW CREATE VIEW `{$view}`");
@@ -175,7 +175,7 @@ class DatabaseSchemaExporter
         return $row['Create View'] ?? '';
     }
 
-    // دریافت لیست تریگرها
+ // دریافت لیست تریگرها
     private function getTriggers(): array
     {
         $stmt = $this->pdo->query("SHOW TRIGGERS");
@@ -183,7 +183,7 @@ class DatabaseSchemaExporter
     }
 }
 
-// نقطه ورود فقط از CLI؛ اجرا از وب به دلیل افشای ساختار دیتابیس و مسیر فایل ممنوع است (S-09)
+// نقطه ورود فقط از CLI؛ اجرا از وب به دلیل افشای ساختار دیتابیس و مسیر فایل ممنوع است
 if (php_sapi_name() === 'cli') {
     $options = getopt('', ['db:', 'output:']);
     $dbName = $options['db'] ?? 'atk_cargo';

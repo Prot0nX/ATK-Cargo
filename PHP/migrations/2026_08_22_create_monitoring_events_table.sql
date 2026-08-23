@@ -7,15 +7,15 @@
 -- از طریق REST (`GET/POST api/v2/monitoring/*`) تا داشبورد وب و بخش اندروید
 -- آینده با poll این‌ها را بخوانند — بدون هیچ push خروجی از سرور.
 --
--- نوشتن ردیف‌ها از داخل SecurityAlerter::alert() (best-effort، هرگز throw
--- نمی‌کند — دقیقاً مثل AuditLogger::log()) انجام می‌شود، پس این دو مسیر
+-- نوشتن ردیف‌ها از داخل SecurityAlerter::alert (best-effort، هرگز throw
+-- نمی‌کند — دقیقاً مثل AuditLogger::log) انجام می‌شود، پس این دو مسیر
 -- موجود بدون تغییر اضافه‌ای رویداد اینجا هم ثبت می‌کنند:
---   - health_monitor.php (رویدادهای HEALTH_CHECK_FAILED)
---   - رویدادهای امنیتی (REFRESH_TOKEN_REUSE_DETECTED و مشابه)
+-- - health_monitor.php (رویدادهای HEALTH_CHECK_FAILED)
+-- - رویدادهای امنیتی (REFRESH_TOKEN_REUSE_DETECTED و مشابه)
 --
 -- dedupe_key معنای مشابه cooldown موجود SecurityAlerter را دارد (پیش‌فرض:
 -- خود event) اما هیچ منطق dedup‌ای در سطح DB اعمال نمی‌شود — هر فراخوانی
--- alert() یک ردیف جدید می‌نویسد. فیلتر «باز/تایید نشده» در endpoint لیست،
+-- alert یک ردیف جدید می‌نویسد. فیلتر «باز/تایید نشده» در endpoint لیست،
 -- نه در سطح insert، جلوی شلوغی داشبورد را می‌گیرد.
 --
 -- IF NOT EXISTS ایمن است، مطابق قرارداد 2026_08_19_create_audit_log_table.sql.

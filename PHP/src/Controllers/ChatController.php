@@ -28,7 +28,7 @@ class ChatController {
         $this->request = new Request();
     }
 
-    // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر ورودی که رازی نیست و قابل جعل بود.
+ // $username از Router::dispatch (auth=>true) می‌آید — هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر ورودی که رازی نیست و قابل جعل بود.
     public function handleChatRequest(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -42,7 +42,7 @@ class ChatController {
                 if ($action === 'getMessages') {
                     $lastMessageId = (int)$this->request->get('lastMessageId', 0);
                     $olderThanId = (int)$this->request->get('olderThanId', 0);
-                    // کلمپ limit به MESSAGE_FETCH_LIMIT تا subquery همبسته‌ی read_by_names روی بازه‌ی بزرگ مشغول نماند (Phase1.10)
+ // کلمپ limit به MESSAGE_FETCH_LIMIT تا subquery همبسته‌ی read_by_names روی بازه‌ی بزرگ مشغول نماند
                     $limit = max(1, min((int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT), self::MESSAGE_FETCH_LIMIT));
 
                     Response::json([
@@ -53,7 +53,7 @@ class ChatController {
                     throw new ApiException('عملیات نامعتبر است', 400);
                 }
             } elseif ($this->request->isWrite()) {
-                // isWrite() هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد و از همان Request::get() استفاده می‌کند، هم‌راستا با شاخه‌ی GET (Phase4 #33)
+ // isWrite هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد و از همان Request::get استفاده می‌کند، هم‌راستا با شاخه‌ی GET
                 $action = (string)$this->request->get('action', '');
 
                 switch ($action) {
@@ -75,7 +75,7 @@ class ChatController {
             echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
             exit;
         } catch (\Throwable $e) {
-            // فقط ApiException به کلاینت می‌رود؛ بقیه‌ی خطاها فقط لاگ می‌شوند تا ساختار جدول/کوئری افشا نشود (Phase2.4)
+ // فقط ApiException به کلاینت می‌رود؛ بقیه‌ی خطاها فقط لاگ می‌شوند تا ساختار جدول/کوئری افشا نشود
             $this->logger->error('ChatController: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'خطای داخلی سرور رخ داده است.'], JSON_UNESCAPED_UNICODE);
@@ -111,7 +111,7 @@ class ChatController {
         $whereAdmin = "u.userType = 'admin'";
 
         if ($olderThanId > 0) {
-            // LIMIT به‌صورت مستقیم درج می‌شود چون $limit از نوع int PHP است (نه رشته‌ی کاربر) و PDO با real prepared statements پارامتر رشته‌ای در LIMIT را نمی‌پذیرد
+ // LIMIT به‌صورت مستقیم درج می‌شود چون $limit از نوع int PHP است (نه رشته‌ی کاربر) و PDO با real prepared statements پارامتر رشته‌ای در LIMIT را نمی‌پذیرد
             $query = "SELECT $baseFields $join WHERE c.id < ? AND $whereAdmin ORDER BY c.id DESC LIMIT $limit";
             $stmt = $this->prepareAndExecute($query, $username, $olderThanId);
             return array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));

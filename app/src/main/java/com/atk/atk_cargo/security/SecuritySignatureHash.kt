@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 import java.security.MessageDigest
 import kotlin.time.Duration.Companion.milliseconds
 
-// نمایش و کپی هش امضای دیجیتال بسته‌ی نصبی برای اعتبارسنجی — از SecurityScreen.kt جدا شد (فاز۴ #۴۰)
+// نمایش و کپی هش امضای دیجیتال بسته‌ی نصبی برای اعتبارسنجی — از SecurityScreen.kt جدا شد
 @Composable
 fun getAppSignatureHash(): String {
     val context = LocalContext.current
@@ -193,7 +193,7 @@ fun SignatureHashCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // انیمیشن پاپ‌آپ و لغزش زیبای تیک کپی شد
+ // انیمیشن پاپ‌آپ و لغزش زیبای تیک کپی شد
             Box(
                 modifier = Modifier.height(28.dp),
                 contentAlignment = Alignment.Center

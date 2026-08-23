@@ -10,7 +10,7 @@ use App\Services\SessionService;
 
 // گیت static احراز هویت/مجوز router v2؛ Router::dispatch آن را برای هر route با auth=>true صدا می‌زند
 final class ApiAuthGate {
-    /** @return array{0: string, 1: string} [username, userType] */
+ /** @return array{0: string, 1: string} [username, userType] */
     public static function requireAuthenticated(Request $request): array {
         MinVersionGate::enforce($request);
 
@@ -21,12 +21,12 @@ final class ApiAuthGate {
         $sessionService = new SessionService();
         $userType = $sessionService->validateAndGetUserType($username, $deviceId, $token);
         if ($userType === null) {
-            // تمایز بین انقضای access token (نیاز به refresh بی‌صدا) و نامعتبر بودن کل نشست (نیاز به login مجدد)
+ // تمایز بین انقضای access token (نیاز به refresh بی‌صدا) و نامعتبر بودن کل نشست (نیاز به login مجدد)
             $code = $sessionService->isAccessTokenExpiredButSessionActive($username, $deviceId, $token)
                 ? 'access_token_expired'
                 : 'session_invalid';
 
-            // چون Response::error فیلد code را پشتیبانی نمی‌کند، اینجا مستقیماً json فرستاده می‌شود
+ // چون Response::error فیلد code را پشتیبانی نمی‌کند، اینجا مستقیماً json فرستاده می‌شود
             Response::json([
                 'success' => false,
                 'message' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.',

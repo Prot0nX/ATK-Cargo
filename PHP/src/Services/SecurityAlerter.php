@@ -34,12 +34,12 @@ class SecurityAlerter {
         return !empty($this->botToken) && !empty($this->chatId);
     }
 
-    /** @param string $event شناسه‌ی کوتاه رویداد مثل REFRESH_TOKEN_REUSE_DETECTED @param string $message متن فارسی برای ادمین @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event) */
+ /** @param string $event شناسه‌ی کوتاه رویداد مثل REFRESH_TOKEN_REUSE_DETECTED @param string $message متن فارسی برای ادمین @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event) */
     public function alert(string $event, string $message, ?string $dedupeKey = null): void {
         try {
             Logger::getInstance()->security("[ALERT] [$event] $message");
 
-            // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
+ // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
             MonitoringEventLogger::record(
                 $event,
                 'critical',
@@ -60,7 +60,7 @@ class SecurityAlerter {
 
             $this->sendTelegram("🔒 هشدار امنیتی ATK-Cargo\n\n[$event]\n$message\n\n" . date('Y-m-d H:i:s'));
         } catch (\Throwable $e) {
-            // اعلان هرگز نباید مسیر اصلی (login/refresh/...) را بشکند.
+ // اعلان هرگز نباید مسیر اصلی (login/refresh/...) را بشکند.
             error_log('SecurityAlerter failed: ' . $e->getMessage());
         }
     }
@@ -96,7 +96,7 @@ class SecurityAlerter {
             ],
         ]);
 
-        // @ عمدی: اگر شبکه/DNS در دسترس نباشد نباید warning درز کند؛ نتیجه هرچه باشد نادیده گرفته می‌شود.
+ // @ عمدی: اگر شبکه/DNS در دسترس نباشد نباید warning درز کند؛ نتیجه هرچه باشد نادیده گرفته می‌شود.
         @file_get_contents($url, false, $context);
     }
 
@@ -130,7 +130,7 @@ class SecurityAlerter {
         return $dir . "/{$safeKey}.json";
     }
 
-    // health_monitor.php رویدادهای HEALTH_CHECK_* می‌فرستد؛ بقیه از مسیرهای امنیتی می‌آیند
+ // health_monitor.php رویدادهای HEALTH_CHECK_* می‌فرستد؛ بقیه از مسیرهای امنیتی می‌آیند
     private static function inferSource(string $event): string {
         return str_starts_with($event, 'HEALTH_CHECK') ? 'health_check' : 'security';
     }

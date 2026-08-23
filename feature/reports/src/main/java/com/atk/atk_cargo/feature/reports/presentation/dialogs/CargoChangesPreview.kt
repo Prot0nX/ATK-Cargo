@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.CargoInfo
 
-// پیش‌نمایش فهرست تغییرات اعمال‌شده روی حواله قبل از ذخیره — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// پیش‌نمایش فهرست تغییرات اعمال‌شده روی حواله قبل از ذخیره — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 internal fun CargoChangesPreview(
     cargoInfo: CargoInfo,

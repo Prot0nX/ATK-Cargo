@@ -14,7 +14,7 @@ use PDO;
 
 // منطق تجاری «کشتی/انبار» که از AppApiController استخراج شده تا آن کنترلر فقط dispatch/پارس درخواست باشد
 final class ShipService {
-    // بدون ->value: property-fetch در class const در PHP 8.1 مجاز نیست؛ ->value در محل مصرف اعمال می‌شود
+ // بدون ->value: property-fetch در class const در PHP 8.1 مجاز نیست؛ ->value در محل مصرف اعمال می‌شود
     private const EXITED = CargoStatus::EXITED;
 
     private DatabaseManager $db;
@@ -24,9 +24,9 @@ final class ShipService {
     }
 
     public function getShipsList(): array {
-        // نتیجه‌ی این کوئری سنگین کوتاه‌مدت کش می‌شود تا روی هر poll دوباره اجرا نشود؛ نوشتن‌های مرتبط کش را صریحاً invalidate می‌کنند
+ // نتیجه‌ی این کوئری سنگین کوتاه‌مدت کش می‌شود تا روی هر poll دوباره اجرا نشود؛ نوشتن‌های مرتبط کش را صریحاً invalidate می‌کنند
         $shipsData = MicroCache::remember(MicroCache::SHIPS_LIST_KEY, 20, function () {
-            // فیلدهای اضافی مثل shippingCompanyCount/cargoTypeCount که کلاینت اندروید map نمی‌کرد حذف شدند
+ // فیلدهای اضافی مثل shippingCompanyCount/cargoTypeCount که کلاینت اندروید map نمی‌کرد حذف شدند
             $query = "SELECT
                 i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
                 COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
@@ -112,7 +112,7 @@ final class ShipService {
         $stmt = $this->db->prepare($query);
         $stmt->execute([$shipName, $shipName]);
 
-        // totalVoucherCount فقط به shipName وابسته است؛ به‌جای زیرکوئری تکراری برای هر انبار، یک بار جدا محاسبه می‌شود
+ // totalVoucherCount فقط به shipName وابسته است؛ به‌جای زیرکوئری تکراری برای هر انبار، یک بار جدا محاسبه می‌شود
         $voucherStmt = $this->db->prepare(
             "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = '" . self::EXITED->value . "'"
         );
@@ -141,7 +141,7 @@ final class ShipService {
             $totalQuotaCount += intval($row['quotaCount']);
             $totalTonnage += $warehouseTotalTonnage;
             $totalRemainingTonnage += $warehouseRemainingTonnage;
-            // نتیجه با OR منطقی بین انبارها ترکیب می‌شود تا یک انبار غیرفعال، کشتی با انبارهای فعال دیگر را اشتباهاً غیرفعال نشان ندهد
+ // نتیجه با OR منطقی بین انبارها ترکیب می‌شود تا یک انبار غیرفعال، کشتی با انبارهای فعال دیگر را اشتباهاً غیرفعال نشان ندهد
             $isActive = $isActive || (bool)$row['isActive'];
         }
 

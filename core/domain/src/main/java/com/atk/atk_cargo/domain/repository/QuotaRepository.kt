@@ -33,7 +33,7 @@ interface QuotaRepository {
         cargoType: String
     ): CargoInfoResponse
 
-    // کش TTL (۳۰ ثانیه) اینجا نگه‌داری می‌شود، نه در ViewModel — تا بین نمونه‌های مختلف ViewModel هم مشترک بماند .
+ // کش TTL (۳۰ ثانیه) اینجا نگه‌داری می‌شود، نه در ViewModel — تا بین نمونه‌های مختلف ViewModel هم مشترک بماند .
     suspend fun getLoadableTonnage(
         quotaNumber: String,
         shippingCompany: String,
@@ -42,11 +42,11 @@ interface QuotaRepository {
         forceRefresh: Boolean = false
     ): LoadableTonnageResponse?
 
-    // فراخوان‌کننده باید بعد از هر تغییری که تناژ باقی‌مانده‌ی سرور را عوض می‌کند (ثبت/حذف/تغییر وضعیت حواله) این را صدا بزند تا فراخوانی بعدی getLoadableTonnage مقدار کهنه‌ی کش‌شده را برنگرداند.
+ // فراخوان‌کننده باید بعد از هر تغییری که تناژ باقی‌مانده‌ی سرور را عوض می‌کند (ثبت/حذف/تغییر وضعیت حواله) این را صدا بزند تا فراخوانی بعدی getLoadableTonnage مقدار کهنه‌ی کش‌شده را برنگرداند.
     suspend fun invalidateLoadableTonnageCache()
 
  // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند =====
-    // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel منطق UI-محور و به‌شدت خاص هر عملیات است.
+ // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel منطق UI-محور و به‌شدت خاص هر عملیات است.
 
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): Response<QuotaExistenceMultipleResponse>
 
@@ -56,7 +56,7 @@ interface QuotaRepository {
 
     suspend fun confirmCargo(request: Map<String, String>): Response<Map<String, JsonElement>>
 
-    // نام متفاوت از ReportsRepository.toggleQuotaStatus(id): Boolean عمدی است — همان endpoint را صدا می‌زند اما CargoViewModel به پیام خطای دقیق سرور نیاز دارد، پس Response خام را می‌خواهد نه Boolean.
+ // نام متفاوت از ReportsRepository.toggleQuotaStatus(id): Boolean عمدی است — همان endpoint را صدا می‌زند اما CargoViewModel به پیام خطای دقیق سرور نیاز دارد، پس Response خام را می‌خواهد نه Boolean.
     suspend fun toggleCargoQuotaStatus(id: Int): Response<SuccessResponse>
 
     suspend fun deleteCargo(cargoInfoRequest: CargoInfoRequest): Response<CargoDeleteResponse>

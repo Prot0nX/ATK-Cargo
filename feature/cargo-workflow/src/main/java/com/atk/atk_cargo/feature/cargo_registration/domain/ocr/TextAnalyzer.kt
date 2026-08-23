@@ -102,11 +102,11 @@ suspend fun recognizeTextFromImage(image: InputImage): String = suspendCancellab
     
     recognizer.process(image)
         .addOnSuccessListener { visionText ->
-            // بازگرداندن متن استخراج شده
+ // بازگرداندن متن استخراج شده
             continuation.resume(visionText.text)
         }
         .addOnFailureListener { e ->
-            // در صورت خطا، رشته خالی برگردان
+ // در صورت خطا، رشته خالی برگردان
             continuation.resume("")
             e.printStackTrace()
         }

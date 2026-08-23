@@ -15,11 +15,11 @@
 -- migration را دوباره اجرا کنید. تشخیص خودکار اینجا عمداً انجام نشده چون
 -- انتخاب نادرست می‌تواند داده‌ی کوتاژ واقعی را از بین ببرد.
 --
---   SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType,
---          COUNT(*) AS dup_count, GROUP_CONCAT(id ORDER BY id) AS row_ids
---   FROM InitialInfo
---   GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
---   HAVING dup_count > 1;
+-- SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType,
+-- COUNT(*) AS dup_count, GROUP_CONCAT(id ORDER BY id) AS row_ids
+-- FROM InitialInfo
+-- GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
+-- HAVING dup_count > 1;
 --
 -- این migration مستقل و بدون downtime قابل اجراست (InnoDB online DDL، فقط
 -- افزودن ایندکس). مرحله‌ی ۲ (2026_08_22_add_cargo_info_initial_info_fk.sql)

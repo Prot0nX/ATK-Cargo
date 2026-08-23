@@ -8,7 +8,7 @@ namespace App\Controllers;
 use App\Exceptions\ApiException;
 use App\Repositories\AuditLogRepository;
 
-// نمایش لاگ تغییرات (audit_log) — فقط REST خواندن؛ نوشتن از App\Services\AuditLogger::log() انجام می‌شود
+// نمایش لاگ تغییرات (audit_log) — فقط REST خواندن؛ نوشتن از App\Services\AuditLogger::log انجام می‌شود
 class AuditLogController {
     private AuditLogRepository $repository;
 
@@ -16,7 +16,7 @@ class AuditLogController {
         $this->repository = $repository ?? new AuditLogRepository();
     }
 
-    /** @return array<int,array<string,mixed>> */
+ /** @return array<int,array<string,mixed>> */
     public function listLogs(int $limit, ?int $beforeId, ?string $username, ?string $entityType): array {
         return array_map([$this, 'presentLog'], $this->repository->listLogs($limit, $beforeId, $username, $entityType));
     }
@@ -27,10 +27,10 @@ class AuditLogController {
         }
     }
 
-    /**
-     * @param array<string,mixed> $row
-     * @return array<string,mixed>
-     */
+ /**
+ * @param array<string,mixed> $row
+ * @return array<string,mixed>
+ */
     private function presentLog(array $row): array {
         $detailsRaw = $row['details'] ?? null;
         $details = $detailsRaw !== null ? json_decode((string)$detailsRaw, true) : null;

@@ -7,7 +7,7 @@ namespace App\Services;
 
 // منطق محاسباتی خالص (بدون دیتابیس) مربوط به تناژ و وضعیت کوتاژ، استخراج‌شده از AppApiController برای قابلیت تست مستقل
 final class QuotaCalculator {
-    // تناژ قابل‌بارگیری واقعی کوتاژ؛ اگر محدودیت درصدی فعال باشد، سهم آن از کل تناژ کسر می‌شود
+ // تناژ قابل‌بارگیری واقعی کوتاژ؛ اگر محدودیت درصدی فعال باشد، سهم آن از کل تناژ کسر می‌شود
     public function calculateLoadableTonnage(
         float $remainingTonnage,
         float $totalTonnage,
@@ -21,7 +21,7 @@ final class QuotaCalculator {
         return $remainingTonnage;
     }
 
-    // پیام وضعیت قابل‌نمایش به کاربر بر اساس فعال‌بودن کوتاژ و درصد بارگیری‌شده
+ // پیام وضعیت قابل‌نمایش به کاربر بر اساس فعال‌بودن کوتاژ و درصد بارگیری‌شده
     public function generateStatusMessage(bool $isActive, float $percentageLoaded, string $quotaNumber, string $cargoType): string {
         if (!$isActive) {
             return "کوتاژ $quotaNumber با نوع کالای $cargoType غیرفعال است";

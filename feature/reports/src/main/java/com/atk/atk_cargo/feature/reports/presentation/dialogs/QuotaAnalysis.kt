@@ -39,7 +39,7 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
-// صفحه‌ی اصلی «تحلیل کوتاژها» با گروه‌بندی و جستجو — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// صفحه‌ی اصلی «تحلیل کوتاژها» با گروه‌بندی و جستجو — از QuotaAnalysisSection.kt جدا شد
 @Composable
 fun QuotaAnalysis(
     viewModel: ReportsViewModel
@@ -48,11 +48,11 @@ fun QuotaAnalysis(
 
     var expandedGroup by remember { mutableStateOf<String?>(null) }
     var selectedOwnerQuotas by remember { mutableStateOf<Pair<String, List<QuotaCompletionData>>?>(null) }
-    // اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا نیاز به تأیید کاربر دارد، نه بازشدن بی‌درنگ chooser
+ // اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا نیاز به تأیید کاربر دارد، نه بازشدن بی‌درنگ chooser
     var pendingAllShareText by remember { mutableStateOf<String?>(null) }
     val groupingMode by viewModel.groupingMode.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    // فیلتر و گروه‌بندی/مرتب‌سازی دیگر اینجا تکرار نمی‌شود؛ همه در ReportsViewModel.analyticsGroups محاسبه شده است
+ // فیلتر و گروه‌بندی/مرتب‌سازی دیگر اینجا تکرار نمی‌شود؛ همه در ReportsViewModel.analyticsGroups محاسبه شده است
     val groups by viewModel.analyticsGroups.collectAsStateWithLifecycle()
 
     Column(
@@ -77,7 +77,7 @@ fun QuotaAnalysis(
 
             IconButton(
                 onClick = {
-                    // گروه‌بندی/مرتب‌سازی و عنوان دیگر اینجا تکرار نمی‌شود؛ از groups و QuotaGroup.shareTitle مشترک استفاده می‌شود
+ // گروه‌بندی/مرتب‌سازی و عنوان دیگر اینجا تکرار نمی‌شود؛ از groups و QuotaGroup.shareTitle مشترک استفاده می‌شود
                     val shareText = buildString {
                         val modeStr = when (groupingMode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> "صاحب کالا"

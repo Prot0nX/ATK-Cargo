@@ -130,10 +130,10 @@ fun SelectInfoScreenContent(
         try {
             when (validateServerSession(userPreferencesManager)) {
                 SessionValidationOutcome.Valid -> {
-                    // نشست معتبر است، ادامه می‌دهد
+ // نشست معتبر است، ادامه می‌دهد
                 }
                 SessionValidationOutcome.Invalid -> {
-                    // نشست واقعاً باطل شده؛ پیام نمایش داده می‌شود و کاربر به صفحه‌ی ورود بازمی‌گردد
+ // نشست واقعاً باطل شده؛ پیام نمایش داده می‌شود و کاربر به صفحه‌ی ورود بازمی‌گردد
                     startupViewModel.notifySessionExpired()
                 }
                 SessionValidationOutcome.NetworkError -> {
@@ -173,7 +173,7 @@ fun SelectInfoScreenContent(
     var showActiveQuotasDialog by remember { mutableStateOf(false) }
     var isQuotaEntryDialogOpen by remember { mutableStateOf(false) }
     var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
-    // وقتی از دیالوگ «انتخاب و مدیریت کشتی‌ها» فقط یک کشتی انتخاب و تأیید شود، دیالوگ ورود کوتاژ همان کشتی به‌صورت خودکار باز می‌شود
+ // وقتی از دیالوگ «انتخاب و مدیریت کشتی‌ها» فقط یک کشتی انتخاب و تأیید شود، دیالوگ ورود کوتاژ همان کشتی به‌صورت خودکار باز می‌شود
     var autoOpenQuotaEntryForShip by remember { mutableStateOf<String?>(null) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
@@ -250,7 +250,7 @@ fun SelectInfoScreenContent(
             try {
                 realTimeDataList = reportsRepository.getRealTimeLoadingData().data
             } catch (_: Exception) {
-                // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
+ // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
             }
         }
     }
@@ -358,7 +358,7 @@ fun SelectInfoScreenContent(
     }
 
     LaunchedEffect(selectedShipNames, activeShips) {
-        // اگر کشتی‌های فعال بارگذاری شده و هیچ کشتی انتخاب نشده باشد
+ // اگر کشتی‌های فعال بارگذاری شده و هیچ کشتی انتخاب نشده باشد
         if (activeShips.isNotEmpty() && selectedShipNames.isEmpty()) {
             delay(500.milliseconds) // تاخیر کوتاه برای اطمینان از بارگذاری کامل UI
             showShipSelectionDialog = true
@@ -370,7 +370,7 @@ fun SelectInfoScreenContent(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
                 delay(30000.milliseconds)
-                // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
+ // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
                 if (!isQuotaEntryDialogOpen) {
                     refreshData()
                     fetchRealTimeData()
@@ -467,14 +467,14 @@ fun SelectInfoScreenContent(
                 dialogContent()
             }
 
-            // دیالوگ انتخاب کشتی‌ها
+ // دیالوگ انتخاب کشتی‌ها
             if (showShipSelectionDialog) {
                 ShipSelectionDialog(
                     ships = activeShips,
                     selectedShipNames = selectedShipNames,
                     onSelectShip = { selectedShips ->
                         viewModel.updateSelectedShips(selectedShips)
-                        // فقط وقتی دقیقاً یک کشتی انتخاب شده، دیالوگ ورود کوتاژ آن به‌صورت خودکار باز می‌شود
+ // فقط وقتی دقیقاً یک کشتی انتخاب شده، دیالوگ ورود کوتاژ آن به‌صورت خودکار باز می‌شود
                         autoOpenQuotaEntryForShip = selectedShips.singleOrNull()
                     },
                     onDismiss = { showShipSelectionDialog = false }
@@ -524,13 +524,13 @@ private fun GroupedShipList(
     ) {
         groupedShips.forEach { (shipName, ships) ->
             item(key = shipName) {
-                // یافتن داده‌های لحظه‌ای مربوط به این کشتی
+ // یافتن داده‌های لحظه‌ای مربوط به این کشتی
                 val shipRealTimeData = remember(realTimeDataList, shipName) {
                     realTimeDataList.filter { it.shipName == shipName }
                 }
 
                 if (shipRealTimeData.isNotEmpty()) {
-                    // استفاده از داده‌های لحظه‌ای
+ // استفاده از داده‌های لحظه‌ای
                     ShipGroupWithRealTimeData(
                         shipName = shipName,
                         realTimeData = shipRealTimeData,
@@ -545,7 +545,7 @@ private fun GroupedShipList(
                         onAutoOpenConsumed = onAutoOpenConsumed
                     )
                 } else {
-                    // استفاده از داده‌های معمولی
+ // استفاده از داده‌های معمولی
                     ShipGroup(
                         shipName = shipName,
                         ships = ships,
@@ -576,12 +576,12 @@ private fun ShipGroup(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    // Update dialog state
+ // Update dialog state
     LaunchedEffect(showDialog) {
         onDialogStateChange(showDialog)
     }
 
-    // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
+ // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
     LaunchedEffect(autoOpen) {
         if (autoOpen) {
             showDialog = true
@@ -639,7 +639,7 @@ private fun ShipGroupWithRealTimeData(
         onDialogStateChange(showDialog)
     }
 
-    // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
+ // باز شدن خودکار دیالوگ ورود کوتاژ وقتی این کشتی تنها انتخاب تازه از دیالوگ انتخاب کشتی‌ها بوده
     LaunchedEffect(autoOpen) {
         if (autoOpen) {
             showDialog = true
@@ -698,7 +698,7 @@ private fun ShipCardDesign(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Top Row: Title and Icon
+ // Top Row: Title and Icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -718,7 +718,7 @@ private fun ShipCardDesign(
                     )
                 }
 
-                // نام کشتی و نوع کالا
+ // نام کشتی و نوع کالا
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = shipName,
@@ -756,7 +756,7 @@ private fun ShipCardDesign(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Stats Row
+ // Stats Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)

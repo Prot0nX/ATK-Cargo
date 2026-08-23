@@ -36,7 +36,7 @@ fun CargoInfo.toDomain(): Cargo = Cargo(
     userType = userType,
     entryTime = entryTime,
     netWeight = Kilograms.parse(netWeight).also {
-        // فقط رشته‌ی غیرخالی و غیرعددی لاگ می‌شود؛ netWeight خالی برای حواله‌ی هنوز باسکول‌نشده طبیعی است
+ // فقط رشته‌ی غیرخالی و غیرعددی لاگ می‌شود؛ netWeight خالی برای حواله‌ی هنوز باسکول‌نشده طبیعی است
         if (it == null && netWeight.isNotBlank()) {
             Log.w("Cargo_toDomain", "وزن خالص نامعتبر برای حواله #$trackingNumber: '$netWeight'")
         }

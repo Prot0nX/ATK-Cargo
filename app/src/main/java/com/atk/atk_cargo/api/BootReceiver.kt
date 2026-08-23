@@ -24,7 +24,7 @@ class BootReceiver : BroadcastReceiver(), KoinComponent {
                 try {
                     val userType = userPreferencesManager.userType.first()
 
-                    // فقط برای کاربران با نقش مدیر polling دوره‌ای را زمان‌بندی می‌کنیم
+ // فقط برای کاربران با نقش مدیر polling دوره‌ای را زمان‌بندی می‌کنیم
                     if (userType == "admin") {
                         val workRequest = PeriodicWorkRequestBuilder<LoadingNotificationWorker>(15, TimeUnit.MINUTES)
                             .build()

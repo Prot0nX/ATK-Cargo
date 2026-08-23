@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// دیالوگ تأیید اشتراک‌گذاری و دکمه‌ی حالت گروه‌بندی مشترک بخش تحلیل — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
+// دیالوگ تأیید اشتراک‌گذاری و دکمه‌ی حالت گروه‌بندی مشترک بخش تحلیل — از QuotaAnalysisSection.kt جدا شد
 /** A-5: دیالوگ تأیید مشترک بین اشتراک‌گذاری کل و اشتراک‌گذاری یک گروه. */
 @Composable
 internal fun ShareConfirmDialog(

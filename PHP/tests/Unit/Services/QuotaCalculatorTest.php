@@ -8,7 +8,7 @@ namespace App\Tests\Unit\Services;
 use App\Services\QuotaCalculator;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد منطق محاسبه‌ی تناژ و وضعیت کوتاژ (I-02)
+// تست‌های واحد منطق محاسبه‌ی تناژ و وضعیت کوتاژ
 final class QuotaCalculatorTest extends TestCase {
     private QuotaCalculator $calculator;
 
@@ -16,7 +16,7 @@ final class QuotaCalculatorTest extends TestCase {
         $this->calculator = new QuotaCalculator();
     }
 
-    // ===== calculateLoadableTonnage =====
+ // ===== calculateLoadableTonnage =====
 
     public function testUnrestrictedQuotaReturnsFullRemainingTonnage(): void {
         $result = $this->calculator->calculateLoadableTonnage(
@@ -26,7 +26,7 @@ final class QuotaCalculatorTest extends TestCase {
             isPercentageRestricted: false
         );
 
-        // وقتی محدودیت درصدی غیرفعال است، percentage باید کاملاً نادیده گرفته شود.
+ // وقتی محدودیت درصدی غیرفعال است، percentage باید کاملاً نادیده گرفته شود.
         $this->assertSame(500.0, $result);
     }
 
@@ -38,7 +38,7 @@ final class QuotaCalculatorTest extends TestCase {
             isPercentageRestricted: true
         );
 
-        // وقتی percentage خالی است نباید کرش کند یا مقدار غیرمنتظره برگرداند.
+ // وقتی percentage خالی است نباید کرش کند یا مقدار غیرمنتظره برگرداند.
         $this->assertSame(500.0, $result);
     }
 
@@ -50,7 +50,7 @@ final class QuotaCalculatorTest extends TestCase {
             isPercentageRestricted: true
         );
 
-        // ۱۰٪ از ۱۰۰۰ (کل تناژ، نه باقی‌مانده) = ۱۰۰ کسر می‌شود.
+ // ۱۰٪ از ۱۰۰۰ (کل تناژ، نه باقی‌مانده) = ۱۰۰ کسر می‌شود.
         $this->assertSame(400.0, $result);
     }
 
@@ -88,7 +88,7 @@ final class QuotaCalculatorTest extends TestCase {
         $this->assertSame(0.0, $result);
     }
 
-    // ===== generateStatusMessage =====
+ // ===== generateStatusMessage =====
 
     public function testInactiveQuotaMessageIgnoresPercentage(): void {
         $message = $this->calculator->generateStatusMessage(
@@ -115,7 +115,7 @@ final class QuotaCalculatorTest extends TestCase {
     }
 
     public function testOverloadedQuotaAboveHundredPercentStillShowsCompletedMessage(): void {
-        // اگر عدد از ۱۰۰٪ رد شود، پیام باید همچنان «تکمیل شده» باشد.
+ // اگر عدد از ۱۰۰٪ رد شود، پیام باید همچنان «تکمیل شده» باشد.
         $message = $this->calculator->generateStatusMessage(
             isActive: true,
             percentageLoaded: 104.5,
@@ -127,7 +127,7 @@ final class QuotaCalculatorTest extends TestCase {
     }
 
     public function testQuotaAtWarningThresholdShowsWarningMessage(): void {
-        // ۹۵ دقیقاً مرز است — باید داخل شاخه‌ی هشدار بیفتد (>=95)، نه شاخه‌ی عادی.
+ // ۹۵ دقیقاً مرز است — باید داخل شاخه‌ی هشدار بیفتد (>=95)، نه شاخه‌ی عادی.
         $message = $this->calculator->generateStatusMessage(
             isActive: true,
             percentageLoaded: 95.0,
@@ -140,7 +140,7 @@ final class QuotaCalculatorTest extends TestCase {
     }
 
     public function testQuotaJustBelowWarningThresholdShowsNormalActiveMessage(): void {
-        // ۹۴.۹۹ باید هنوز پیام عادی «فعال است» را بدهد، نه هشدار.
+ // ۹۴.۹۹ باید هنوز پیام عادی «فعال است» را بدهد، نه هشدار.
         $message = $this->calculator->generateStatusMessage(
             isActive: true,
             percentageLoaded: 94.99,

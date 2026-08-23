@@ -54,13 +54,13 @@ internal fun GroupedShipsContent(
     expandedShipName: String?,
     onExpandShip: (String) -> Unit
 ) {
-    // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition (مثلاً تایپ در جستجو) دوباره اجرا نشود
+ // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition (مثلاً تایپ در جستجو) دوباره اجرا نشود
     val filteredShips = remember(groupedShips, searchQuery, filterState) {
         groupedShips.entries.filter { (shipName, ships) ->
-            // فیلتر کردن کشتی‌هایی که حداقل یک ورود یا خروج دارند
+ // فیلتر کردن کشتی‌هایی که حداقل یک ورود یا خروج دارند
             val hasActivity = ships.any { it.entryVouchers + it.exitVouchers > 0 }
 
-            // فیلتر بر اساس متن جستجو
+ // فیلتر بر اساس متن جستجو
             val matchesSearch = searchQuery.isEmpty() ||
                     shipName.contains(searchQuery, ignoreCase = true) ||
                     ships.any {
@@ -68,7 +68,7 @@ internal fun GroupedShipsContent(
                                 it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
                     }
 
-            // فیلتر بر اساس وضعیت تکمیل
+ // فیلتر بر اساس وضعیت تکمیل
             val matchesFilter = when (filterState) {
                 FilterState.ALL -> true
                 FilterState.PENDING -> ships.any { ship ->
@@ -83,7 +83,7 @@ internal fun GroupedShipsContent(
 
             hasActivity && matchesSearch && matchesFilter
         }.sortedWith(
-            // مرتب‌سازی کشتی‌ها بر اساس تعداد حواله‌های باقیمانده (نزولی)
+ // مرتب‌سازی کشتی‌ها بر اساس تعداد حواله‌های باقیمانده (نزولی)
             compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
                 val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
                 val completed = ships.sumOf { it.exitVouchers }
@@ -95,13 +95,13 @@ internal fun GroupedShipsContent(
     }
 
     if (filteredShips.isEmpty()) {
-        // نمایش حالت خالی بودن نتایج
+ // نمایش حالت خالی بودن نتایج
         EmptySearchResult(
             searchQuery = searchQuery,
             filterState = filterState
         )
     } else {
-        // نمایش لیست کشتی‌های فیلتر شده
+ // نمایش لیست کشتی‌های فیلتر شده
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -174,19 +174,19 @@ internal fun FlatQuotasContent(
     searchQuery: String,
     filterState: FilterState
 ) {
-    // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition دوباره اجرا نشود
+ // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition دوباره اجرا نشود
     val filteredQuotas = remember(activeShips, searchQuery, filterState) {
         activeShips.filter { ship ->
-            // فقط کوتاژهایی که حواله دارند نمایش داده شوند
+ // فقط کوتاژهایی که حواله دارند نمایش داده شوند
             val hasVouchers = ship.entryVouchers + ship.exitVouchers > 0
 
-            // فیلتر بر اساس متن جستجو
+ // فیلتر بر اساس متن جستجو
             val matchesSearch = searchQuery.isEmpty() ||
                     ship.shipName.contains(searchQuery, ignoreCase = true) ||
                     ship.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
                     ship.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
 
-            // فیلتر بر اساس وضعیت تکمیل
+ // فیلتر بر اساس وضعیت تکمیل
             val matchesFilter = when (filterState) {
                 FilterState.ALL -> true
                 FilterState.PENDING -> {
@@ -201,7 +201,7 @@ internal fun FlatQuotasContent(
 
             hasVouchers && matchesSearch && matchesFilter
         }.sortedWith(
-            // مرتب‌سازی بر اساس حواله‌های باقیمانده (نزولی)، سپس کشتی و انبار
+ // مرتب‌سازی بر اساس حواله‌های باقیمانده (نزولی)، سپس کشتی و انبار
             compareByDescending<ActiveShipInfo> { ship ->
                 val total = ship.entryVouchers + ship.exitVouchers
                 val remaining = total - ship.exitVouchers
@@ -212,7 +212,7 @@ internal fun FlatQuotasContent(
     }
 
     if (filteredQuotas.isEmpty()) {
-        // نمایش حالت خالی بودن نتایج
+ // نمایش حالت خالی بودن نتایج
         EmptySearchResult(
             searchQuery = searchQuery,
             filterState = filterState

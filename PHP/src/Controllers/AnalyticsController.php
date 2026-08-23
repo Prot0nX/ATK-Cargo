@@ -17,7 +17,7 @@ use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
 
 class AnalyticsController {
-    // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
+ // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
 
@@ -27,7 +27,7 @@ class AnalyticsController {
  // هویت از Router::dispatch می‌آید نه اعتبارسنجی داخلی؛ فقط برای لاگ استفاده می‌شود
     private ?string $authenticatedUsername = null;
 
-    // دو مرز زمانی عمداً متفاوت: WORKDAY_BOUNDARY_TIME برای تحلیل جامع، SHIFT_DAY_START_TIME برای شیفت روز
+ // دو مرز زمانی عمداً متفاوت: WORKDAY_BOUNDARY_TIME برای تحلیل جامع، SHIFT_DAY_START_TIME برای شیفت روز
     private const WORKDAY_BOUNDARY_TIME = '07:00:00';
     private const SHIFT_DAY_START_TIME = '07:30:00';
     private const SHIFT_DAY_END_TIME = '19:00:00';
@@ -38,14 +38,14 @@ class AnalyticsController {
         $this->request = new Request();
     }
 
-    // مدیریت درخواست‌های realTimeLoadingData.php.
+ // مدیریت درخواست‌های realTimeLoadingData.php.
     public function handleRealTimeLoadingData(?string $username): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
         date_default_timezone_set('Asia/Tehran');
         $this->authenticatedUsername = $username;
 
-        // logAnalyticsExport یک عملیات نوشتنی است و فقط با POST مجاز است؛ بقیه‌ی actionها GET هستند
+ // logAnalyticsExport یک عملیات نوشتنی است و فقط با POST مجاز است؛ بقیه‌ی actionها GET هستند
         if (!$this->request->isGet() && !$this->request->isPost()) {
             Response::error('فقط متد GET یا POST مجاز است.', 400);
         }
@@ -109,7 +109,7 @@ class AnalyticsController {
     }
 
     private function handleRealTimeDataRequest(): void {
-        // کلمپ سمت سرور روی shiftOffset برای جلوگیری از مقادیر آینده و cache-flooding در MicroCache
+ // کلمپ سمت سرور روی shiftOffset برای جلوگیری از مقادیر آینده و cache-flooding در MicroCache
         $shiftOffset = max(-14, min(0, (int)$this->request->get('shiftOffset', 0)));
         $targetTimestamp = time() + ($shiftOffset * 12 * 3600);
         $currentTimeString = date('H:i:s', $targetTimestamp);
@@ -123,7 +123,7 @@ class AnalyticsController {
         ]);
     }
 
-    // پاسخ‌دهی با ETag/304 برای این endpoint پرتکرار تا در حالت بی‌تغییر فقط پاسخ خالی ارسال شود
+ // پاسخ‌دهی با ETag/304 برای این endpoint پرتکرار تا در حالت بی‌تغییر فقط پاسخ خالی ارسال شود
     private function sendCacheableRealTimeResponse(array $data): void {
         $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
         header('Cache-Control: private, max-age=5');
@@ -164,7 +164,7 @@ class AnalyticsController {
                 'startDate' => $shiftStartDate,
                 'endDate' => $shiftEndDate,
                 'startTime' => self::SHIFT_DAY_END_TIME,
-                // باید دقیقاً برابر startTime شیفت روز باشد وگرنه بازه‌ی بین دو مرز شمرده نمی‌شود
+ // باید دقیقاً برابر startTime شیفت روز باشد وگرنه بازه‌ی بین دو مرز شمرده نمی‌شود
                 'endTime' => self::SHIFT_DAY_START_TIME,
                 'type' => 'شب'
             ];
@@ -172,7 +172,7 @@ class AnalyticsController {
     }
 
     private function getRealTimeData(array $shiftInfo): array {
-        // کش کوتاه ۵ ثانیه‌ای به ازای هر شیفت برای کاهش بار دیتابیس در poll همزمان کاربران
+ // کش کوتاه ۵ ثانیه‌ای به ازای هر شیفت برای کاهش بار دیتابیس در poll همزمان کاربران
         $cacheKey = 'analytics_realtime_' . md5(implode('|', [
             $shiftInfo['type'],
             $shiftInfo['startDate'],
@@ -182,7 +182,7 @@ class AnalyticsController {
         ]));
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
-            // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود.
+ // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود.
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType, i.cargoOwner,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,
@@ -212,7 +212,7 @@ class AnalyticsController {
         });
     }
 
-    // کلمپ سمت سرور روی offset برای جلوگیری از مقادیر بزرگ/آینده، مشابه shiftOffset
+ // کلمپ سمت سرور روی offset برای جلوگیری از مقادیر بزرگ/آینده، مشابه shiftOffset
     private const MAX_ANALYTICS_DAYS_BACK = 7;
 
     private function handleComprehensiveAnalysisRequest(): void {
@@ -226,7 +226,7 @@ class AnalyticsController {
         $todayJalaliDate = jdate('Y/m/d', $targetTime);
         $yesterdayJalaliDate = jdate('Y/m/d', $targetTime - 86400);
 
-        // محاسبه‌ی مستقیم نام روز از timestamp (بدون رفت‌وبرگشت شمسی) و افزودن مرزهای دقیق پنجره‌ی «روز کاری» (P-6/C-8/B-1/B-8)
+ // محاسبه‌ی مستقیم نام روز از timestamp (بدون رفت‌وبرگشت شمسی) و افزودن مرزهای دقیق پنجره‌ی «روز کاری»
         $workdayBoundaryShort = substr(self::WORKDAY_BOUNDARY_TIME, 0, 5); // "07:00:00" -> "07:00"
         $dateInfo = [
             'jalaliDate' => $todayJalaliDate,
@@ -237,11 +237,11 @@ class AnalyticsController {
             'windowEndTime' => $workdayBoundaryShort
         ];
 
-        // افزودن کش با TTL متغیر: طولانی برای روزهای گذشته، کوتاه برای روز جاری (P-2)
+ // افزودن کش با TTL متغیر: طولانی برای روزهای گذشته، کوتاه برای روز جاری
         $cacheTtl = $offset < 0 ? 3600 : 60;
         $cacheKey = 'analytics_comprehensive_' . md5($yesterdayJalaliDate . '|' . $todayJalaliDate);
 
-        // فیلتر isActive و شمارش با COUNT(DISTINCT trackingNumber) برای هم‌راستایی آمار با سایر توابع (B-6/B-7)
+ // فیلتر isActive و شمارش با COUNT(DISTINCT trackingNumber) برای هم‌راستایی آمار با سایر توابع
         $workdayBoundary = self::WORKDAY_BOUNDARY_TIME;
         $completionData = MicroCache::remember($cacheKey, $cacheTtl, function () use ($yesterdayJalaliDate, $todayJalaliDate, $workdayBoundary) {
  // JOIN روی کلید کامل پنج‌ستونی؛ shipName هم اضافه شد وگرنه SUM/COUNT بیش‌شمار می‌شد
@@ -286,10 +286,10 @@ class AnalyticsController {
         ], $cacheTtl);
     }
 
-    // ثبت لاگ اشتراک‌گذاری تحلیل جامع (کاربر/دامنه/تعداد گروه) برای ردیابی احتمالی نشت داده (A-5)
+ // ثبت لاگ اشتراک‌گذاری تحلیل جامع (کاربر/دامنه/تعداد گروه) برای ردیابی احتمالی نشت داده (A-5)
     private function handleLogAnalyticsExport(): void {
         $rawScope = (string)$this->request->get('scope', 'نامشخص');
-        // پاک‌سازی دفاعی scope برای جلوگیری از log injection و محدود کردن طول
+ // پاک‌سازی دفاعی scope برای جلوگیری از log injection و محدود کردن طول
         $scope = mb_substr(str_replace(["\r", "\n"], ' ', $rawScope), 0, 200);
         $groupCount = max(0, (int)$this->request->get('groupCount', 0));
 
@@ -306,7 +306,7 @@ class AnalyticsController {
         Response::json(['success' => true]);
     }
 
-    // مشابه sendCacheableRealTimeResponse ولی با max-age پارامتری بسته به TTL کش
+ // مشابه sendCacheableRealTimeResponse ولی با max-age پارامتری بسته به TTL کش
     private function sendCacheableAnalyticsResponse(array $data, int $ttlSeconds): void {
         $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
         header("Cache-Control: private, max-age=$ttlSeconds");

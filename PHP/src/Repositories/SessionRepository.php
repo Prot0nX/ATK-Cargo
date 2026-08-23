@@ -9,10 +9,10 @@ use App\Core\Database;
 use PDO;
 
 class SessionRepository {
-    // پس از این مدت بی‌فعالیتی، نشست منقضی در نظر گرفته می‌شود
+ // پس از این مدت بی‌فعالیتی، نشست منقضی در نظر گرفته می‌شود
     public const SESSION_TIMEOUT_SECONDS = 86400; // ۲۴ ساعت
 
-    // access token کوتاه‌مدت برای درخواست‌های API؛ refresh token بلندمدت برای صدور access token جدید، هر دو با رفرش موفق rotate می‌شوند
+ // access token کوتاه‌مدت برای درخواست‌های API؛ refresh token بلندمدت برای صدور access token جدید، هر دو با رفرش موفق rotate می‌شوند
     public const ACCESS_TOKEN_TTL_SECONDS = 1800;   // ۳۰ دقیقه
     public const REFRESH_TOKEN_TTL_SECONDS = 86400; // ۲۴ ساعت
 
@@ -22,12 +22,12 @@ class SessionRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
-    // توکن‌ها با SHA-256 هش و ذخیره می‌شوند، نه plaintext؛ چون خود توکن تصادفی و ۲۵۶ بیتی است نیازی به bcrypt نیست
+ // توکن‌ها با SHA-256 هش و ذخیره می‌شوند، نه plaintext؛ چون خود توکن تصادفی و ۲۵۶ بیتی است نیازی به bcrypt نیست
     public static function hashToken(string $token): string {
         return hash('sha256', $token);
     }
 
-    // دریافت جلسه فعال بر اساس نام کاربری
+ // دریافت جلسه فعال بر اساس نام کاربری
     public function getActiveSession(string $username): ?array {
         $stmt = $this->db->prepare("
             SELECT id, username, device_id, device_model, android_version, app_version,
@@ -43,7 +43,7 @@ class SessionRepository {
         return $session ?: null;
     }
 
-    // بررسی معتبر بودن دقیق یک جلسه برای احراز هویت درخواست‌های API
+ // بررسی معتبر بودن دقیق یک جلسه برای احراز هویت درخواست‌های API
     public function isValidToken(string $username, string $deviceId, string $token): bool {
         $stmt = $this->db->prepare("
             SELECT id FROM user_sessions
@@ -61,7 +61,7 @@ class SessionRepository {
         return (bool)$stmt->fetch();
     }
 
-    // تشخیص انقضای فقط access token (نیاز به silent refresh) در برابر نامعتبر بودن کل نشست
+ // تشخیص انقضای فقط access token (نیاز به silent refresh) در برابر نامعتبر بودن کل نشست
     public function isAccessTokenExpiredButSessionActive(string $username, string $deviceId, string $token): bool {
         $stmt = $this->db->prepare("
             SELECT id FROM user_sessions
@@ -79,8 +79,8 @@ class SessionRepository {
         return (bool)$stmt->fetch();
     }
 
-    // نسخه‌ی بهینه‌ی isValidToken که userType را هم بدون JOIN روی Users برمی‌گرداند.
-    /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
+ // نسخه‌ی بهینه‌ی isValidToken که userType را هم بدون JOIN روی Users برمی‌گرداند.
+ /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
     public function validateTokenAndGetUserType(string $username, string $deviceId, string $token): ?string {
         $stmt = $this->db->prepare("
             SELECT userType FROM user_sessions
@@ -99,7 +99,7 @@ class SessionRepository {
         return $row ? (string)($row['userType'] ?? '') : null;
     }
 
-    // به‌روزرسانی last_activity فقط اگر بیش از ۶۰ ثانیه از آخرین به‌روزرسانی گذشته باشد (throttled)
+ // به‌روزرسانی last_activity فقط اگر بیش از ۶۰ ثانیه از آخرین به‌روزرسانی گذشته باشد (throttled)
     public function touchLastActivityThrottled(string $username, string $deviceId): void {
         $stmt = $this->db->prepare("
             UPDATE user_sessions
@@ -113,7 +113,7 @@ class SessionRepository {
         ]);
     }
 
-    // غیرفعال کردن نشست‌های منقضی (بی‌فعالیت بیش از SESSION_TIMEOUT_SECONDS)
+ // غیرفعال کردن نشست‌های منقضی (بی‌فعالیت بیش از SESSION_TIMEOUT_SECONDS)
     public function cleanupExpiredSessions(): int {
         $stmt = $this->db->prepare("
             UPDATE user_sessions
@@ -125,7 +125,7 @@ class SessionRepository {
         return $stmt->rowCount();
     }
 
-    // دریافت جلسه فعال بر اساس نام کاربری و دستگاه
+ // دریافت جلسه فعال بر اساس نام کاربری و دستگاه
     public function getActiveSessionByDevice(string $username, string $deviceId): ?array {
         $stmt = $this->db->prepare("
             SELECT id, session_token, device_id, userType, refresh_token, refresh_token_expires_at
@@ -141,7 +141,7 @@ class SessionRepository {
         return $session ?: null;
     }
 
-    // غیرفعال کردن تمامی جلسات فعال یک کاربر
+ // غیرفعال کردن تمامی جلسات فعال یک کاربر
     public function deactivateAllSessions(string $username): int {
         $stmt = $this->db->prepare("
             UPDATE user_sessions 
@@ -152,7 +152,7 @@ class SessionRepository {
         return $stmt->rowCount();
     }
 
-    // غیرفعال کردن جلسات فعال کاربر با شناسه‌های خاص
+ // غیرفعال کردن جلسات فعال کاربر با شناسه‌های خاص
     public function deactivateSessionsByIds(array $ids): int {
         if (empty($ids)) {
             return 0;
@@ -163,7 +163,7 @@ class SessionRepository {
         return $stmt->rowCount();
     }
 
-    // غیرفعال کردن جلسه بر اساس نام کاربری و دستگاه خاص
+ // غیرفعال کردن جلسه بر اساس نام کاربری و دستگاه خاص
     public function deactivateSessionByDevice(string $username, string $deviceId): int {
         $stmt = $this->db->prepare("
             UPDATE user_sessions 
@@ -177,9 +177,9 @@ class SessionRepository {
         return $stmt->rowCount();
     }
 
-    // ایجاد جلسه جدید
+ // ایجاد جلسه جدید
     public function createSession(array $data): int {
-        // ستون‌های توکن رفرش اختیاری‌اند؛ فقط createMobileSession این مقادیر را پر می‌کند
+ // ستون‌های توکن رفرش اختیاری‌اند؛ فقط createMobileSession این مقادیر را پر می‌کند
         $stmt = $this->db->prepare("
             INSERT INTO user_sessions
             (username, device_id, device_model, android_version, app_version, login_time, last_activity, is_active, ip_address, userType, session_token, access_token_expires_at, refresh_token, refresh_token_expires_at)
@@ -203,7 +203,7 @@ class SessionRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    // چرخش (rotation) هر دو توکن روی یک نشست موجود، برای login مجدد و POST /auth/refresh
+ // چرخش (rotation) هر دو توکن روی یک نشست موجود، برای login مجدد و POST /auth/refresh
     public function rotateTokens(
         int $sessionId,
         string $accessToken,
@@ -230,7 +230,7 @@ class SessionRepository {
         ]);
     }
 
-    // به‌روزرسانی زمان فعالیت جلسه
+ // به‌روزرسانی زمان فعالیت جلسه
     public function updateLastActivity(string $username, string $deviceId): bool {
         $stmt = $this->db->prepare("
             UPDATE user_sessions 
@@ -244,7 +244,7 @@ class SessionRepository {
         return $stmt->rowCount() > 0;
     }
 
-    // دریافت کاربران آنلاین به همراه نوع کاربری؛ LIMIT 5000 یک سقف سخت‌گیرانه است نه صفحه‌بندی
+ // دریافت کاربران آنلاین به همراه نوع کاربری؛ LIMIT 5000 یک سقف سخت‌گیرانه است نه صفحه‌بندی
     public function getOnlineUsers(): array {
         $stmt = $this->db->prepare("
             SELECT us.id, us.username, u.userType, us.device_model, us.device_id, 
@@ -261,7 +261,7 @@ class SessionRepository {
         return $stmt->fetchAll();
     }
 
-    // دریافت آخرین جلسه ثبت‌شده برای تمامی کاربران جهت بررسی وضعیت آنلاین/آفلاین
+ // دریافت آخرین جلسه ثبت‌شده برای تمامی کاربران جهت بررسی وضعیت آنلاین/آفلاین
     public function getLatestSessionsForAllUsers(): array {
         $stmt = $this->db->prepare("
             SELECT us.id, us.username, us.device_model, us.device_id, us.is_active,
@@ -280,16 +280,16 @@ class SessionRepository {
         return $stmt->fetchAll();
     }
 
-    // دریافت تمامی جلسات فعال کاربر
+ // دریافت تمامی جلسات فعال کاربر
     public function getActiveSessionsForUser(string $username): array {
         $stmt = $this->db->prepare("SELECT id FROM user_sessions WHERE username = :username AND is_active = 1");
         $stmt->execute([':username' => $username]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    // دریافت آمار جلسات فعال و امروز
+ // دریافت آمار جلسات فعال و امروز
     public function getSessionStats(): array {
-        // آمار جلسات فعال فعلی
+ // آمار جلسات فعال فعلی
         $stmt = $this->db->prepare("
             SELECT 
                 COUNT(*) as total_active_sessions,
@@ -301,7 +301,7 @@ class SessionRepository {
         $stmt->execute();
         $stats = $stmt->fetch();
 
-        // لاگین‌های امروز
+ // لاگین‌های امروز
         $stmt = $this->db->prepare("
             SELECT 
                 COUNT(*) as today_logins,

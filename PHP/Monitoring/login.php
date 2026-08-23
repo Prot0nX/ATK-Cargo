@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'خطای پیکربندی: متغیر MONITORING_ADMIN_PASSWORD_HASH در فایل .env تنظیم نشده است.';
         $logger->security('Monitoring panel login attempted while MONITORING_ADMIN_PASSWORD_HASH is unset');
     } elseif ($limiter->isLocked(MON_ACTOR, $clientIp)) {
-        // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به سقف تلاش رسیده یا صرفاً رمز را غلط زده.
+ // پیام عمداً با پیام «رمز اشتباه» یکسان است تا مهاجم نفهمد آیا به سقف تلاش رسیده یا صرفاً رمز را غلط زده.
         $error = 'رمز عبور نادرست است.';
     } elseif (password_verify((string)($_POST['password'] ?? ''), $passwordHash)) {
         $limiter->resetAttempts(MON_ACTOR, $clientIp);

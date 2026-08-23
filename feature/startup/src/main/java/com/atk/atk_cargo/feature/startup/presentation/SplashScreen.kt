@@ -59,25 +59,25 @@ private object SplashScreenConstants {
     const val VERSION_PREFIX = "نسخه"
     const val BRAND_NAME = "ATK Smart Cargo Management"
 
-    /** تأخیر قبل از شروع انیمیشن حروف (ms) */
+ /** تأخیر قبل از شروع انیمیشن حروف (ms) */
     const val BRAND_ANIMATION_START_DELAY = 600L
 
-    /** تأخیر بین ظاهر شدن هر حرف (ms) */
+ /** تأخیر بین ظاهر شدن هر حرف (ms) */
     const val CHAR_STAGGER_DELAY = 42L
 
-    /** مدت انیمیشن fadeIn/slideUp هر حرف (ms) */
+ /** مدت انیمیشن fadeIn/slideUp هر حرف (ms) */
     const val CHAR_REVEAL_DURATION = 280
 
-    /** تأخیر قبل از شروع shimmer پس از اتمام حروف (ms) */
+ /** تأخیر قبل از شروع shimmer پس از اتمام حروف (ms) */
     const val SHIMMER_START_DELAY = 120L
 
-    /** مدت انیمیشن shimmer sweep (ms) */
+ /** مدت انیمیشن shimmer sweep (ms) */
     const val SHIMMER_DURATION = 650
 
-    /** تأخیر قبل از نمایش subtitle فارسی (ms) */
+ /** تأخیر قبل از نمایش subtitle فارسی (ms) */
     const val SUBTITLE_FADE_DELAY = 200L
 
-    /** مدت fadeIn عنوان فارسی و نسخه (ms) */
+ /** مدت fadeIn عنوان فارسی و نسخه (ms) */
     const val SUBTITLE_FADE_DURATION = 500
 }
 
@@ -105,7 +105,7 @@ fun SplashScreen(onSkip: () -> Unit) {
     var lastClickTime by remember { mutableLongStateOf(0L) }
     var isSkipped by remember { mutableStateOf(false) }
 
-    // انیمیشن fade-in برای subtitle فارسی و نسخه
+ // انیمیشن fade-in برای subtitle فارسی و نسخه
     LaunchedEffect(Unit) {
         delay(SplashScreenConstants.BRAND_ANIMATION_START_DELAY +
                 SplashScreenConstants.CHAR_STAGGER_DELAY * SplashScreenConstants.BRAND_NAME.length +
@@ -185,12 +185,12 @@ private fun SplashScreenContent(
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // نام برند انگلیسی با انیمیشن حرف‌به‌حرف
+ // نام برند انگلیسی با انیمیشن حرف‌به‌حرف
         AnimatedBrandTitle(brandName = SplashScreenConstants.BRAND_NAME)
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // زیرعنوان فارسی و نسخه با fade-in پس از اتمام انیمیشن برند
+ // زیرعنوان فارسی و نسخه با fade-in پس از اتمام انیمیشن برند
         Column(
             modifier = Modifier.alpha(textAlpha),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -209,7 +209,7 @@ private fun AnimatedBrandTitle(brandName: String) {
     val characters = remember(brandName) { brandName.toList() }
     val totalChars = characters.size
 
-    // هر حرف دو مقدار انیمیشن مستقل دارد: alpha و offsetY (به پیکسل)
+ // هر حرف دو مقدار انیمیشن مستقل دارد: alpha و offsetY (به پیکسل)
     val alphaAnimatables = remember(totalChars) {
         List(totalChars) { Animatable(0f) }
     }
@@ -217,16 +217,16 @@ private fun AnimatedBrandTitle(brandName: String) {
         List(totalChars) { Animatable(24f) }
     }
 
-    // shimmer: از ۰ (خارج از چپ) تا ۱ (خارج از راست) حرکت می‌کند
+ // shimmer: از ۰ (خارج از چپ) تا ۱ (خارج از راست) حرکت می‌کند
     val shimmerProgress = remember { Animatable(0f) }
     var shimmerActive by remember { mutableStateOf(false) }
 
-    // اجرای انیمیشن staggered reveal
+ // اجرای انیمیشن staggered reveal
     LaunchedEffect(Unit) {
         delay(SplashScreenConstants.BRAND_ANIMATION_START_DELAY)
 
         characters.forEachIndexed { index, char ->
-            // فاصله‌ها بدون انیمیشن ظاهر می‌شوند
+ // فاصله‌ها بدون انیمیشن ظاهر می‌شوند
             if (char == ' ') {
                 alphaAnimatables[index].snapTo(1f)
                 offsetAnimatables[index].snapTo(0f)
@@ -255,7 +255,7 @@ private fun AnimatedBrandTitle(brandName: String) {
             delay(SplashScreenConstants.CHAR_STAGGER_DELAY)
         }
 
-        // پس از نمایش همه حروف، shimmer را فعال کن
+ // پس از نمایش همه حروف، shimmer را فعال کن
         delay(SplashScreenConstants.SHIMMER_START_DELAY)
         shimmerActive = true
         shimmerProgress.animateTo(
@@ -267,7 +267,7 @@ private fun AnimatedBrandTitle(brandName: String) {
         )
     }
 
-    // Row خارجی برای مرکز کردن افقی
+ // Row خارجی برای مرکز کردن افقی
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -278,7 +278,7 @@ private fun AnimatedBrandTitle(brandName: String) {
             modifier = Modifier
                 .drawWithContent {
                     drawContent()
-                    // رسم shimmer sweep روی محتوا
+ // رسم shimmer sweep روی محتوا
                     if (shimmerActive) {
                         val sweepWidth = size.width * 0.35f
                         val centerX = shimmerProgress.value * (size.width + sweepWidth) - sweepWidth / 2f

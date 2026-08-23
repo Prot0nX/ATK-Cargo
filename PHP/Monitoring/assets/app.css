@@ -27,96 +27,96 @@
 
 /* --- توکن‌ها ------------------------------------------------------------- */
 :root {
-    --bg: #f7f8fa;
-    --surface: #ffffff;
-    --surface-alt: #f2f4f7;
-    --border: #e3e6ea;
-    --border-strong: #ccd1d8;
+ --bg: #f7f8fa;
+ --surface: #ffffff;
+ --surface-alt: #f2f4f7;
+ --border: #e3e6ea;
+ --border-strong: #ccd1d8;
 
-    --text: #16191d;
-    --text-muted: #6b727c;
+ --text: #16191d;
+ --text-muted: #6b727c;
 
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --accent-soft: #eaf0fe;
-    --on-accent: #ffffff;
+ --accent: #2563eb;
+ --accent-hover: #1d4ed8;
+ --accent-soft: #eaf0fe;
+ --on-accent: #ffffff;
 
-    --success: #167c4a;
-    --success-soft: #e6f4ec;
-    --warning: #9a6206;
-    --warning-soft: #fdf3e2;
-    --danger: #b42318;
-    --danger-soft: #fdeceb;
+ --success: #167c4a;
+ --success-soft: #e6f4ec;
+ --warning: #9a6206;
+ --warning-soft: #fdf3e2;
+ --danger: #b42318;
+ --danger-soft: #fdeceb;
 
-    --focus-ring: #2563eb;
+ --focus-ring: #2563eb;
 
-    --radius: 8px;
-    --radius-sm: 6px;
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 24px;
-    --space-6: 32px;
+ --radius: 8px;
+ --radius-sm: 6px;
+ --space-1: 4px;
+ --space-2: 8px;
+ --space-3: 12px;
+ --space-4: 16px;
+ --space-5: 24px;
+ --space-6: 32px;
 
-    --font: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
-    --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, monospace;
+ --font: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+ --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Consolas, monospace;
 
-    --shadow-overlay: 0 8px 32px rgb(16 19 23 / 18%);
+ --shadow-overlay: 0 8px 32px rgb(16 19 23 / 18%);
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-        --bg: #101318;
-        --surface: #171b21;
-        --surface-alt: #1e232b;
-        --border: #2a313a;
-        --border-strong: #3b434e;
+ --bg: #101318;
+ --surface: #171b21;
+ --surface-alt: #1e232b;
+ --border: #2a313a;
+ --border-strong: #3b434e;
 
-        --text: #e8eaed;
-        --text-muted: #9aa3ae;
+ --text: #e8eaed;
+ --text-muted: #9aa3ae;
 
-        --accent: #5b8cf5;
-        --accent-hover: #7ba3f7;
-        --accent-soft: #1c2740;
-        --on-accent: #0d1117;
+ --accent: #5b8cf5;
+ --accent-hover: #7ba3f7;
+ --accent-soft: #1c2740;
+ --on-accent: #0d1117;
 
-        --success: #52c68d;
-        --success-soft: #14291f;
-        --warning: #e0a34a;
-        --warning-soft: #2b2113;
-        --danger: #f0736a;
-        --danger-soft: #2e1817;
+ --success: #52c68d;
+ --success-soft: #14291f;
+ --warning: #e0a34a;
+ --warning-soft: #2b2113;
+ --danger: #f0736a;
+ --danger-soft: #2e1817;
 
-        --focus-ring: #7ba3f7;
-        --shadow-overlay: 0 8px 32px rgb(0 0 0 / 55%);
+ --focus-ring: #7ba3f7;
+ --shadow-overlay: 0 8px 32px rgb(0 0 0 / 55%);
     }
 }
 
 :root[data-theme='dark'] {
-    --bg: #101318;
-    --surface: #171b21;
-    --surface-alt: #1e232b;
-    --border: #2a313a;
-    --border-strong: #3b434e;
+ --bg: #101318;
+ --surface: #171b21;
+ --surface-alt: #1e232b;
+ --border: #2a313a;
+ --border-strong: #3b434e;
 
-    --text: #e8eaed;
-    --text-muted: #9aa3ae;
+ --text: #e8eaed;
+ --text-muted: #9aa3ae;
 
-    --accent: #5b8cf5;
-    --accent-hover: #7ba3f7;
-    --accent-soft: #1c2740;
-    --on-accent: #0d1117;
+ --accent: #5b8cf5;
+ --accent-hover: #7ba3f7;
+ --accent-soft: #1c2740;
+ --on-accent: #0d1117;
 
-    --success: #52c68d;
-    --success-soft: #14291f;
-    --warning: #e0a34a;
-    --warning-soft: #2b2113;
-    --danger: #f0736a;
-    --danger-soft: #2e1817;
+ --success: #52c68d;
+ --success-soft: #14291f;
+ --warning: #e0a34a;
+ --warning-soft: #2b2113;
+ --danger: #f0736a;
+ --danger-soft: #2e1817;
 
-    --focus-ring: #7ba3f7;
-    --shadow-overlay: 0 8px 32px rgb(0 0 0 / 55%);
+ --focus-ring: #7ba3f7;
+ --shadow-overlay: 0 8px 32px rgb(0 0 0 / 55%);
 }
 
 /* --- پایه --------------------------------------------------------------- */
@@ -760,9 +760,9 @@ input:focus {
 
 @media (prefers-reduced-motion: reduce) {
 
-    *,
-    *::before,
-    *::after {
+ *,
+ *::before,
+ *::after {
         transition-duration: .01ms !important;
         animation-duration: .01ms !important;
     }

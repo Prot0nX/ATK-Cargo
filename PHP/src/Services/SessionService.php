@@ -13,13 +13,13 @@ class SessionService {
     private SessionRepository $sessionRepository;
     private UserRepository $userRepository;
 
-    // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند
+ // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند
     public function __construct(?SessionRepository $sessionRepository = null, ?UserRepository $userRepository = null) {
         $this->sessionRepository = $sessionRepository ?? new SessionRepository();
         $this->userRepository = $userRepository ?? new UserRepository();
     }
 
-    // ایجاد جلسه جدید برای نسخه اندروید با محدودیت ورود همزمان تک دستگاهی
+ // ایجاد جلسه جدید برای نسخه اندروید با محدودیت ورود همزمان تک دستگاهی
     public function createMobileSession(
         string $username, 
         string $deviceId, 
@@ -29,12 +29,12 @@ class SessionService {
         ?string $userType = null, 
         ?string $appVersion = null
     ): array {
-        // بررسی وجود جلسه فعال در هر دستگاهی
+ // بررسی وجود جلسه فعال در هر دستگاهی
         $existingSession = $this->sessionRepository->getActiveSession($username);
 
         if ($existingSession) {
             if ($existingSession['device_id'] === $deviceId) {
-                // همان دستگاه - هر login موفق هر دو توکن را کاملاً تازه صادر می‌کند، نه reuse توکن قبلی
+ // همان دستگاه - هر login موفق هر دو توکن را کاملاً تازه صادر می‌کند، نه reuse توکن قبلی
                 $tokens = $this->generateTokenPair();
                 $this->sessionRepository->rotateTokens(
                     (int)$existingSession['id'],
@@ -54,7 +54,7 @@ class SessionService {
                     'refresh_token_expires_in' => SessionRepository::REFRESH_TOKEN_TTL_SECONDS,
                 ];
             } else {
-                // دستگاه دیگر - اجازه ورود همزمان داده نمی‌شود
+ // دستگاه دیگر - اجازه ورود همزمان داده نمی‌شود
                 return [
                     'success' => false,
                     'message' => 'شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید.'
@@ -99,7 +99,7 @@ class SessionService {
         ];
     }
 
-    // تولید یک جفت توکن تازه (access + refresh)، مشترک بین login موفق و POST /auth/refresh
+ // تولید یک جفت توکن تازه (access + refresh)، مشترک بین login موفق و POST /auth/refresh
     private function generateTokenPair(): array {
         $now = time();
         return [
@@ -110,7 +110,7 @@ class SessionService {
         ];
     }
 
-    // تمدید access token با refresh token؛ هر دو توکن rotate می‌شوند و در صورت مغایرت (نشانه‌ی سرقت) تمام نشست‌های کاربر باطل می‌شوند
+ // تمدید access token با refresh token؛ هر دو توکن rotate می‌شوند و در صورت مغایرت (نشانه‌ی سرقت) تمام نشست‌های کاربر باطل می‌شوند
     public function refreshTokens(string $username, string $deviceId, string $refreshToken): array {
         if ($username === '' || $deviceId === '' || $refreshToken === '') {
             return ['success' => false, 'message' => 'پارامترهای ورودی نامعتبر است', 'http_code' => 400];
@@ -121,7 +121,7 @@ class SessionService {
             return ['success' => false, 'message' => 'نشست یافت نشد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
         }
 
-        // session['refresh_token'] از دیتابیس هش‌شده برمی‌گردد، پس طرف مقابل مقایسه هم باید هش شود
+ // session['refresh_token'] از دیتابیس هش‌شده برمی‌گردد، پس طرف مقابل مقایسه هم باید هش شود
         $storedRefreshTokenHash = (string)($session['refresh_token'] ?? '');
         if ($storedRefreshTokenHash === '' || !hash_equals($storedRefreshTokenHash, SessionRepository::hashToken($refreshToken))) {
             $this->sessionRepository->deactivateAllSessions($username);
@@ -159,7 +159,7 @@ class SessionService {
         ];
     }
 
-    // ایجاد جلسه جدید برای پنل تحت وب با امکان خروج خودکار سایر دستگاه‌ها
+ // ایجاد جلسه جدید برای پنل تحت وب با امکان خروج خودکار سایر دستگاه‌ها
     public function createWebSession(
         string $username, 
         string $deviceId, 
@@ -168,11 +168,11 @@ class SessionService {
         string $ipAddress, 
         ?string $userType = null
     ): array {
-        // بررسی وجود جلسه فعال برای همین دستگاه
+ // بررسی وجود جلسه فعال برای همین دستگاه
         $existingSession = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
         
         if ($existingSession) {
-            // session_token/refresh_token هش‌شده برمی‌گردند و قابل reuse نیستند؛ مثل createMobileSession یک جفت توکن تازه صادر می‌شود
+ // session_token/refresh_token هش‌شده برمی‌گردند و قابل reuse نیستند؛ مثل createMobileSession یک جفت توکن تازه صادر می‌شود
             $tokens = $this->generateTokenPair();
             $this->sessionRepository->rotateTokens(
                 (int)$existingSession['id'],
@@ -197,10 +197,10 @@ class SessionService {
             $userType = $user['userType'];
         }
 
-        // غیرفعال کردن تمامی جلسات قبلی کاربر بر روی سایر دستگاه‌ها
+ // غیرفعال کردن تمامی جلسات قبلی کاربر بر روی سایر دستگاه‌ها
         $this->sessionRepository->deactivateAllSessions($username);
 
-        // ایجاد توکن جلسه جدید
+ // ایجاد توکن جلسه جدید
         $sessionToken = bin2hex(random_bytes(32));
 
         $sessionId = $this->sessionRepository->createSession([
@@ -223,7 +223,7 @@ class SessionService {
         ];
     }
 
-    // بررسی دقیق اعتبار یک نشست (username + دستگاه + توکن)؛ برخلاف isSessionActive مطابقت توکن هم بررسی می‌شود
+ // بررسی دقیق اعتبار یک نشست (username + دستگاه + توکن)؛ برخلاف isSessionActive مطابقت توکن هم بررسی می‌شود
     public function isValidToken(string $username, string $deviceId, string $token): bool {
         if ($username === '' || $deviceId === '' || $token === '') {
             return false;
@@ -236,7 +236,7 @@ class SessionService {
         return $valid;
     }
 
-    // فقط روی مسیر شکست validateAndGetUserType صدا زده می‌شود، برای تمایز «توکن منقضی» از «نشست کاملاً نامعتبر»
+ // فقط روی مسیر شکست validateAndGetUserType صدا زده می‌شود، برای تمایز «توکن منقضی» از «نشست کاملاً نامعتبر»
     public function isAccessTokenExpiredButSessionActive(string $username, string $deviceId, string $token): bool {
         if ($username === '' || $deviceId === '' || $token === '') {
             return false;
@@ -244,8 +244,8 @@ class SessionService {
         return $this->sessionRepository->isAccessTokenExpiredButSessionActive($username, $deviceId, $token);
     }
 
-    // نسخه‌ی بهینه‌شده‌ی isValidToken: اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند و last_activity را throttled به‌روزرسانی می‌کند.
-    /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
+ // نسخه‌ی بهینه‌شده‌ی isValidToken: اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند و last_activity را throttled به‌روزرسانی می‌کند.
+ /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
     public function validateAndGetUserType(string $username, string $deviceId, string $token): ?string {
         if ($username === '' || $deviceId === '' || $token === '') {
             return null;
@@ -258,7 +258,7 @@ class SessionService {
         return $userType;
     }
 
-    // بررسی معتبر بودن جلسه کاربر
+ // بررسی معتبر بودن جلسه کاربر
     public function isSessionActive(string $username, ?string $deviceId = null): bool {
         $session = null;
         if ($deviceId) {
@@ -268,7 +268,7 @@ class SessionService {
         }
 
         if ($session) {
-            // به‌روزرسانی خودکار آخرین فعالیت
+ // به‌روزرسانی خودکار آخرین فعالیت
             $this->sessionRepository->updateLastActivity($username, $session['device_id'] ?? $deviceId);
             return true;
         }
@@ -276,7 +276,7 @@ class SessionService {
         return false;
     }
 
-    // خروج کاربر (غیرفعال کردن تمام جلسات فعال)
+ // خروج کاربر (غیرفعال کردن تمام جلسات فعال)
     public function deactivateSession(string $username, ?string $deviceId = null): array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -307,7 +307,7 @@ class SessionService {
         ];
     }
 
-    // خروج اجباری از دستگاه خاص
+ // خروج اجباری از دستگاه خاص
     public function forceLogoutFromDevice(string $username, string $deviceId): array {
         $activeSession = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
         
@@ -327,22 +327,22 @@ class SessionService {
         ];
     }
 
-    // دریافت لیست کاربران آنلاین
+ // دریافت لیست کاربران آنلاین
     public function getOnlineUsers(): array {
         return $this->sessionRepository->getOnlineUsers();
     }
 
-    // دریافت آمار جلسات
+ // دریافت آمار جلسات
     public function getSessionStats(): array {
         return $this->sessionRepository->getSessionStats();
     }
 
-    // غیرفعال کردن نشست‌های منقضی (بی‌فعالیت طولانی)
+ // غیرفعال کردن نشست‌های منقضی (بی‌فعالیت طولانی)
     public function cleanupExpiredSessions(): int {
         return $this->sessionRepository->cleanupExpiredSessions();
     }
 
-    // ثبت لاگ فعالیت نشست‌ها
+ // ثبت لاگ فعالیت نشست‌ها
     public function logActivity(string $username, string $action, ?string $deviceId = null, ?string $ipAddress = null, ?string $userType = null): void {
         try {
             $logDir = APP_ROOT . '/logs';

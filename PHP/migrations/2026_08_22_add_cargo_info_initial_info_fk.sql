@@ -9,7 +9,7 @@
 -- است هر ردیف CargoInfo را به‌طور غیرقطعی به یکی از چند InitialInfo تطبیق‌دار
 -- وصل کند. با کوئری زیر تأیید کنید ایندکس یکتا از قبل وجود دارد:
 --
---   SHOW INDEX FROM InitialInfo WHERE Key_name = 'uk_initial_natural';
+-- SHOW INDEX FROM InitialInfo WHERE Key_name = 'uk_initial_natural';
 --
 -- اگر خروجی خالی بود، ابتدا migration مرحله ۱ را اجرا کنید.
 --
@@ -54,8 +54,8 @@ WHERE c.initial_info_id IS NULL;
 -- ندارد (مثلاً از قبل حذف شده)؛ رفتار عادی است، initial_info_id آن‌ها برای
 -- همیشه NULL می‌ماند مگر با اصلاح دستی:
 --
---   SELECT id, loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
---   FROM CargoInfo WHERE initial_info_id IS NULL;
+-- SELECT id, loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
+-- FROM CargoInfo WHERE initial_info_id IS NULL;
 
 -- ============================================================
 -- بخش ۳: افزودن قید FK (به کلید اصلی InitialInfo.id، نه کلید طبیعی)

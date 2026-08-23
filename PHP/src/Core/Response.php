@@ -8,10 +8,10 @@ namespace App\Core;
 use App\Exceptions\ResponseSentException;
 
 class Response {
-    // پایین‌ترین X-App-Version که کدهای HTTP معنادار (401/403/409/422/429 و...) به‌جای 200 می‌گیرد؛ نسخه‌های قدیمی‌تر همچنان 200 + success:false می‌گیرند تا نشکنند.
+ // پایین‌ترین X-App-Version که کدهای HTTP معنادار (401/403/409/422/429 و...) به‌جای 200 می‌گیرد؛ نسخه‌های قدیمی‌تر همچنان 200 + success:false می‌گیرند تا نشکنند.
     public const HTTP_CODES_MIN_APP_VERSION = '4.1.0';
 
-    // ارسال هدرهای امنیتی استاندارد سیستم
+ // ارسال هدرهای امنیتی استاندارد سیستم
     public static function sendSecurityHeaders(): void {
         if (headers_sent()) {
             return;
@@ -23,7 +23,7 @@ class Response {
         header('Content-Security-Policy: default-src \'self\'');
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
 
-        // اگر endpoint از قبل Cache-Control خودش را ست کرده، اینجا بازنویسی نمی‌شود
+ // اگر endpoint از قبل Cache-Control خودش را ست کرده، اینجا بازنویسی نمی‌شود
         if (!self::hasHeader('Cache-Control')) {
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             header('Pragma: no-cache');
@@ -39,9 +39,9 @@ class Response {
         return false;
     }
 
-    // ارسال پاسخ JSON و خروج از برنامه
+ // ارسال پاسخ JSON و خروج از برنامه
     public static function json($data, int $httpCode = 200): void {
-        // زیر PHPUnit، exit جایگزین یک exception قابل‌catch می‌شود تا کنترلرها بدون kill شدن پروسه قابل تست باشند
+ // زیر PHPUnit، exit جایگزین یک exception قابل‌catch می‌شود تا کنترلرها بدون kill شدن پروسه قابل تست باشند
         if (defined('TESTING_MODE') && TESTING_MODE) {
             throw new ResponseSentException($data, $httpCode);
         }
@@ -49,12 +49,12 @@ class Response {
         self::sendSecurityHeaders();
         http_response_code($httpCode);
 
-        // فشرده‌سازی PHP-level حذف شد؛ mod_deflate در .htaccess همین کار را انجام می‌دهد
+ // فشرده‌سازی PHP-level حذف شد؛ mod_deflate در .htaccess همین کار را انجام می‌دهد
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
 
-    // ارسال پاسخ خطای استاندارد
+ // ارسال پاسخ خطای استاندارد
     public static function error(string $message, int $httpCode = 400, ?array $details = null): void {
         $response = [
             'success' => false,
@@ -68,14 +68,14 @@ class Response {
         self::json($response, $httpCode);
     }
 
-    // بدنه‌ی خطای واحد با کد HTTP وابسته به نسخه‌ی کلاینت؛ قرارداد یکسان جایگزین ۲۰۰-همیشگی قدیمی در AuthController/ChatController — $body باید شامل success:false باشد.
+ // بدنه‌ی خطای واحد با کد HTTP وابسته به نسخه‌ی کلاینت؛ قرارداد یکسان جایگزین ۲۰۰-همیشگی قدیمی در AuthController/ChatController — $body باید شامل success:false باشد.
     public static function versionGatedJson(array $body, int $legacyHttpCode, int $newHttpCode): void {
         $appVersion = (new Request())->getHeader('X-App-Version');
         $useNewCode = $appVersion !== null && version_compare((string)$appVersion, self::HTTP_CODES_MIN_APP_VERSION, '>=');
         self::json($body, $useNewCode ? $newHttpCode : $legacyHttpCode);
     }
 
-    // پاسخ GET قابل‌کش با ETag/304؛ برای اندپوینت‌های غیرقابل‌تغییر که فقط باید وقتی محتوا واقعاً عوض شده دوباره دانلود شوند
+ // پاسخ GET قابل‌کش با ETag/304؛ برای اندپوینت‌های غیرقابل‌تغییر که فقط باید وقتی محتوا واقعاً عوض شده دوباره دانلود شوند
     public static function cacheableJson(array $data, array $etagSource, int $maxAgeSeconds): void {
         $etag = '"' . md5(json_encode($etagSource, JSON_UNESCAPED_UNICODE)) . '"';
         header('Cache-Control: private, max-age=' . $maxAgeSeconds);
@@ -90,7 +90,7 @@ class Response {
         self::json($data);
     }
 
-    // ارسال پاسخ موفقیت استاندارد
+ // ارسال پاسخ موفقیت استاندارد
     public static function success(string $message = '', ?array $data = null, int $httpCode = 200): void {
         $response = [
             'success' => true

@@ -115,12 +115,12 @@ class StartupViewModel(
 
     fun getUpdateManager(): UpdateManager = updateManager
 
-    /** فقط یک‌بار در طول عمر ViewModel اجرا می‌شود؛ در چرخش صفحه دوباره اجرا نمی‌شود. */
+ /** فقط یک‌بار در طول عمر ViewModel اجرا می‌شود؛ در چرخش صفحه دوباره اجرا نمی‌شود. */
     fun runStartupSequenceOnce() {
         if (startupSequenceStarted) return
         startupSequenceStarted = true
 
-        // بدون کتابخانه‌ی نیتیو secrets، BASE_URL/API_KEY در دسترس نیستند.
+ // بدون کتابخانه‌ی نیتیو secrets، BASE_URL/API_KEY در دسترس نیستند.
         if (!_isNativeLibraryAvailable.value) return
 
         viewModelScope.launch {
@@ -136,7 +136,7 @@ class StartupViewModel(
 
                     val versionResult = versionAndUpdateJob.await()
                     if (!versionResult.isVersionAllowed) {
-                        // لغو صریح جاب‌های فرزند برای تکمیل فوری async در صورت نامعتبر بودن نسخه.
+ // لغو صریح جاب‌های فرزند برای تکمیل فوری async در صورت نامعتبر بودن نسخه.
                         securityJob.cancel()
                         sessionJob.cancel()
                         return@async Pair(false, false)
@@ -149,7 +149,7 @@ class StartupViewModel(
                     Pair(true, sessionValid)
                 }
 
-                // تایمر تطبیقی اسپلش با حداقل زمان برای پرش بصری و حداکثر تا سقف SPLASH_MAX_DURATION.
+ // تایمر تطبیقی اسپلش با حداقل زمان برای پرش بصری و حداکثر تا سقف SPLASH_MAX_DURATION.
                 val splashTimer = launch {
                     delay(SPLASH_MIN_DURATION.milliseconds)
                     withTimeoutOrNull((SPLASH_MAX_DURATION - SPLASH_MIN_DURATION).milliseconds) {
@@ -158,7 +158,7 @@ class StartupViewModel(
                     _isSplashVisible.value = false
                 }
 
-                // منتظر می‌مانیم تا اسپلش به خاطر تایمر یا کلیک کاربر (Skip) بسته شود
+ // منتظر می‌مانیم تا اسپلش به خاطر تایمر یا کلیک کاربر (Skip) بسته شود
                 _isSplashVisible.first { !it }
                 splashTimer.cancel()
 
@@ -207,7 +207,7 @@ class StartupViewModel(
         _isSessionValid.value = isValid
     }
 
-    // اطلاع‌رسانی انقضای نشست و نمایش پیام ورود مجدد به کاربر.
+ // اطلاع‌رسانی انقضای نشست و نمایش پیام ورود مجدد به کاربر.
     override fun notifySessionExpired() {
         viewModelScope.launch {
             userPreferencesManager.clearUserCredentials()
@@ -271,7 +271,7 @@ class StartupViewModel(
             }
             SessionCheckOutcome.Unreachable -> isWithinSessionOfflineGracePeriod()
             SessionCheckOutcome.Invalid -> {
-                // تلاش صریح برای refresh توکن در صورت انقضای access token در زمان استارتاپ اپ (I-05).
+ // تلاش صریح برای refresh توکن در صورت انقضای access token در زمان استارتاپ اپ.
                 val refreshed = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager) != null
                 if (refreshed) {
                     userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
@@ -292,13 +292,13 @@ class StartupViewModel(
             val pm = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
             if (pm.isIgnoringBatteryOptimizations(appContext.packageName)) return
 
-            // فقط یک بار در طول عمر نصب برنامه از کاربر بپرس — نه در هر راه‌اندازی
+ // فقط یک بار در طول عمر نصب برنامه از کاربر بپرس — نه در هر راه‌اندازی
             if (userPreferencesManager.hasBatteryOptimizationBeenRequested()) return
             userPreferencesManager.markBatteryOptimizationRequested()
 
             _events.send(StartupEvent.RequestBatteryOptimization)
         } catch (_: Exception) {
-            // نادیده گرفتن خطای مجوز باتری - غیرحیاتی است
+ // نادیده گرفتن خطای مجوز باتری - غیرحیاتی است
         }
     }
 
@@ -315,7 +315,7 @@ class StartupViewModel(
                 return@launch
             }
 
-            // حداقل بازه‌ی مجاز WorkManager برای PeriodicWorkRequest پانزده دقیقه است (قبلاً پنج دقیقه با FGS دائمی)
+ // حداقل بازه‌ی مجاز WorkManager برای PeriodicWorkRequest پانزده دقیقه است (قبلاً پنج دقیقه با FGS دائمی)
             val constraints = androidx.work.Constraints.Builder()
                 .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
                 .build()

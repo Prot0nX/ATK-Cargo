@@ -16,7 +16,7 @@ final class PermissionRepository {
         $this->db = $db ?? new DatabaseManager();
     }
 
-    /** @return array<string, array<string, bool>> نگاشت role => feature => allowed */
+ /** @return array<string, array<string, bool>> نگاشت role => feature => allowed */
     public function getAllRolePermissions(): array {
         $stmt = $this->db->prepare("SELECT role, feature, allowed FROM role_permissions");
         $stmt->execute();
@@ -27,7 +27,7 @@ final class PermissionRepository {
         return $out;
     }
 
-    /** @return array<string, array<string, bool>> نگاشت username => feature => allowed */
+ /** @return array<string, array<string, bool>> نگاشت username => feature => allowed */
     public function getAllUserPermissions(): array {
         $stmt = $this->db->prepare("SELECT username, feature, allowed FROM user_permissions");
         $stmt->execute();
@@ -38,7 +38,7 @@ final class PermissionRepository {
         return $out;
     }
 
-    /** @param array<string, bool> $permissions */
+ /** @param array<string, bool> $permissions */
     public function saveRolePermissions(string $role, array $permissions): void {
         $this->db->beginTransaction();
         try {
@@ -56,7 +56,7 @@ final class PermissionRepository {
         }
     }
 
-    /** @param array<string, bool> $permissions */
+ /** @param array<string, bool> $permissions */
     public function saveUserPermissions(string $username, array $permissions): void {
         $this->db->beginTransaction();
         try {
@@ -74,7 +74,7 @@ final class PermissionRepository {
         }
     }
 
-    // حذف تنظیمات اختصاصی کاربر، بازگشت به وراثت از نقش
+ // حذف تنظیمات اختصاصی کاربر، بازگشت به وراثت از نقش
     public function deleteUserPermissions(string $username): void {
         $stmt = $this->db->prepare("DELETE FROM user_permissions WHERE username = ?");
         $stmt->execute([$username]);

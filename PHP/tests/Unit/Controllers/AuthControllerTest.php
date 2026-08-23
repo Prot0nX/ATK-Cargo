@@ -17,7 +17,7 @@ final class AuthControllerTest extends TestCase {
     protected function setUp(): void {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-        // چون $_SERVER بین متدهای تست در همان پروسه باقی می‌ماند، بدون این reset تست‌های «کلاینت قدیمی» می‌توانستند به‌اشتباه هدر تست قبلی را ببینند.
+ // چون $_SERVER بین متدهای تست در همان پروسه باقی می‌ماند، بدون این reset تست‌های «کلاینت قدیمی» می‌توانستند به‌اشتباه هدر تست قبلی را ببینند.
         unset($_SERVER['HTTP_X_APP_VERSION']);
         $_POST = [];
         $_GET = [];
@@ -69,7 +69,7 @@ final class AuthControllerTest extends TestCase {
         $username = $this->uniqueUsername();
         $_POST = ['username' => $username, 'password' => 'wrong-password'];
 
-        // قفل کردن مستقیم حساب از طریق limiter واقعی
+ // قفل کردن مستقیم حساب از طریق limiter واقعی
         $limiter = new LoginAttemptLimiter();
         for ($i = 0; $i < 5; $i++) {
             $limiter->registerFailedAttempt($username, '127.0.0.1');
@@ -109,7 +109,7 @@ final class AuthControllerTest extends TestCase {
         $this->assertStringContainsString('نام کاربری یا رمز عبور اشتباه است', $response->getPayload()['message']);
     }
 
-    // از اینجا به بعد: همان دو سناریوی بالا اما با X-App-Version >= آستانه، برای تأیید کد HTTP واقعی (فاز۳ #۲۸)
+ // از اینجا به بعد: همان دو سناریوی بالا اما با X-App-Version >= آستانه، برای تأیید کد HTTP واقعی
 
     public function testLoginIsBlockedAfterAccountIsLockedReturns429ForRecentAppVersion(): void {
         $_SERVER['HTTP_X_APP_VERSION'] = '4.1.0';

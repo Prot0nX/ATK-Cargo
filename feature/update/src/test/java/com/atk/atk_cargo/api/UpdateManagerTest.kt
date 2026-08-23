@@ -18,11 +18,11 @@ class UpdateManagerTest {
 
     @Before
     fun setUp() {
-        // این دو تابع تحت تست به Context دسترسی ندارند؛ فقط برای ساخت شیء لازم است
+ // این دو تابع تحت تست به Context دسترسی ندارند؛ فقط برای ساخت شیء لازم است
         updateManager = UpdateManager(mockk<Context>(relaxed = true))
     }
 
-    // ===== isTrustedDownloadUrl =====
+ // ===== isTrustedDownloadUrl =====
 
     @Test
     fun `exact matching https host is trusted`() {
@@ -41,7 +41,7 @@ class UpdateManagerTest {
 
     @Test
     fun `host that merely contains trusted domain as a suffix trick is rejected`() {
-        // "evil-atk-nk.ir" به‌اشتباه ممکن است با یک بررسی سطحی contains() قبول شود؛ endsWith(".$trustedHost") این را می‌بندد
+ // "evil-atk-nk.ir" به‌اشتباه ممکن است با یک بررسی سطحی contains قبول شود؛ endsWith(".$trustedHost") این را می‌بندد
         assertFalse(updateManager.isTrustedDownloadUrl("https://evil-atk-nk.ir/app.apk", trustedBaseUrl))
     }
 
@@ -52,7 +52,7 @@ class UpdateManagerTest {
 
     @Test
     fun `http scheme is rejected even for the trusted host`() {
-        // cleartext هرگز مجاز نیست؛ تابع فقط https را می‌پذیرد
+ // cleartext هرگز مجاز نیست؛ تابع فقط https را می‌پذیرد
         assertFalse(updateManager.isTrustedDownloadUrl("http://atk-nk.ir/downloads/app.apk", trustedBaseUrl))
     }
 
@@ -66,7 +66,7 @@ class UpdateManagerTest {
         assertFalse(updateManager.isTrustedDownloadUrl("", trustedBaseUrl))
     }
 
-    // ===== verifyFileSha256 =====
+ // ===== verifyFileSha256 =====
 
     @Test
     fun `verifyFileSha256 returns true when hash matches`() {
@@ -107,7 +107,7 @@ class UpdateManagerTest {
         assertFalse(updateManager.verifyFileSha256(missingFile, sha256Hex("anything")))
     }
 
-    // ===== compareVersions =====
+ // ===== compareVersions =====
 
     @Test
     fun `compareVersions returns zero for equal versions`() {
@@ -126,7 +126,7 @@ class UpdateManagerTest {
 
     @Test
     fun `compareVersions treats missing trailing segments as zero`() {
-        // "1.2" باید معادل "1.2.0" در نظر گرفته شود
+ // "1.2" باید معادل "1.2.0" در نظر گرفته شود
         assertEquals(0, updateManager.compareVersions("1.2", "1.2.0").signOf())
     }
 

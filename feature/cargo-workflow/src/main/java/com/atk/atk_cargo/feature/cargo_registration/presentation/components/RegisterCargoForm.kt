@@ -142,7 +142,7 @@ fun FormSection(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // کارت ورودی‌های اصلی
+ // کارت ورودی‌های اصلی
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -156,13 +156,13 @@ fun FormSection(
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // سطر ۱: شماره حواله و کنترلر تعداد نفرات
+ // سطر ۱: شماره حواله و کنترلر تعداد نفرات
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // فیلد شماره حواله
+ // فیلد شماره حواله
                     OutlinedTextField(
                         value = trackingNumber,
                         onValueChange = { newValue ->
@@ -204,7 +204,7 @@ fun FormSection(
                         )
                     )
 
-                    // کنترلر تعداد نفرات
+ // کنترلر تعداد نفرات
                     Surface(
                         modifier = Modifier
                             .weight(1f)
@@ -219,7 +219,7 @@ fun FormSection(
                         ) {
                             val currentValue = numberOfPeople.toIntOrNull() ?: 1
 
-                            // دکمه کاهش (-)
+ // دکمه کاهش (-)
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)
@@ -238,7 +238,7 @@ fun FormSection(
                                 )
                             }
 
-                            // مقدار نفرات
+ // مقدار نفرات
                             Row(
                                 modifier = Modifier.weight(1f),
                                 horizontalArrangement = Arrangement.Center,
@@ -259,7 +259,7 @@ fun FormSection(
                                 )
                             }
 
-                            // دکمه افزایش (+)
+ // دکمه افزایش (+)
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)
@@ -281,7 +281,7 @@ fun FormSection(
                     }
                 }
 
-                // سطر ۲: کسری بار و اضافه بار
+ // سطر ۲: کسری بار و اضافه بار
                 AnimatedVisibility(
                     visible = isCargoConfirmed && !isCargoExited,
                     enter = expandVertically() + fadeIn(),
@@ -341,12 +341,12 @@ fun FormSection(
                     }
                 }
 
-                // سطر ۳: دکمه‌های اقدام
+ // سطر ۳: دکمه‌های اقدام
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // دکمه ثبت
+ // دکمه ثبت
                     val submitColor = if (isDuplicate) Amber700 else Green600
                     Surface(
                         onClick = onSubmit,
@@ -379,7 +379,7 @@ fun FormSection(
                         }
                     }
 
-                    // دکمه خروج
+ // دکمه خروج
                     val exitEnabled = isCargoConfirmed && !isCargoExited
                     Surface(
                         onClick = onScanBarcode,
@@ -415,7 +415,7 @@ fun FormSection(
             }
         }
 
-        // پیام هشدار اعتبارسنجی
+ // پیام هشدار اعتبارسنجی
         AnimatedVisibility(
             visible = !isTrackingNumberValid && trackingNumber.isNotBlank(),
             enter = fadeIn() + expandVertically(),
@@ -448,7 +448,7 @@ fun FormSection(
             }
         }
 
-        // وضعیت تکراری/موجود
+ // وضعیت تکراری/موجود
         AnimatedVisibility(
             visible = isDuplicate,
             enter = fadeIn() + expandVertically(),
@@ -494,7 +494,7 @@ fun FormSection(
             }
         }
 
-        // شماره قبض اسکن شده
+ // شماره قبض اسکن شده
         AnimatedVisibility(
             visible = scaleReceiptNumber.isNotBlank(),
             enter = fadeIn() + expandVertically(),

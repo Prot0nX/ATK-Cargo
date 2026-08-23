@@ -13,18 +13,18 @@ fun preprocessImage(imageProxy: ImageProxy): InputImage {
     val pixels = IntArray(width * height)
     bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
-    // مرحله 1: افزایش کنتراست مستقیم روی آرایه‌ی پیکسل (معادل ColorMatrix قبلی)
+ // مرحله 1: افزایش کنتراست مستقیم روی آرایه‌ی پیکسل (معادل ColorMatrix قبلی)
     applyContrastEnhancement(pixels)
 
-    // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
+ // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
     adaptiveThresholding(pixels, width, height)
 
     val scratch = IntArray(width * height)
 
-    // مرحله 3: حذف نویز با فیلتر میانه
+ // مرحله 3: حذف نویز با فیلتر میانه
     medianFilter(pixels, scratch, width, height)
 
-    // مرحله 4: تقویت لبه‌ها برای بهبود تشخیص اعداد
+ // مرحله 4: تقویت لبه‌ها برای بهبود تشخیص اعداد
     enhanceEdges(pixels, scratch, width, height)
 
     bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
@@ -57,7 +57,7 @@ private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
         for (x in 0 until width) {
             val pos = y * width + x
             
-            // محاسبه میانگین در پنجره محلی
+ // محاسبه میانگین در پنجره محلی
             var sum = 0
             var count = 0
             
@@ -72,7 +72,7 @@ private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
             
             val threshold = if (count > 0) sum / count - c else 128
             
-            // اعمال آستانه محلی
+ // اعمال آستانه محلی
             val pixel = pixels[pos]
             val gray = ((pixel and 0xFF) + ((pixel shr 8) and 0xFF) + ((pixel shr 16) and 0xFF)) / 3
             
@@ -90,20 +90,20 @@ private fun medianFilter(pixels: IntArray, output: IntArray, width: Int, height:
         for (x in 1 until width - 1) {
             var idx = 0
             
-            // جمع‌آوری مقادیر پیکسل‌های همسایه
+ // جمع‌آوری مقادیر پیکسل‌های همسایه
             for (wy in -1..1) {
                 for (wx in -1..1) {
                     window[idx++] = pixels[(y + wy) * width + (x + wx)]
                 }
             }
             
-            // مرتب‌سازی و انتخاب مقدار میانه
+ // مرتب‌سازی و انتخاب مقدار میانه
             window.sort()
             output[y * width + x] = window[windowSize * windowSize / 2]
         }
     }
     
-    // کپی نتایج به آرایه اصلی
+ // کپی نتایج به آرایه اصلی
     for (i in pixels.indices) {
         pixels[i] = output[i]
     }
@@ -140,16 +140,16 @@ private fun enhanceEdges(pixels: IntArray, output: IntArray, width: Int, height:
             
             val magnitude = minOf(255, sqrt((sumX * sumX + sumY * sumY).toDouble()).toInt())
             
-            // تقویت لبه‌ها اگر مقدار بیش از آستانه باشد
+ // تقویت لبه‌ها اگر مقدار بیش از آستانه باشد
             if (magnitude > 30) {
                 output[y * width + x] = 0xFF000000.toInt()  // لبه‌ها سیاه می‌شوند
             }
         }
     }
     
-    // ادغام لبه‌های تقویت شده با تصویر اصلی
+ // ادغام لبه‌های تقویت شده با تصویر اصلی
     for (i in pixels.indices) {
-        // اگر پیکسل در تصویر اصلی سیاه است یا در خروجی لبه تشخیص داده شده، آن را سیاه نگه دار
+ // اگر پیکسل در تصویر اصلی سیاه است یا در خروجی لبه تشخیص داده شده، آن را سیاه نگه دار
         if (pixels[i] == 0xFF000000.toInt() || output[i] == 0xFF000000.toInt()) {
             pixels[i] = 0xFF000000.toInt()
         }

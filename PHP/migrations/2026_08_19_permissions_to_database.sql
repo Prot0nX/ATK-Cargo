@@ -2,13 +2,13 @@
 --
 -
 -- config/permissions.json به دو جدول دیتابیس. تا امروز هر بررسی مجوز
--- (PermissionService::getUserPermissions) یک فایل JSON مشترک را می‌خواند —
+-- (PermissionService::getUserPermissions) یک فایل JSON مشترک را می‌خواند
 -- بدون تراکنش، بدون قفل ردیفی، و نوشتن هم‌زمان دو ادمین در بدترین حالت با
--- rename اتمیک (Phase 2.7) فقط از corrupt شدن فایل جلوگیری می‌کرد، نه از
+-- rename اتمیک فقط از corrupt شدن فایل جلوگیری می‌کرد، نه از
 -- گم‌شدن یکی از دو تغییر (آخرین rename برنده است).
 --
 -- ⚠️ قبل از اجرا از دیتابیس backup بگیرید. این migration را هم‌زمان با
--- deploy کد Phase 4.7 اجرا کنید — کد جدید (PermissionService) اگر این
+-- deploy کد اجرا کنید — کد جدید (PermissionService) اگر این
 -- جداول را نیابد، به‌صورت خودکار و بی‌خطا به فایل permissions.json قدیمی
 -- برمی‌گردد (fallback عمدی، نه رفتار خراب)، پس ترتیب اجرا (قبل/بعد از
 -- deploy) بحرانی نیست — اما تا اجرای این فایل، فایل JSON هنوز منبع واقعی

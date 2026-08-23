@@ -145,24 +145,24 @@ val Blue800 = Color(0xFF1e40af) // blue-800
 val Blue900 = Color(0xFF1e3a8a) // blue-900
 
 // ===== رنگ‌های انتخاب تم برنامه =====
-// — آبی‌ها —
+// — آبی‌ها
 val ThemeBlue        = Color(0xFF137fec) // آبی اصلی (پیش‌فرض)
 val ThemeBlueDark    = Color(0xFF1976D2) // آبی تیره
 val ThemeBlueOcean   = Color(0xFF0288D1) // آبی اقیانوس
 val ThemeTeal        = Color(0xFF0097A7) // فیروزه
-// — سبزها —
+// — سبزها
 val ThemeGreen       = Color(0xFF10b981) // سبز
 val ThemeGreenDark   = Color(0xFF388E3C) // سبز تیره
 val ThemeGreenTeal   = Color(0xFF00796B) // سبز آبی
 val ThemeOlive       = Color(0xFF689F38) // زیتونی
-// — بنفش‌ها —
+// — بنفش‌ها
 val ThemePurple      = Color(0xFF8B5CF6) // بنفش
 val ThemePurpleDark  = Color(0xFF7B1FA2) // بنفش تیره
 val ThemePink        = Color(0xFFE91E63) // صورتی
-// — نارنجی و قرمز —
+// — نارنجی و قرمز
 val ThemeOrange      = Color(0xFFE64A19) // نارنجی
 val ThemeRed         = Color(0xFFEF4444) // قرمز
 val ThemeRedDark     = Color(0xFFC62828) // قرمز تیره
-// — سایر —
+// — سایر
 val ThemeGold        = Color(0xFFFFA000) // طلایی
 val ThemeSlateBlue   = Color(0xFF455A64) // خاکستری آبی

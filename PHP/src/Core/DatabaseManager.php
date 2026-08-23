@@ -22,7 +22,7 @@ class DatabaseManager {
         try {
             return $this->conn->prepare($query);
         } catch (PDOException $e) {
-            // جزئیات خطای PDO فقط در لاگ سرور ثبت می‌شود، پاسخ کلاینت عمومی است
+ // جزئیات خطای PDO فقط در لاگ سرور ثبت می‌شود، پاسخ کلاینت عمومی است
             error_log('DatabaseManager::prepare failed: ' . $e->getMessage());
             throw new Exception('خطا در پردازش درخواست. لطفاً بعداً تلاش کنید.');
         }
@@ -36,7 +36,7 @@ class DatabaseManager {
     }
 
     public function close(): void {
-        // اتصالات مرکزی توسط کلاس Database مدیریت می‌شوند
+ // اتصالات مرکزی توسط کلاس Database مدیریت می‌شوند
     }
 
     public function beginTransaction(): void {

@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 
-// نمایش فقط‌خواندنی اطلاعات حواله در دیالوگ نتیجه‌ی جستجو — از CargoEditSearchDialogsSection.kt جدا شد (فاز۴ #۴۰)
+// نمایش فقط‌خواندنی اطلاعات حواله در دیالوگ نتیجه‌ی جستجو — از CargoEditSearchDialogsSection.kt جدا شد
 @Composable
 internal fun CargoMainInfo(cargoInfo: CargoInfo) {
     InfoCard(

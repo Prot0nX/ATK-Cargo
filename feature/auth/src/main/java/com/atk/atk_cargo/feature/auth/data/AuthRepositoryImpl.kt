@@ -24,9 +24,9 @@ class AuthRepositoryImpl(
     private val userPreferencesManager: UserPreferencesStore
 ) : AuthRepository {
 
-    // ===== SERVICES =====
+ // ===== SERVICES =====
 
-    // شناسه پایدار دستگاه: ابتدا ANDROID_ID، در صورت نبود از UUID ذخیره‌شده در DataStore
+ // شناسه پایدار دستگاه: ابتدا ANDROID_ID، در صورت نبود از UUID ذخیره‌شده در DataStore
     @SuppressLint("HardwareIds")
     private suspend fun getOrCreateDeviceId(): String {
         return withContext(Dispatchers.IO) {
@@ -40,13 +40,13 @@ class AuthRepositoryImpl(
                 }
             } catch (_: Exception) { /* Fallback */ }
 
-            // Fallback: UUID ذخیره‌شده در DataStore
+ // Fallback: UUID ذخیره‌شده در DataStore
             val storedDeviceId = userPreferencesManager.deviceId.first()
             if (storedDeviceId.isNotBlank()) {
                 return@withContext storedDeviceId
             }
 
-            // ایجاد UUID جدید و ذخیره دائمی در DataStore
+ // ایجاد UUID جدید و ذخیره دائمی در DataStore
             val newDeviceId = UUID.randomUUID().toString()
             userPreferencesManager.saveUserCredentials(
                 username = userPreferencesManager.username.first(),
@@ -57,7 +57,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    // ===== CORE LOGIC =====
+ // ===== CORE LOGIC =====
 
     override suspend fun login(
         username: String,
@@ -87,7 +87,7 @@ class AuthRepositoryImpl(
                     body.sessionToken?.let { token ->
                         userPreferencesManager.saveSessionToken(token)
                     }
-                    // اگر سرور قدیمی این فیلد را نفرستد، refreshToken چیزی ذخیره نمی‌شود
+ // اگر سرور قدیمی این فیلد را نفرستد، refreshToken چیزی ذخیره نمی‌شود
                     body.refreshToken?.let { refreshToken ->
                         userPreferencesManager.saveRefreshToken(refreshToken)
                     }
@@ -117,7 +117,7 @@ class AuthRepositoryImpl(
                     val errorMessage = when (response.code()) {
                         401 -> "نام کاربری یا رمز عبور اشتباه است"
                         403 -> "دسترسی مجاز نیست"
-                        // قبلاً هرگز از سرور نمی‌رسید (locked login همیشه 200 بود)؛ از نسخه‌ی ۴.۱.۰ به بعد واقعی است (فاز۳ #۲۸)
+ // قبلاً هرگز از سرور نمی‌رسید (locked login همیشه 200 بود)؛ از نسخه‌ی ۴.۱.۰ به بعد واقعی است
                         429 -> "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید."
                         500 -> "خطای سرور"
                         else -> "خطا در اتصال"

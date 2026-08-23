@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 // تست‌های واحد منطق تجاری پنل مدیریت لایسنس با ریپازیتوری mock شده
 final class LicenseAdminServiceTest extends TestCase {
-    /** @var LicenseRepository&MockObject */
+ /** @var LicenseRepository&MockObject */
     private $repository;
     private LicenseAdminService $service;
 
@@ -22,7 +22,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->service = new LicenseAdminService($this->repository);
     }
 
-    /** @param array<string,mixed> $overrides @return array<string,mixed> */
+ /** @param array<string,mixed> $overrides @return array<string,mixed> */
     private function row(array $overrides = []): array {
         return $overrides + [
             'id' => 1,
@@ -43,7 +43,7 @@ final class LicenseAdminServiceTest extends TestCase {
         ];
     }
 
-    /** mock را برای یک create موفق آماده می‌کند و داده‌ی ارسالی به create را برمی‌گرداند. @param array<string,mixed> $input @return array{key:string,data:array<string,mixed>} */
+ /** mock را برای یک create موفق آماده می‌کند و داده‌ی ارسالی به create را برمی‌گرداند. @param array<string,mixed> $input @return array{key:string,data:array<string,mixed>} */
     private function captureCreate(array $input): array {
         $captured = ['key' => '', 'data' => []];
 
@@ -63,9 +63,9 @@ final class LicenseAdminServiceTest extends TestCase {
         return $captured;
     }
 
-    // --- قالب کلید ---------------------------------------------------------
+ // --- قالب کلید ---------------------------------------------------------
 
-    // قرارداد کلید (طول ۳۲) نباید تغییر کند؛ LicenseController و کلاینت اندروید به آن وابسته‌اند.
+ // قرارداد کلید (طول ۳۲) نباید تغییر کند؛ LicenseController و کلاینت اندروید به آن وابسته‌اند.
     public function testGeneratedKeyIs32UppercaseHexCharacters(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت الف']);
 
@@ -78,7 +78,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->repository->method('findById')->willReturn($this->row());
         $this->repository->method('create')->willReturn(1);
 
-        // اولین کلید تصادفی «تکراری» است، دومی آزاد.
+ // اولین کلید تصادفی «تکراری» است، دومی آزاد.
         $this->repository->expects($this->exactly(2))
             ->method('keyExists')
             ->willReturnOnConsecutiveCalls(true, false);
@@ -86,7 +86,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->service->create(['company_name' => 'شرکت ب'], 'tester');
     }
 
-    // --- اعتبارسنجی نام شرکت ----------------------------------------------
+ // --- اعتبارسنجی نام شرکت ----------------------------------------------
 
     public function testEmptyCompanyNameIsRejected(): void {
         $this->expectException(ApiException::class);
@@ -109,7 +109,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertSame('شرکت ج', $captured['data']['company_name']);
     }
 
-    // --- پلن ---------------------------------------------------------------
+ // --- پلن ---------------------------------------------------------------
 
     public function testUnknownPlanIsRejected(): void {
         $this->repository->method('companyNameExists')->willReturn(false);
@@ -127,7 +127,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertSame('standard', $captured['data']['plan']);
     }
 
-    // --- تاریخ انقضا -------------------------------------------------------
+ // --- تاریخ انقضا -------------------------------------------------------
 
     public function testEmptyExpiryMeansUnlimited(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت و', 'expires_at' => '']);
@@ -139,7 +139,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertSame('2027-03-20 23:59:59', $captured['data']['expires_at']);
     }
 
-    /** ورودی <input type="datetime-local"> قالب `Y-m-d\TH:i` دارد. */
+ /** ورودی <input type="datetime-local"> قالب `Y-m-d\TH:i` دارد. */
     public function testDatetimeLocalExpiryIsNormalized(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت ح', 'expires_at' => '2027-03-20T14:30']);
         $this->assertSame('2027-03-20 14:30:00', $captured['data']['expires_at']);
@@ -155,18 +155,18 @@ final class LicenseAdminServiceTest extends TestCase {
     public function testImpossibleCalendarDateIsRejected(): void {
         $this->repository->method('companyNameExists')->willReturn(false);
 
-        // سرریز تاریخ در createFromFormat باید با مقایسه‌ی رفت‌وبرگشتی normalizeExpiry شناسایی شود.
+ // سرریز تاریخ در createFromFormat باید با مقایسه‌ی رفت‌وبرگشتی normalizeExpiry شناسایی شود.
         $this->expectException(ApiException::class);
         $this->service->create(['company_name' => 'شرکت ی', 'expires_at' => '2027-02-31'], 'tester');
     }
 
-    // تاریخ گذشته عمداً مجاز است تا بتوان لایسنس را فوری منقضی کرد.
+ // تاریخ گذشته عمداً مجاز است تا بتوان لایسنس را فوری منقضی کرد.
     public function testPastExpiryIsAccepted(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت ک', 'expires_at' => '2020-01-01']);
         $this->assertSame('2020-01-01 23:59:59', $captured['data']['expires_at']);
     }
 
-    // --- اطلاعات تماس -----------------------------------------------------
+ // --- اطلاعات تماس -----------------------------------------------------
 
     public function testPersianDigitsInPhoneAreConvertedToLatin(): void {
         $captured = $this->captureCreate([
@@ -211,7 +211,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertNull($captured['data']['notes']);
     }
 
-    /** کلیدهای ناشناخته‌ی ورودی نباید به لایه‌ی دیتابیس برسند. */
+ /** کلیدهای ناشناخته‌ی ورودی نباید به لایه‌ی دیتابیس برسند. */
     public function testUnknownInputKeysAreDropped(): void {
         $captured = $this->captureCreate([
             'company_name' => 'شرکت ع',
@@ -225,7 +225,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertArrayNotHasKey('license_key', $captured['data']);
     }
 
-    // --- نمایش ردیف --------------------------------------------------------
+ // --- نمایش ردیف --------------------------------------------------------
 
     public function testPresentedRowCarriesEffectiveStatusAndPlanLabel(): void {
         $this->repository->method('listAll')->willReturn([
@@ -240,7 +240,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->assertTrue($rows[0]['is_active']);
     }
 
-    /** فیلتر وضعیت ناشناخته باید نادیده گرفته شود، نه اینکه به کوئری برسد. */
+ /** فیلتر وضعیت ناشناخته باید نادیده گرفته شود، نه اینکه به کوئری برسد. */
     public function testUnknownStatusFilterIsIgnored(): void {
         $this->repository->expects($this->once())
             ->method('listAll')
@@ -259,7 +259,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->service->list(null, 'expired');
     }
 
-    // --- عملیات روی رکورد موجود -------------------------------------------
+ // --- عملیات روی رکورد موجود -------------------------------------------
 
     public function testToggleFlipsActiveFlag(): void {
         $this->repository->method('findById')->willReturn($this->row(['is_active' => 1]));
@@ -291,7 +291,7 @@ final class LicenseAdminServiceTest extends TestCase {
         }
     }
 
-    /** هنگام ویرایش، خودِ رکورد نباید «نام تکراری» شمرده شود. */
+ /** هنگام ویرایش، خودِ رکورد نباید «نام تکراری» شمرده شود. */
     public function testUpdateExcludesOwnIdFromDuplicateCheck(): void {
         $this->repository->method('findById')->willReturn($this->row());
         $this->repository->expects($this->once())

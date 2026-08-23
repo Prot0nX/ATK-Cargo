@@ -93,7 +93,7 @@ data class FabItem(
 fun FloatingActionButton(
     onRealTimeLoadingClick: () -> Unit,
     onAdvancedSearchClick: () -> Unit,
-    // nullable است تا caller بر اساس مجوز view_reports کاربر این گزینه را اصلاً نمایش ندهد
+ // nullable است تا caller بر اساس مجوز view_reports کاربر این گزینه را اصلاً نمایش ندهد
     onAnalyticsClick: (() -> Unit)? = null,
     onDateRangeClick: (() -> Unit)? = null,
     onQuotaManagementClick: (() -> Unit)? = null

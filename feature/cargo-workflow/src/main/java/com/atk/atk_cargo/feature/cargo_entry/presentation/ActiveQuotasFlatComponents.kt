@@ -68,17 +68,17 @@ internal fun FlatQuotaCard(
         Column(
             modifier = Modifier.padding(12.dp)
         ) {
-            // ردیف اول: کشتی و شماره کوتاژ
+ // ردیف اول: کشتی و شماره کوتاژ
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // کشتی و شماره کوتاژ
+ // کشتی و شماره کوتاژ
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // آیکون کشتی
+ // آیکون کشتی
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -160,7 +160,7 @@ internal fun FlatQuotaCard(
                             }
                         }
 
-                        // شماره کوتاژ با هایلایت متن جستجو شده
+ // شماره کوتاژ با هایلایت متن جستجو شده
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -221,11 +221,11 @@ internal fun FlatQuotaCard(
                     }
                 }
 
-                // آمار حواله‌ها
+ // آمار حواله‌ها
                 Column(
                     horizontalAlignment = Alignment.End
                 ) {
-                    // نمایش برچسب وضعیت
+ // نمایش برچسب وضعیت
                     if (isCompleted) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -260,7 +260,7 @@ internal fun FlatQuotaCard(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // آمار حواله‌های خروج شده و کل
+ // آمار حواله‌های خروج شده و کل
                     Text(
                         text = "${quota.exitVouchers}/$totalVouchers حواله",
                         style = MaterialTheme.typography.bodySmall,
@@ -272,7 +272,7 @@ internal fun FlatQuotaCard(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // وزن خالص خروج شده (تناژ خروجی)
+ // وزن خالص خروج شده (تناژ خروجی)
                     Text(
                         text = "${formatNumber(quota.totalNetWeight)} kg",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
@@ -287,12 +287,12 @@ internal fun FlatQuotaCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ردیف دوم: انبار و نوار پیشرفت
+ // ردیف دوم: انبار و نوار پیشرفت
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // آیکون انبار
+ // آیکون انبار
                 Icon(
                     imageVector = Icons.Default.Warehouse,
                     contentDescription = null,
@@ -302,7 +302,7 @@ internal fun FlatQuotaCard(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // نام انبار با هایلایت متن جستجو شده
+ // نام انبار با هایلایت متن جستجو شده
                 if (searchQuery.isNotEmpty() && quota.loadingWarehouse.contains(searchQuery, ignoreCase = true)) {
                     val parts = quota.loadingWarehouse.split(
                         searchQuery,
@@ -339,7 +339,7 @@ internal fun FlatQuotaCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // نوار پیشرفت با درصد
+ // نوار پیشرفت با درصد
                 if (totalVouchers > 0) {
                     val progressPercentage = (quota.exitVouchers.toFloat() / totalVouchers) * 100f
 
@@ -360,7 +360,7 @@ internal fun FlatQuotaCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // نوار پیشرفت با حالت گرادیانت
+ // نوار پیشرفت با حالت گرادیانت
             if (totalVouchers > 0) {
                 Box(
                     modifier = Modifier

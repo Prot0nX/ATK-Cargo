@@ -2,18 +2,18 @@
 <!-- پیکربندی امنیت شبکه (Network Security Config) ───────────────────────────────────────────────── این فایل سرتیفیکت‌های CA مورد اعتماد برنامه را تعریف می‌کند. -->
 <network-security-config>
 
-    <!-- پیکربندی پایه برای تمام دامنه‌ها -->
+ <!-- پیکربندی پایه برای تمام دامنه‌ها -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
-            <!-- اعتماد به CA های سیستم (پیش‌فرض اندروید) -->
+ <!-- اعتماد به CA های سیستم (پیش‌فرض اندروید) -->
             <certificates src="system" />
-            <!-- اعتماد به CA های Bundle شده در برنامه -->
+ <!-- اعتماد به CA های Bundle شده در برنامه -->
             <certificates src="@raw/ca_certum_root" />
             <certificates src="@raw/ca_certum_intermediate" />
         </trust-anchors>
     </base-config>
 
-    <!-- پیکربندی اختصاصی برای دامنه اصلی سرور -->
+ <!-- پیکربندی اختصاصی برای دامنه اصلی سرور -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">atk-nk.ir</domain>
         <trust-anchors>
@@ -22,11 +22,11 @@
             <certificates src="@raw/ca_certum_intermediate" />
         </trust-anchors>
 
-        <!-- Certificate Pinning ───────────────────────────────────────────────── پین‌ها روی کلید عمومی CA میانی و ریشه‌ی Certum هستند، نه روی گواهی leaf سرور (atk-nk.ir). -->
+ <!-- Certificate Pinning ───────────────────────────────────────────────── پین‌ها روی کلید عمومی CA میانی و ریشه‌ی Certum هستند، نه روی گواهی leaf سرور (atk-nk.ir). -->
         <pin-set expiration="2028-08-17">
-            <!-- Certum DV TLS G2 R39 CA (intermediate) -->
+ <!-- Certum DV TLS G2 R39 CA (intermediate) -->
             <pin digest="SHA-256">92oK29/qv5N8xocT/H9kxxVqihg3OD2rlooJW9f7L3Y=</pin>
-            <!-- Certum Trusted Root CA (root) — پین پشتیبان -->
+ <!-- Certum Trusted Root CA (root) — پین پشتیبان -->
             <pin digest="SHA-256">aB3EgsKWyEAsbrsg5oMJo7yEZSOuNLmEqE7ml6MxLbc=</pin>
         </pin-set>
     </domain-config>

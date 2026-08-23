@@ -10,7 +10,7 @@ use PDO;
 
 // تنها منبع حقیقت کوئری‌های جدول licenses؛ برای جلوگیری از تعریف‌های ناهماهنگ «لایسنس معتبر» بین پنل و اپ
 class LicenseRepository {
-    // وضعیت مؤثر لایسنس؛ تعریف واحدی که هم پنل ادمین و هم LicenseController از آن استفاده می‌کنند
+ // وضعیت مؤثر لایسنس؛ تعریف واحدی که هم پنل ادمین و هم LicenseController از آن استفاده می‌کنند
     private const STATUS_EXPR = "
         CASE
             WHEN is_active = 0 THEN 'inactive'
@@ -18,7 +18,7 @@ class LicenseRepository {
             ELSE 'active'
         END AS effective_status";
 
-    // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه UserRepository::getAll()
+ // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه UserRepository::getAll
     private const MAX_ROWS = 5000;
 
     private PDO $db;
@@ -45,15 +45,15 @@ class LicenseRepository {
         return $row ?: null;
     }
 
-    // لیست لایسنس‌ها با جستجو و فیلتر وضعیت، هر دو سمت سرور.
-    /** @param string|null $status یکی از active|expired|inactive یا null برای همه */
+ // لیست لایسنس‌ها با جستجو و فیلتر وضعیت، هر دو سمت سرور.
+ /** @param string|null $status یکی از active|expired|inactive یا null برای همه */
     public function listAll(?string $search = null, ?string $status = null): array {
         $sql = "SELECT *, " . self::STATUS_EXPR . " FROM licenses";
         $params = [];
         $where = [];
 
         if ($search !== null && $search !== '') {
-            // سه placeholder مجزا لازم است چون EMULATE_PREPARES=false تکرار یک نام را با خطا رد می‌کند
+ // سه placeholder مجزا لازم است چون EMULATE_PREPARES=false تکرار یک نام را با خطا رد می‌کند
             $where[] = '(company_name LIKE :search_company'
                 . ' OR license_key LIKE :search_key'
                 . ' OR contact_name LIKE :search_contact)';
@@ -82,8 +82,8 @@ class LicenseRepository {
         return $stmt->fetchAll();
     }
 
-    // شمارش تفکیکی وضعیت‌ها به همراه فعالیت دو ماه اخیر، در یک رفت‌وبرگشت.
-    /** @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int} */
+ // شمارش تفکیکی وضعیت‌ها به همراه فعالیت دو ماه اخیر، در یک رفت‌وبرگشت.
+ /** @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int} */
     public function stats(): array {
         $sql = "SELECT
                 COUNT(*) AS total,
@@ -96,7 +96,7 @@ class LicenseRepository {
             FROM licenses";
         $row = $this->db->query($sql)->fetch() ?: [];
 
-        // SUM() روی جدول خالی NULL برمی‌گرداند نه صفر
+ // SUM روی جدول خالی NULL برمی‌گرداند نه صفر
         return [
             'total'      => (int)($row['total'] ?? 0),
             'active'     => (int)($row['active'] ?? 0),
@@ -113,7 +113,7 @@ class LicenseRepository {
         return $stmt->fetchColumn() !== false;
     }
 
-    // یکتایی نام شرکت در لایه‌ی اپلیکیشن اعمال می‌شود؛ exceptId برای حالت ویرایش رکورد خودش
+ // یکتایی نام شرکت در لایه‌ی اپلیکیشن اعمال می‌شود؛ exceptId برای حالت ویرایش رکورد خودش
     public function companyNameExists(string $companyName, ?int $exceptId = null): bool {
         $sql = "SELECT 1 FROM licenses WHERE company_name = :name";
         $params = [':name' => $companyName];
@@ -126,7 +126,7 @@ class LicenseRepository {
         return $stmt->fetchColumn() !== false;
     }
 
-    /** @param array<string,mixed> $data کلیدهایش قبلاً در LicenseAdminService غربال شده‌اند @return int شناسه‌ی رکورد ساخته‌شده */
+ /** @param array<string,mixed> $data کلیدهایش قبلاً در LicenseAdminService غربال شده‌اند @return int شناسه‌ی رکورد ساخته‌شده */
     public function create(string $licenseKey, array $data): int {
         $stmt = $this->db->prepare(
             "INSERT INTO licenses
@@ -147,7 +147,7 @@ class LicenseRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /** @param array<string,mixed> $data */
+ /** @param array<string,mixed> $data */
     public function update(int $id, array $data): void {
         $stmt = $this->db->prepare(
             "UPDATE licenses SET
@@ -188,7 +188,7 @@ class LicenseRepository {
         $stmt->execute([':key' => $licenseKey]);
     }
 
-    // خنثی‌سازی wildcardهای LIKE در ورودی کاربر تا به‌عنوان الگو تفسیر نشود
+ // خنثی‌سازی wildcardهای LIKE در ورودی کاربر تا به‌عنوان الگو تفسیر نشود
     private function escapeLike(string $value): string {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }

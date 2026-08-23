@@ -12,7 +12,7 @@ use App\Enums\CargoConfirmStatus;
 
 class CargoRepository {
     private PDO $conn;
-    // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const را نمی‌دهد
+ // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const را نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
     private const CONFIRMED = CargoConfirmStatus::CONFIRMED;
@@ -35,7 +35,7 @@ class CargoRepository {
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    // FOR UPDATE رکورد را قفل می‌کند تا درخواست‌های هم‌زمان روی همان حواله سریالی پردازش شوند؛ باید داخل تراکنش فراخوانی شود
+ // FOR UPDATE رکورد را قفل می‌کند تا درخواست‌های هم‌زمان روی همان حواله سریالی پردازش شوند؛ باید داخل تراکنش فراخوانی شود
     public function findCargoByKeys(
         string $shipName,
         string $warehouse,
@@ -63,9 +63,9 @@ class CargoRepository {
             (SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ? LIMIT 1),
             ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
-        // netWeight هنوز مقداری ندارد؛ باید NULL درج شود نه '' که در ستون عددی خطا می‌دهد
+ // netWeight هنوز مقداری ندارد؛ باید NULL درج شود نه '' که در ستون عددی خطا می‌دهد
         $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
-        // scaleReceiptNumber هم به همین دلیل NULL می‌شود تا با UNIQUE INDEX پیشنهادی تداخل نکند
+ // scaleReceiptNumber هم به همین دلیل NULL می‌شود تا با UNIQUE INDEX پیشنهادی تداخل نکند
         $scaleReceiptNumber = ($params['scaleReceiptNumber'] === '' || $params['scaleReceiptNumber'] === null) ? null : $params['scaleReceiptNumber'];
         return $stmt->execute([
             $params['trackingNumber'],
@@ -90,7 +90,7 @@ class CargoRepository {
         ]);
     }
 
-    // وضعیت فعال/غیرفعال کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در یک کوئری برمی‌گرداند تا سرور هم همان کنترل‌های کلاینت را اعمال کند
+ // وضعیت فعال/غیرفعال کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در یک کوئری برمی‌گرداند تا سرور هم همان کنترل‌های کلاینت را اعمال کند
     public function findQuotaControlData(string $shipName, string $warehouse, string $cargoType, string $company, string $quota): ?array {
         $query = "SELECT i.isActive, i.percentage, i.is_enabled, i.cargoWeight as totalTonnage,
                 COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage
@@ -134,7 +134,7 @@ class CargoRepository {
         return $stmt->execute([$newTemp, $shipName, $warehouse, $cargoType, $company, $quota]);
     }
 
-    // شرط status='ورود' عمداً اضافه شده تا دو خروج هم‌زمان روی یک حواله باعث کسر دوباره‌ی تناژ نشوند؛ rowCount تداخل را نشان می‌دهد
+ // شرط status='ورود' عمداً اضافه شده تا دو خروج هم‌زمان روی یک حواله باعث کسر دوباره‌ی تناژ نشوند؛ rowCount تداخل را نشان می‌دهد
     public function updateCargoExit(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
         $query = "UPDATE CargoInfo SET
             netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
@@ -182,7 +182,7 @@ class CargoRepository {
     }
 
     public function confirmCargo(int $cargoId, string $username, string $userType, string $loadingQuotaNumber, string $shipName): array {
-        // loadingQuotaNumber/shipName هم در WHERE می‌آیند تا از IDOR جلوگیری شود؛ status='ورود' هم سمت سرور اعمال می‌شود نه فقط UI
+ // loadingQuotaNumber/shipName هم در WHERE می‌آیند تا از IDOR جلوگیری شود؛ status='ورود' هم سمت سرور اعمال می‌شود نه فقط UI
         $query = "UPDATE CargoInfo
                   SET confirm = '" . self::CONFIRMED->value . "',
                       confirm_username = ?,

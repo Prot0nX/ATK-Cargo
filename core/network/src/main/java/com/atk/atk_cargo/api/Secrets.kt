@@ -1,7 +1,7 @@
 package com.atk.atk_cargo.api
 
 object Secrets {
-    // بارگذاری ایمن؛ روی ABI پشتیبانی‌نشده (مثلاً release که فقط arm64-v8a می‌سازد) قبلاً UnsatisfiedLinkError در همین initializer باعث ExceptionInInitializerError غیرقابل‌بازیابی...
+ // بارگذاری ایمن؛ روی ABI پشتیبانی‌نشده (مثلاً release که فقط arm64-v8a می‌سازد) قبلاً UnsatisfiedLinkError در همین initializer باعث ExceptionInInitializerError غیرقابل‌بازیابی...
     val isAvailable: Boolean = try {
         System.loadLibrary("secrets")
         true

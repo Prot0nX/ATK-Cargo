@@ -80,7 +80,7 @@ data class CargoUiState(
 class CargoViewModel(
     private val repository: QuotaRepository,
     private val userPreferencesManager: UserPreferencesStore,
-    // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher جایگزین می‌شود تا با scheduler مجازی تست هماهنگ شود
+ // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher جایگزین می‌شود تا با scheduler مجازی تست هماهنگ شود
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private val quotaValidationUseCase = QuotaValidationUseCase(repository)
@@ -88,7 +88,7 @@ class CargoViewModel(
     private val _uiState = MutableStateFlow(CargoUiState())
     val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()
 
-    // نگهدارنده‌ی حواله‌ی در انتظار تأیید ثبت تکراری.
+ // نگهدارنده‌ی حواله‌ی در انتظار تأیید ثبت تکراری.
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
 
     private val snackbarQueue = CargoSnackbarQueue()
@@ -108,7 +108,7 @@ class CargoViewModel(
         snackbarQueue.dismissMessage()
     }
 
-    // سرور اکنون isActive را مستقیماً برای هر ردیف نتیجه محاسبه می‌کند، پس دیگر نیازی به درخواست جداگانه‌ی checkQuotaStatus برای هر کوتاژ نیست
+ // سرور اکنون isActive را مستقیماً برای هر ردیف نتیجه محاسبه می‌کند، پس دیگر نیازی به درخواست جداگانه‌ی checkQuotaStatus برای هر کوتاژ نیست
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(ioDispatcher) {
             try {
@@ -126,7 +126,7 @@ class CargoViewModel(
         }
     }
 
-    // quota از قبل توسط QuotaEntryDialog اعتبارسنجی شده؛ اینجا اطلاعات واقعی و کامل کوتاژ مستقیماً از سرور خوانده می‌شود، نه یک InitialInfo ناقص و موقت
+ // quota از قبل توسط QuotaEntryDialog اعتبارسنجی شده؛ اینجا اطلاعات واقعی و کامل کوتاژ مستقیماً از سرور خوانده می‌شود، نه یک InitialInfo ناقص و موقت
     fun switchQuota(quota: MatchingQuota) {
         viewModelScope.launch {
             loadCargoInfoList(
@@ -179,7 +179,7 @@ class CargoViewModel(
         _uiState.update { it.copy(dialog = CargoDialog.None) }
     }
 
-    // این متد از چند مسیر صدا زده می‌شود تا لیست با سرور همگام بماند؛ پیام «به‌روزرسانی شد» فقط وقتی [onManualRefreshComplete] پاس داده شود ساخته می‌شود، نه در فراخوانی‌های بی‌صدای داخلی
+ // این متد از چند مسیر صدا زده می‌شود تا لیست با سرور همگام بماند؛ پیام «به‌روزرسانی شد» فقط وقتی [onManualRefreshComplete] پاس داده شود ساخته می‌شود، نه در فراخوانی‌های بی‌صدای داخلی
     fun refreshCargoInfo(onManualRefreshComplete: ((message: String) -> Unit)? = null) {
         viewModelScope.launch {
             _uiState.value.initialInfo?.let { info ->
@@ -601,7 +601,7 @@ class CargoViewModel(
         }
     }
 
-    // قبلاً همین endpoint سرور دو بار جدا صدا زده می‌شد؛ آن فراخوانی تکراری حذف شد و حالا فقط یک درخواست getCargoInfo و یک getLoadableTonnage در هر refresh انجام می‌شود
+ // قبلاً همین endpoint سرور دو بار جدا صدا زده می‌شد؛ آن فراخوانی تکراری حذف شد و حالا فقط یک درخواست getCargoInfo و یک getLoadableTonnage در هر refresh انجام می‌شود
     fun loadCargoInfoList(
         quotaNumber: String,
         shippingCompany: String,
@@ -635,7 +635,7 @@ class CargoViewModel(
                 val wHouse = result.initialInfo.loadingWarehouse
                 val cType = result.initialInfo.cargoType
 
-                // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود.
+ // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود.
                 launch {
                     try {
                         val data = repository.getLoadableTonnage(
@@ -662,10 +662,10 @@ class CargoViewModel(
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
                     } catch (e: CancellationException) {
-                        // لغو خودِ این coroutine باید عادی propagate شود، وگرنه لغو با پاک‌شدن ViewModel بی‌صدا بلعیده می‌شد
+ // لغو خودِ این coroutine باید عادی propagate شود، وگرنه لغو با پاک‌شدن ViewModel بی‌صدا بلعیده می‌شد
                         throw e
                     } catch (e: Throwable) {
-                        // Throwable عمداً: این یک بروزرسانی best-effort است و نباید با لغو parent coroutine کل بارگذاری لیست را خراب کند
+ // Throwable عمداً: این یک بروزرسانی best-effort است و نباید با لغو parent coroutine کل بارگذاری لیست را خراب کند
                         Log.e("CargoViewModel_Log", "Error calculating loadable tonnage", e)
                     }
                 }
@@ -691,7 +691,7 @@ class CargoViewModel(
         }
     }
 
-    // قبلاً در CargoDetailsScreen.kt با rememberCoroutineScope() فراخوانی می‌شد که با خروج کاربر از صفحه در میانه‌ی راه کنسل می‌شد؛ حالا به viewModelScope منتقل شده
+ // قبلاً در CargoDetailsScreen.kt با rememberCoroutineScope فراخوانی می‌شد که با خروج کاربر از صفحه در میانه‌ی راه کنسل می‌شد؛ حالا به viewModelScope منتقل شده
     fun confirmCargo(
         info: Cargo,
         username: String,
@@ -718,7 +718,7 @@ class CargoViewModel(
                         val message = response.body()?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
                         Result.success(message)
                     } else {
-                        // سرور برای خطاهای واقعی پیام فارسی گویا در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام دور ریخته می‌شد و کاربر فقط کد HTTP می‌دید
+ // سرور برای خطاهای واقعی پیام فارسی گویا در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام دور ریخته می‌شد و کاربر فقط کد HTTP می‌دید
                         val serverMessage = parseCargoConfirmError(response.errorBody()?.string())
                         Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
                     }
@@ -812,13 +812,13 @@ class CargoViewModel(
         }
     }
 
-    // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices) هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده نمی‌شدند — محاسبه‌ای کاملاً مرده.
+ // قبلاً اینجا مجموعه‌ای از مقادیر میانی (remainingWeight، averageNetWeight، remainingServices، totalServices) هم محاسبه و در StateFlowهای جدا ذخیره می‌شد، اما هیچ‌کدام نه توسط UI و نه در جای دیگری از این کلاس خوانده نمی‌شدند — محاسبه‌ای کاملاً مرده.
     fun updateInfoValues() {
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 val exitedCargos = _uiState.value.cargoInfoList.filter { it.status == CargoStatus.EXITED.wireValue }
                 val netWeights = exitedCargos.mapNotNull { cargo ->
-                    // netWeight null یعنی رشته‌ی خام نامعتبر بود یا هنوز باسکول نشده؛ هر دو باید از میانگین/جمع کنار گذاشته شوند، نه به ۰ افتند
+ // netWeight null یعنی رشته‌ی خام نامعتبر بود یا هنوز باسکول نشده؛ هر دو باید از میانگین/جمع کنار گذاشته شوند، نه به ۰ افتند
                     cargo.netWeight
                 }
                 val totalNet = netWeights.fold(Kilograms.ZERO) { acc, w -> acc + w }
@@ -839,7 +839,7 @@ class CargoViewModel(
         }
     }
 
-    // بررسی رمز و حذف حواله در همان یک درخواست به deleteCargoInfo.php انجام می‌شود؛ قبلاً با دو فراخوانی جدا بود که جلوی حذف بدون بررسی رمز را نمی‌گرفت
+ // بررسی رمز و حذف حواله در همان یک درخواست به deleteCargoInfo.php انجام می‌شود؛ قبلاً با دو فراخوانی جدا بود که جلوی حذف بدون بررسی رمز را نمی‌گرفت
     fun deleteCargo(cargoInfoRequest: CargoInfoRequest) {
         viewModelScope.launch {
             try {
@@ -887,7 +887,7 @@ class CargoViewModel(
         return JalaliDateUtils.getCurrentJalaliDateString()
     }
 
-    // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود.
+ // کش TTL ۳۰ ثانیه‌ای قبلاً اینجا (سه فیلد جدا + دستی) بود.
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
         viewModelScope.launch(Dispatchers.Default) {
             try {
