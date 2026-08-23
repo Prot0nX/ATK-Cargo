@@ -18,6 +18,7 @@
         dashboardSearch: '',
         sortField: null,
         sortDir: 'asc',
+        openShip: null,
         currentKotazh: null,
         cargoInfo: [],
         filteredCargo: [],
@@ -176,12 +177,23 @@
 
     var DASHBOARD_COLUMN_COUNT = 9;
 
-    function buildGroupHeaderRow(shipName, count) {
+    function buildGroupHeaderRow(shipName, count, isOpen) {
         var tr = document.createElement('tr');
-        tr.className = 'group-header';
+        tr.className = 'group-header' + (isOpen ? ' is-open' : '');
+        tr.dataset.ship = shipName || '';
+
         var td = document.createElement('td');
         td.colSpan = DASHBOARD_COLUMN_COUNT;
-        td.textContent = (shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ';
+
+        var chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        chevron.setAttribute('class', 'icon group-header-chevron');
+        chevron.setAttribute('aria-hidden', 'true');
+        var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', '#chevron-down');
+        chevron.appendChild(use);
+
+        td.appendChild(chevron);
+        td.appendChild(document.createTextNode((shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ'));
         tr.appendChild(td);
         return tr;
     }
@@ -218,16 +230,22 @@
             rows.slice().sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
                 .forEach(function (quota) { fragment.appendChild(buildQuotaRow(quota)); });
         } else {
-            var currentShip = null;
             var shipCounts = {};
             rows.forEach(function (q) { shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1; });
 
+            if (state.openShip !== null && !(state.openShip in shipCounts)) {
+                state.openShip = null;
+            }
+
+            var currentShip = null;
             rows.forEach(function (quota) {
                 if (quota.shipName !== currentShip) {
                     currentShip = quota.shipName;
-                    fragment.appendChild(buildGroupHeaderRow(currentShip, shipCounts[currentShip]));
+                    fragment.appendChild(buildGroupHeaderRow(currentShip, shipCounts[currentShip], currentShip === state.openShip));
                 }
-                fragment.appendChild(buildQuotaRow(quota));
+                if (quota.shipName === state.openShip) {
+                    fragment.appendChild(buildQuotaRow(quota));
+                }
             });
         }
 
@@ -576,6 +594,13 @@
     });
 
     el.quotasBody.addEventListener('click', function (event) {
+        var groupHeader = event.target.closest('tr.group-header');
+        if (groupHeader) {
+            state.openShip = state.openShip === groupHeader.dataset.ship ? null : groupHeader.dataset.ship;
+            renderDashboard();
+            return;
+        }
+
         var row = event.target.closest('tr[data-number]');
         if (row) { showDetail(row.dataset.number); }
     });

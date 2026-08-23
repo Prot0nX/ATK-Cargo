@@ -14,6 +14,11 @@
     <path d="m20 20-3.5-3.5" />
   </symbol>
 
+  <symbol id="chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+    stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6" />
+  </symbol>
+
   <symbol id="printer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
     stroke-linecap="round" stroke-linejoin="round">
     <path d="M6 9V2h12v7" />

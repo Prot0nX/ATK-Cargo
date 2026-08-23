@@ -955,8 +955,15 @@ textarea {
     padding-inline-start: 38px;
 }
 
-/* --- ردیف عنوان گروه (نام کشتی) در جدول داشبورد --------------------------- */
+/* --- ردیف عنوان گروه (نام کشتی) در جدول داشبورد؛ آکاردئون با باز بودن فقط یک کشتی --------------------------- */
+.group-header {
+    cursor: pointer;
+}
+
 .group-header td {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     background: var(--surface-alt);
     color: var(--text-muted);
     font-weight: 700;
@@ -964,7 +971,21 @@ textarea {
 }
 
 .group-header:hover td {
-    background: var(--surface-alt);
+    background: var(--border);
+}
+
+.group-header-chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform .15s ease;
+}
+
+.group-header.is-open .group-header-chevron {
+    transform: rotate(180deg);
+}
+
+.group-header.is-open td {
+    color: var(--text);
 }
 
 /* --- نمودار --------------------------------------------------------------- */
