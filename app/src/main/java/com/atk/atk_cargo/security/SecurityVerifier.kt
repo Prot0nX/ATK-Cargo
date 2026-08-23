@@ -28,11 +28,12 @@ import javax.net.ssl.SSLHandshakeException
 import kotlin.time.Duration.Companion.milliseconds
 
 enum class SecurityErrorType {
-    TAMPERED,              // دستکاری شده
-    LICENSE_NOT_FOUND,     // لایسنس پیدا نشد
-    LICENSE_INACTIVE,      // لایسنس غیرفعال است
-    NETWORK_ERROR,         // خطای شبکه
-    UNKNOWN_ERROR,         // خطای نامشخص
+    TAMPERED,                  // امضای دیجیتال معتبر نیست (نصب از منبع غیررسمی)
+    ENVIRONMENT_COMPROMISED,   // دیباگر/Frida/Xposed روی دستگاه فعال است
+    LICENSE_NOT_FOUND,         // لایسنس پیدا نشد
+    LICENSE_INACTIVE,          // لایسنس غیرفعال است
+    NETWORK_ERROR,             // خطای شبکه
+    UNKNOWN_ERROR,             // خطای نامشخص
 }
 
 class SecurityVerifier(private val context: Context) {
@@ -71,7 +72,7 @@ class SecurityVerifier(private val context: Context) {
 
  // بررسی محیط اجرا (دیباگر/Frida/Xposed) — با اقدام واقعی، نه فقط لاگ
                 if (isEnvironmentCompromised()) {
-                    return@withContext Pair(false, SecurityErrorType.TAMPERED)
+                    return@withContext Pair(false, SecurityErrorType.ENVIRONMENT_COMPROMISED)
                 }
 
  // اجرای درخواست‌های شبکه به صورت موازی
@@ -239,7 +240,7 @@ class SecurityVerifier(private val context: Context) {
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error in server license validation: ${e.message}", e)
-            Pair(false, SecurityErrorType.LICENSE_NOT_FOUND)
+            Pair(false, SecurityErrorType.UNKNOWN_ERROR)
         }
     }
 

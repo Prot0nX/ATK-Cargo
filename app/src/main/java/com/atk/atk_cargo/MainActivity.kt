@@ -132,6 +132,7 @@ class MainActivity : ComponentActivity() {
                                 SecurityBlockScreen(
                                     isLoading = state.isLoading,
                                     errorType = state.errorType,
+                                    onExit = { finishAndRemoveTask() },
                                     onRetry = { startupViewModel.retrySecurityCheck() }
                                 )
                             }

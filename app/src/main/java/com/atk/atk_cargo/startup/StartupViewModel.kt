@@ -56,7 +56,7 @@ sealed interface StartupState {
 data class SecurityCheckState(
     val isPassed: Boolean = false,
     val isLoading: Boolean = true,
-    val errorType: SecurityErrorType = SecurityErrorType.TAMPERED
+    val errorType: SecurityErrorType = SecurityErrorType.UNKNOWN_ERROR
 )
 
 /** رخدادهای یک‌باره‌ای که نیاز به یک Activity واقعی دارند (startActivity/دیالوگ سیستمی). */
@@ -246,13 +246,13 @@ class StartupViewModel(
             _securityCheck.value = SecurityCheckState(
                 isPassed = securityPassed,
                 isLoading = false,
-                errorType = errorType ?: SecurityErrorType.TAMPERED
+                errorType = errorType ?: SecurityErrorType.UNKNOWN_ERROR
             )
         } catch (_: Exception) {
             _securityCheck.value = SecurityCheckState(
                 isPassed = false,
                 isLoading = false,
-                errorType = SecurityErrorType.TAMPERED
+                errorType = SecurityErrorType.UNKNOWN_ERROR
             )
         }
     }
