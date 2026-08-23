@@ -572,7 +572,6 @@
     }, 150));
 
     el.dashboardRefreshBtn.addEventListener('click', function () { loadDashboard(); });
-    document.getElementById('dashboardPrintBtn').addEventListener('click', function () { window.print(); });
 
     el.quotasHeaderRow.addEventListener('click', function (event) {
         var th = event.target.closest('th[data-sort]');
@@ -641,7 +640,6 @@
     el.detailRefreshBtn.addEventListener('click', function () {
         if (state.currentKotazh) { loadDetail(state.currentKotazh); }
     });
-    document.getElementById('detailPrintBtn').addEventListener('click', function () { window.print(); });
 
     document.querySelectorAll('.chip[data-filter]').forEach(function (chip) {
         chip.addEventListener('click', function () {

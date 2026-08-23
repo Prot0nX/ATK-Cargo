@@ -75,10 +75,6 @@ $theme = qr_theme();
                         <svg class="icon" aria-hidden="true"><use href="#refresh"></use></svg>
                         <span>بازخوانی</span>
                     </button>
-                    <button type="button" class="btn btn-ghost" id="dashboardPrintBtn">
-                        <svg class="icon" aria-hidden="true"><use href="#printer"></use></svg>
-                        <span>چاپ</span>
-                    </button>
                     <a class="btn btn-ghost" id="exportSummaryExcel" href="export.php?format=excel&amp;scope=summary">
                         <svg class="icon" aria-hidden="true"><use href="#file-excel"></use></svg>
                         <span>خروجی کامل داشبورد</span>
@@ -174,10 +170,6 @@ $theme = qr_theme();
                     <button type="button" class="btn btn-ghost" id="detailRefreshBtn">
                         <svg class="icon" aria-hidden="true"><use href="#refresh"></use></svg>
                         <span>بازخوانی</span>
-                    </button>
-                    <button type="button" class="btn btn-ghost" id="detailPrintBtn">
-                        <svg class="icon" aria-hidden="true"><use href="#printer"></use></svg>
-                        <span>چاپ</span>
                     </button>
                     <div class="export-actions" role="group" aria-label="خروجی گزارش">
                         <a class="btn-icon" id="exportExcel" title="خروجی Excel" href="#">
