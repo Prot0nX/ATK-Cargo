@@ -6,10 +6,18 @@
     var STATUS_LABEL = { 'ورود': 'در انبار', 'خروج': 'خارج شده' };
     var STATUS_BADGE = { 'ورود': 'badge-entered', 'خروج': 'badge-exited' };
 
+    var SORT_TYPES = {
+        number: 'number', warehouse: 'text', shippingCompany: 'text', cargoType: 'text',
+        totalTonnage: 'number', remainingTonnage: 'number', percentageLoaded: 'number',
+        exitVoucherCount: 'number', isActive: 'bool'
+    };
+
     var state = {
         view: 'dashboard',
         quotas: [],
         dashboardSearch: '',
+        sortField: null,
+        sortDir: 'asc',
         currentKotazh: null,
         cargoInfo: [],
         filteredCargo: [],
@@ -27,6 +35,7 @@
 
         kotazhForm: document.getElementById('kotazhSearchForm'),
         kotazhInput: document.getElementById('kotazhInput'),
+        quotasHeaderRow: document.getElementById('quotasHeaderRow'),
         dashboardRefreshBtn: document.getElementById('dashboardRefreshBtn'),
         dashboardCount: document.getElementById('dashboardCount'),
         quotasBody: document.getElementById('quotasBody'),
@@ -116,7 +125,11 @@
     }
 
     /* --- نمای داشبورد ------------------------------------------------------ */
+    var NEAR_COMPLETION_PERCENTAGE = 90;
+
     function buildQuotaRow(quota) {
+        var isNearCompletion = quota.isActive && quota.totalTonnage > 0 && quota.percentageLoaded >= NEAR_COMPLETION_PERCENTAGE;
+
         var tr = document.createElement('tr');
         tr.className = 'is-clickable';
         tr.dataset.number = String(quota.number);
@@ -134,7 +147,7 @@
         label.className = 'progress-label';
         label.textContent = formatNumber(quota.percentageLoaded, 1) + '٪';
         var progress = document.createElement('progress');
-        progress.className = 'progress-fill';
+        progress.className = 'progress-fill' + (isNearCompletion ? ' is-warning' : '');
         progress.max = 100;
         progress.value = Math.min(100, Math.max(0, quota.percentageLoaded));
         progressCell.appendChild(label);
@@ -144,10 +157,18 @@
         tr.appendChild(cell(quota.exitVoucherCount));
 
         var statusCell = document.createElement('td');
+        statusCell.className = 'cell-status-group';
         var badge = document.createElement('span');
         badge.className = 'badge ' + (quota.isActive ? 'badge-active' : 'badge-inactive');
         badge.textContent = quota.isActive ? 'فعال' : 'غیرفعال';
         statusCell.appendChild(badge);
+        if (isNearCompletion) {
+            var warningBadge = document.createElement('span');
+            warningBadge.className = 'badge badge-warning';
+            warningBadge.title = 'باقی‌مانده کمتر از ' + (100 - NEAR_COMPLETION_PERCENTAGE) + '٪ است';
+            warningBadge.textContent = 'نزدیک اتمام';
+            statusCell.appendChild(warningBadge);
+        }
         tr.appendChild(statusCell);
 
         return tr;
@@ -163,6 +184,12 @@
         td.textContent = (shipName || 'بدون نام کشتی') + ' — ' + count + ' کوتاژ';
         tr.appendChild(td);
         return tr;
+    }
+
+    function compareValues(a, b, type) {
+        if (type === 'number') { return (Number(a) || 0) - (Number(b) || 0); }
+        if (type === 'bool') { return (a ? 1 : 0) - (b ? 1 : 0); }
+        return (a || '').toString().localeCompare((b || '').toString(), 'fa');
     }
 
     function renderDashboard() {
@@ -183,17 +210,27 @@
         el.dashboardEmpty.classList.add('is-hidden');
 
         var fragment = document.createDocumentFragment();
-        var currentShip = null;
-        var shipCounts = {};
-        rows.forEach(function (q) { shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1; });
 
-        rows.forEach(function (quota) {
-            if (quota.shipName !== currentShip) {
-                currentShip = quota.shipName;
-                fragment.appendChild(buildGroupHeaderRow(currentShip, shipCounts[currentShip]));
-            }
-            fragment.appendChild(buildQuotaRow(quota));
-        });
+        if (state.sortField) {
+            var field = state.sortField;
+            var type = SORT_TYPES[field];
+            var dir = state.sortDir === 'desc' ? -1 : 1;
+            rows.slice().sort(function (a, b) { return compareValues(a[field], b[field], type) * dir; })
+                .forEach(function (quota) { fragment.appendChild(buildQuotaRow(quota)); });
+        } else {
+            var currentShip = null;
+            var shipCounts = {};
+            rows.forEach(function (q) { shipCounts[q.shipName] = (shipCounts[q.shipName] || 0) + 1; });
+
+            rows.forEach(function (quota) {
+                if (quota.shipName !== currentShip) {
+                    currentShip = quota.shipName;
+                    fragment.appendChild(buildGroupHeaderRow(currentShip, shipCounts[currentShip]));
+                }
+                fragment.appendChild(buildQuotaRow(quota));
+            });
+        }
+
         el.quotasBody.appendChild(fragment);
     }
 
@@ -513,6 +550,30 @@
     }, 150));
 
     el.dashboardRefreshBtn.addEventListener('click', function () { loadDashboard(); });
+    document.getElementById('dashboardPrintBtn').addEventListener('click', function () { window.print(); });
+
+    el.quotasHeaderRow.addEventListener('click', function (event) {
+        var th = event.target.closest('th[data-sort]');
+        if (!th) { return; }
+
+        var field = th.dataset.sort;
+        if (state.sortField === field) {
+            state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            state.sortField = field;
+            state.sortDir = 'asc';
+        }
+
+        Array.prototype.forEach.call(el.quotasHeaderRow.querySelectorAll('th[data-sort]'), function (header) {
+            if (header === th) {
+                header.dataset.sortDir = state.sortDir;
+            } else {
+                delete header.dataset.sortDir;
+            }
+        });
+
+        renderDashboard();
+    });
 
     el.quotasBody.addEventListener('click', function (event) {
         var row = event.target.closest('tr[data-number]');
@@ -551,6 +612,7 @@
     el.detailRefreshBtn.addEventListener('click', function () {
         if (state.currentKotazh) { loadDetail(state.currentKotazh); }
     });
+    document.getElementById('detailPrintBtn').addEventListener('click', function () { window.print(); });
 
     document.querySelectorAll('.chip[data-filter]').forEach(function (chip) {
         chip.addEventListener('click', function () {

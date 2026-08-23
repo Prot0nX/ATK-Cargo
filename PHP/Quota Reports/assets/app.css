@@ -887,6 +887,26 @@ textarea {
     border-radius: 999px;
 }
 
+.progress-fill.is-warning::-webkit-progress-value {
+    background: var(--warning);
+}
+
+.progress-fill.is-warning::-moz-progress-bar {
+    background: var(--warning);
+}
+
+.badge-warning {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
+.cell-status-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
 .cell-progress {
     min-width: 120px;
 }
@@ -1061,4 +1081,61 @@ textarea {
 
 .chart-legend-line {
     background: var(--success);
+}
+
+.data-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.data-table th[data-sort]:hover {
+    color: var(--text);
+}
+
+.data-table th[data-sort]::after {
+    display: inline-block;
+    width: 1em;
+    margin-inline-start: 4px;
+    content: '';
+}
+
+.data-table th[data-sort-dir='asc']::after {
+    content: '▲';
+}
+
+.data-table th[data-sort-dir='desc']::after {
+    content: '▼';
+}
+
+@media print {
+    .topbar,
+    .toolbar,
+    .date-filter-row,
+    .back-link,
+    .toasts,
+    dialog {
+        display: none !important;
+    }
+
+    body {
+        background: #fff;
+        color: #000;
+    }
+
+    .container {
+        max-width: none;
+        padding: 0;
+    }
+
+    .stat,
+    .chart-card,
+    .table-wrap {
+        border-color: #ccc;
+        box-shadow: none;
+        break-inside: avoid;
+    }
+
+    .data-table {
+        white-space: normal;
+    }
 }

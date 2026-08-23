@@ -75,6 +75,10 @@ $theme = qr_theme();
                         <svg class="icon" aria-hidden="true"><use href="#refresh"></use></svg>
                         <span>بازخوانی</span>
                     </button>
+                    <button type="button" class="btn btn-ghost" id="dashboardPrintBtn">
+                        <svg class="icon" aria-hidden="true"><use href="#printer"></use></svg>
+                        <span>چاپ</span>
+                    </button>
                     <a class="btn btn-ghost" id="exportSummaryExcel" href="export.php?format=excel&amp;scope=summary">
                         <svg class="icon" aria-hidden="true"><use href="#file-excel"></use></svg>
                         <span>خروجی کامل داشبورد</span>
@@ -85,16 +89,16 @@ $theme = qr_theme();
             <section class="table-wrap">
                 <table class="data-table">
                     <thead>
-                        <tr>
-                            <th scope="col">کوتاژ</th>
-                            <th scope="col">انبار</th>
-                            <th scope="col">شرکت حمل</th>
-                            <th scope="col">کالا</th>
-                            <th scope="col">تناژ کل (تن)</th>
-                            <th scope="col">باقی‌مانده (تن)</th>
-                            <th scope="col">درصد بارگیری</th>
-                            <th scope="col">حواله خروج</th>
-                            <th scope="col">وضعیت</th>
+                        <tr id="quotasHeaderRow">
+                            <th scope="col" data-sort="number">کوتاژ</th>
+                            <th scope="col" data-sort="warehouse">انبار</th>
+                            <th scope="col" data-sort="shippingCompany">شرکت حمل</th>
+                            <th scope="col" data-sort="cargoType">کالا</th>
+                            <th scope="col" data-sort="totalTonnage">تناژ کل (تن)</th>
+                            <th scope="col" data-sort="remainingTonnage">باقی‌مانده (تن)</th>
+                            <th scope="col" data-sort="percentageLoaded">درصد بارگیری</th>
+                            <th scope="col" data-sort="exitVoucherCount">حواله خروج</th>
+                            <th scope="col" data-sort="isActive">وضعیت</th>
                         </tr>
                     </thead>
                     <tbody id="quotasBody"></tbody>
@@ -174,6 +178,10 @@ $theme = qr_theme();
                     <button type="button" class="btn btn-ghost" id="detailRefreshBtn">
                         <svg class="icon" aria-hidden="true"><use href="#refresh"></use></svg>
                         <span>بازخوانی</span>
+                    </button>
+                    <button type="button" class="btn btn-ghost" id="detailPrintBtn">
+                        <svg class="icon" aria-hidden="true"><use href="#printer"></use></svg>
+                        <span>چاپ</span>
                     </button>
                     <div class="export-actions" role="group" aria-label="خروجی گزارش">
                         <a class="btn-icon" id="exportExcel" title="خروجی Excel" href="#">
