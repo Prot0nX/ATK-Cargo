@@ -1136,7 +1136,31 @@ textarea {
     content: '▼';
 }
 
+@page {
+    margin: 14mm 10mm;
+}
+
 @media print {
+    /* توکن‌های روشن اجباری، صرف‌نظر از پوسته‌ی فعال — همه‌ی کامپوننت‌ها از همین متغیرها رنگ می‌گیرند */
+    :root {
+        --bg: #fff;
+        --surface: #fff;
+        --surface-alt: #f2f4f7;
+        --border: #ccc;
+        --border-strong: #999;
+        --text: #000;
+        --text-muted: #444;
+        --accent: #2563eb;
+        --accent-soft: #eaf0fe;
+        --success: #167c4a;
+        --success-soft: #e6f4ec;
+        --warning: #9a6206;
+        --warning-soft: #fdf3e2;
+        --danger: #b42318;
+        --danger-soft: #fdeceb;
+        --shadow-overlay: none;
+    }
+
     .topbar,
     .toolbar,
     .date-filter-row,
@@ -1149,6 +1173,7 @@ textarea {
     body {
         background: #fff;
         color: #000;
+        font-size: 11px;
     }
 
     .container {
@@ -1156,15 +1181,39 @@ textarea {
         padding: 0;
     }
 
+    .stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
     .stat,
-    .chart-card,
-    .table-wrap {
-        border-color: #ccc;
+    .chart-card {
         box-shadow: none;
         break-inside: avoid;
     }
 
+    .table-wrap {
+        overflow: visible;
+        box-shadow: none;
+    }
+
     .data-table {
         white-space: normal;
+    }
+
+    .data-table thead {
+        display: table-header-group;
+    }
+
+    .data-table tr {
+        break-inside: avoid;
+    }
+
+    .chart-scroll {
+        overflow: visible;
+    }
+
+    .chart-svg {
+        width: 100%;
+        height: auto;
     }
 }
