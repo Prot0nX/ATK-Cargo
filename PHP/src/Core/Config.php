@@ -30,6 +30,10 @@ class Config {
  // رمز پنل گزارش آماری کوتاژ — مستقل از سه رمز بالا
             'quota_reports_admin_password_hash' => self::env('QUOTA_REPORTS_ADMIN_PASSWORD_HASH', ''),
             'quota_reports_session_idle_timeout' => (int)(self::env('QUOTA_REPORTS_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
+
+ // رمز پنل مدیریت کاربران آنلاین — مستقل از چهار رمز بالا
+            'online_users_admin_password_hash' => self::env('ONLINE_USERS_ADMIN_PASSWORD_HASH', ''),
+            'online_users_session_idle_timeout' => (int)(self::env('ONLINE_USERS_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
         ];
 
     }

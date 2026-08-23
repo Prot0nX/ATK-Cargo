@@ -163,6 +163,30 @@ class SessionRepository {
         return $stmt->rowCount();
     }
 
+ // غیرفعال کردن همه‌ی جلسات فعال سیستم (صرف‌نظر از کاربر) — برای «خروج همه کاربران» پنل مدیریت کاربران آنلاین
+    public function deactivateAllActiveSessions(): int {
+        $stmt = $this->db->prepare("UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE is_active = 1");
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
+
+ // شناسه‌ی جلسات فعال بر اساس نقش کاربری — با $exclude=true یعنی «همه به‌جز این نقش‌ها»؛ برای «خروج دسته‌جمعی با فیلتر نقش»
+    public function getActiveSessionIdsByUserType(array $userTypes, bool $exclude = false): array {
+        if (empty($userTypes)) {
+            return [];
+        }
+        $placeholders = str_repeat('?,', count($userTypes) - 1) . '?';
+        $operator = $exclude ? 'NOT IN' : 'IN';
+        $stmt = $this->db->prepare("
+            SELECT us.id
+            FROM user_sessions us
+            JOIN Users u ON us.username = u.username
+            WHERE us.is_active = 1 AND u.userType $operator ($placeholders)
+        ");
+        $stmt->execute($userTypes);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
  // غیرفعال کردن جلسه بر اساس نام کاربری و دستگاه خاص
     public function deactivateSessionByDevice(string $username, string $deviceId): int {
         $stmt = $this->db->prepare("
@@ -257,6 +281,25 @@ class SessionRepository {
             ORDER BY us.last_activity DESC, us.login_time DESC
             LIMIT 5000
         ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+ // دریافت همه‌ی جلسات (آنلاین و آفلاین) طی بازه‌ی اخیر — برای گرید تاریخ‌محورِ پنل مدیریت کاربران آنلاین.
+ // برخلاف getOnlineUsers فیلتر is_active ندارد اما برای جلوگیری از dump نامحدود به ۹۰ روز اخیر محدود می‌شود.
+    public function getAllSessions(int $days = 90): array {
+        $stmt = $this->db->prepare("
+            SELECT us.id, us.username, u.userType, us.device_model, us.device_id, us.app_version,
+                   us.login_time, us.last_activity, us.logout_time, us.ip_address, us.is_active,
+                   TIMESTAMPDIFF(SECOND, us.login_time, COALESCE(us.logout_time, NOW())) as online_duration,
+                   TIMESTAMPDIFF(SECOND, COALESCE(us.last_activity, us.login_time), NOW()) as idle_time
+            FROM user_sessions us
+            JOIN Users u ON us.username = u.username
+            WHERE us.login_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+            ORDER BY us.login_time DESC
+            LIMIT 5000
+        ");
+        $stmt->bindValue(':days', $days, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();
     }

@@ -1,0 +1,615 @@
+/* پنل مدیریت کاربران آنلاین ATK — ویجت‌های اختصاصی این پنل. توکن‌ها و کامپوننت‌های
+   پایه (دکمه، فرم، جدول، دیالوگ، توست، نوار بالا، badge، chip و ...) در
+   ../assets/ui/core.css تعریف شده‌اند و اینجا فقط تکمیل می‌شوند. */
+
+.stats {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* --- نوار بالای بازخوانی خودکار در topbar ------------------------------------- */
+.autorefresh-check {
+    margin-inline-end: var(--space-2);
+}
+
+.refresh-timer {
+    font-variant-numeric: tabular-nums;
+}
+
+/* آیکون در حال بازخوانی؛ چون style inline با CSP این پنل مسدود است، spin با کلاس اعمال می‌شود. */
+.icon.is-spinning {
+    animation: ou-spin .7s linear infinite;
+}
+
+@keyframes ou-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- کارت نوار ابزار + فیلترها (جایگزین table-wrap برای بخش‌هایی که جدول ندارند) --- */
+.toolbar-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    margin-block-end: var(--space-5);
+    overflow: hidden;
+}
+
+.toolbar-card-row {
+    padding: var(--space-4);
+    margin-block-end: 0;
+}
+
+/* کارت «آخرین بروزرسانی» متن جهت‌دار LTR دارد (ساعت/تاریخ)، پس اندازه‌ی فونتش کوچک‌تر است. */
+.stat-value-text {
+    font-size: 1.1rem;
+    letter-spacing: 0;
+}
+
+/* --- گرید کارت‌های کاربر ---------------------------------------------------- */
+.user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-4);
+}
+
+/* --- فهرست گروه‌های روزانه: هر روز یک ردیف کامل، زیر هم — نه کنار هم --------- */
+.date-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* --- گروه‌بندی روزانه (آکاردئون) -------------------------------------------- */
+.date-group {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.date-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-4) var(--space-5);
+    border: none;
+    background: var(--surface-sunken);
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+.date-group-header:hover {
+    background: var(--surface-alt);
+}
+
+.date-group-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.date-group-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.date-group-label {
+    display: block;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+}
+
+.date-group-count {
+    display: block;
+    margin-block-start: 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.chevron-icon {
+    color: var(--text-subtle);
+    transition: transform var(--dur) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.date-group-header:hover .chevron-icon,
+#filtersToggle:hover .chevron-icon {
+    color: var(--accent);
+}
+
+.date-group-header[aria-expanded='true'] .chevron-icon,
+#filtersToggle[aria-expanded='true'] .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.date-group-body {
+    padding: var(--space-4);
+}
+
+.date-group-body.is-hidden {
+    display: none;
+}
+
+/* --- کارت کاربر -------------------------------------------------------------- */
+.user-card {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: border-color var(--dur-fast) var(--ease-standard),
+        background-color var(--dur-fast) var(--ease-standard);
+}
+
+.user-card:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-alt);
+}
+
+.user-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-block-end: var(--space-4);
+}
+
+.user-card-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.user-card-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+}
+
+.user-card-avatar.is-role-admin {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
+.user-card-avatar.is-role-operator {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.user-card-avatar.is-role-verifier {
+    background: var(--success-soft);
+    color: var(--success);
+}
+
+.user-card-status-dot {
+    position: absolute;
+    inset-block-end: -1px;
+    inset-inline-end: -1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid var(--surface);
+    background: var(--danger);
+}
+
+.user-card-status-dot.is-online {
+    background: var(--success);
+    animation: ou-status-pulse 2.4s var(--ease-standard) infinite;
+}
+
+@keyframes ou-status-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .45;
+    }
+}
+
+.user-card-name-group {
+    min-width: 0;
+}
+
+.user-card-name {
+    display: block;
+    overflow: hidden;
+    font-weight: 700;
+    font-size: var(--fs-lg);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-card-role {
+    margin-block-start: 2px;
+}
+
+/* --- منوی کشویی کارت (سه‌نقطه) ------------------------------------------------ */
+.user-card-menu {
+    position: relative;
+}
+
+.user-card-menu-panel {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-start: calc(100% + 4px);
+    z-index: var(--z-sticky);
+    width: 200px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-overlay);
+}
+
+.user-card-menu-panel.is-hidden {
+    display: none;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: var(--fs-sm);
+    text-align: start;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard);
+}
+
+.menu-item:hover {
+    background: var(--surface-alt);
+}
+
+.menu-item.is-danger {
+    color: var(--danger);
+}
+
+.menu-item.is-danger:hover {
+    background: var(--danger-soft);
+}
+
+.menu-item .icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+}
+
+.menu-item.is-danger .icon {
+    color: var(--danger);
+}
+
+/* --- بدنه‌ی کارت: ردیف‌های متا -------------------------------------------------- */
+.user-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-block-end: var(--space-4);
+}
+
+.user-card-meta-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.user-card-meta-row .icon {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    color: var(--text-subtle);
+}
+
+.user-card-meta-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+}
+
+.user-card-footer {
+    display: flex;
+    gap: var(--space-2);
+    margin-block-start: auto;
+    padding-block-start: var(--space-3);
+    border-block-start: 1px solid var(--border);
+}
+
+.user-card-footer .btn {
+    flex: 1;
+}
+
+/* --- حالت اسکلت لودینگ -------------------------------------------------------- */
+.user-card-skeleton {
+    height: 190px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+    animation: atk-loading-pulse 1.4s var(--ease-standard) infinite;
+}
+
+/* --- حالت خالی ---------------------------------------------------------------- */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-7) var(--space-4);
+    text-align: center;
+}
+
+.empty-state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    margin-block-end: var(--space-4);
+    border-radius: 50%;
+    background: var(--surface-alt);
+    color: var(--text-subtle);
+}
+
+.empty-state-icon .icon {
+    width: 32px;
+    height: 32px;
+}
+
+.empty-state h3 {
+    margin-block-end: var(--space-2);
+}
+
+.empty-state p {
+    max-width: 32em;
+    color: var(--text-muted);
+}
+
+.empty-state .btn {
+    margin-block-start: var(--space-5);
+}
+
+/* --- ردیف فیلترهای پیشرفته (بازه/وضعیت/نقش) ------------------------------------ */
+.filters-panel {
+    display: none;
+    padding: var(--space-4);
+    border-block-start: 1px solid var(--border);
+    background: var(--surface-sunken);
+}
+
+.filters-panel.is-open {
+    display: block;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+}
+
+.filter-group-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-block-end: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: var(--tracking-caps);
+}
+
+.filter-group-label .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.filters-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-3);
+    border-block-start: 1px dashed var(--border);
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+}
+
+/* --- منوی کشویی مدیریت خروج در نوار ابزار -------------------------------------- */
+.logout-menu {
+    position: relative;
+}
+
+.logout-menu-panel {
+    position: absolute;
+    inset-inline-end: 0;
+    inset-block-start: calc(100% + 6px);
+    z-index: var(--z-sticky);
+    width: 230px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-overlay);
+}
+
+.logout-menu-panel.is-hidden {
+    display: none;
+}
+
+/* --- دیالوگ آمار پیشرفته: عریض‌تر از dialog پایه چون چند کارت کنار هم دارد ------- */
+.dialog-lg {
+    width: min(720px, calc(100vw - 32px));
+}
+
+/* عنوان دیالوگ با آیکون؛ به‌جای هک vertical-align روی svg، خود h2 فلکس می‌شود. */
+.dialog-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* --- دیالوگ تأیید خروج (وسط‌چین) ------------------------------------------------ */
+.confirm-body {
+    text-align: center;
+}
+
+.confirm-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto var(--space-4);
+    border-radius: 50%;
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.confirm-body h2 {
+    margin-block-end: var(--space-2);
+}
+
+.confirm-footer {
+    justify-content: center;
+}
+
+/* --- کارت‌های آمار پیشرفته داخل دیالوگ ------------------------------------------ */
+.stat-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-3);
+    margin-block-end: var(--space-5);
+}
+
+.stat-mini {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+}
+
+.role-bar-section {
+    margin-block: var(--space-3) var(--space-5);
+}
+
+.role-bar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block-end: var(--space-3);
+}
+
+.role-bar-label {
+    min-width: 6em;
+}
+
+.role-bar-percent {
+    min-width: 3em;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.device-bar-name {
+    min-width: 10em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-bar-count {
+    min-width: 5em;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.role-bar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+/* عنصر بومی <progress> برای نوارهای درصد این دیالوگ — بدون style inline که CSP این پنل مسدودش
+   می‌کند؛ درصد با ویژگی value تنظیم می‌شود، نه width محاسبه‌شده در JS. */
+.progress-fill {
+    display: block;
+    appearance: none;
+    border: none;
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+}
+
+.progress-fill::-webkit-progress-bar {
+    background: var(--surface-sunken);
+    border-radius: var(--radius-pill);
+}
+
+.progress-fill::-webkit-progress-value {
+    background: var(--accent);
+    border-radius: var(--radius-pill);
+    transition: width var(--dur-slow) var(--ease-out);
+}
+
+.progress-fill::-moz-progress-bar {
+    background: var(--accent);
+    border-radius: var(--radius-pill);
+}
+
+.role-bar-track {
+    flex: 1;
+    height: 8px;
+}
+
+/* --- واکنش‌گرایی اختصاصی این پنل ------------------------------------------------ */
+@media (max-width: 900px) {
+    .stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .stats {
+        grid-template-columns: 1fr;
+    }
+
+    .user-grid {
+        grid-template-columns: 1fr;
+    }
+}

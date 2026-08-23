@@ -1198,6 +1198,9 @@ textarea:disabled {
     inset-block-start: var(--space-4);
     inset-inline-end: var(--space-4);
     z-index: var(--z-toast);
+    /* بدون max-width، این باکس position:fixed با یک متن بلند (مثلاً پیام خطای طولانی) به شکل
+       shrink-to-fit تا هر عرضی رشد می‌کند و در صفحه‌ی موبایل از viewport بیرون می‌زند. */
+    max-width: min(360px, calc(100vw - 32px));
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
@@ -1211,6 +1214,7 @@ textarea:disabled {
     background: var(--surface);
     box-shadow: var(--shadow-overlay);
     font-size: var(--fs-md);
+    overflow-wrap: break-word;
     contain: layout style;
     animation: atk-toast-in var(--dur-slow) var(--ease-out);
 }
