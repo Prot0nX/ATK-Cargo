@@ -1,671 +1,341 @@
-/* استایل اختصاصی پنل مدیریت دسترسی‌ها (PermissionManager). */
+/* PHP/assets/permission-manager.css — ویجت‌های اختصاصی پنل مدیریت دسترسی (PermissionManager) روی توکن‌های assets/ui/core.css. */
 
-:root {
- --font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    
- /* پالت رنگی تم روشن. */
- --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
- --panel-bg: rgba(255, 255, 255, 0.85);
- --panel-border: rgba(255, 255, 255, 0.4);
- --card-bg: rgba(255, 255, 255, 0.6);
- --card-border: rgba(226, 232, 240, 0.8);
- --card-hover-bg: rgba(255, 255, 255, 0.95);
-    
- --text-main: #0f172a;
- --text-muted: #64748b;
- --text-inverse: #ffffff;
-    
- --primary: #2563eb;
- --primary-hover: #1d4ed8;
- --primary-light: rgba(37, 99, 235, 0.1);
-    
- --success: #10b981;
- --warning: #f59e0b;
- --danger: #ef4444;
- --danger-bg: rgba(239, 68, 68, 0.1);
-    
- --input-bg: #ffffff;
- --input-border: #cbd5e1;
- --input-focus: #2563eb;
-    
- --radius-sm: 8px;
- --radius-md: 12px;
- --radius-lg: 20px;
- --radius-full: 9999px;
-    
- --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
- --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
- --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
- --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+.mono {
+    font-family: var(--font-mono);
+    font-size: var(--fs-md);
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
-[data-theme="dark"] {
- --bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e293b 100%);
- --panel-bg: rgba(15, 23, 42, 0.85);
- --panel-border: rgba(255, 255, 255, 0.1);
- --card-bg: rgba(30, 41, 59, 0.6);
- --card-border: rgba(51, 65, 85, 0.6);
- --card-hover-bg: rgba(30, 41, 59, 0.9);
-    
- --text-main: #f8fafc;
- --text-muted: #94a3b8;
- --text-inverse: #0f172a;
-    
- --primary: #3b82f6;
- --primary-hover: #60a5fa;
- --primary-light: rgba(59, 130, 246, 0.15);
-    
- --input-bg: #1e293b;
- --input-border: #475569;
- --input-focus: #3b82f6;
+.stat-value-date {
+    font-size: var(--fs-xl);
+    font-family: var(--font-mono);
+    direction: ltr;
+    unicode-bidi: isolate;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: var(--font-family);
-    -webkit-font-smoothing: antialiased;
-}
-
-body {
-    background: var(--bg-gradient);
-    min-height: 100vh;
+.alert-info {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    color: var(--text-main);
+    align-items: flex-start;
+    gap: var(--space-2);
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
+    color: var(--text);
 }
 
-/* کانتینر اصلی و پنل شیشه‌ای. */
-.container {
-    width: 100%;
-    max-width: 1000px;
-    margin: 0 auto;
+.alert-info .icon {
+    flex: none;
+    margin-block-start: 2px;
+    color: var(--accent);
 }
 
-.glass-panel {
-    background: var(--panel-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-glass);
-    padding: 32px;
-    transition: all 0.3s ease;
+.alert-info code {
+    padding: 1px 5px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
 }
 
-/* بخش هدر و نوار بالا. */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--card-border);
+/* پنل فرم — ظرف بوردردار عمومی برای بخش انتخاب هدف + شبکه‌ی دسترسی‌ها. */
+.panel {
+    padding: var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
 }
 
-.header-titles h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 4px;
-}
-
-.header-titles p {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* قالب و کانتینر فرم ورود. */
-.login-wrapper {
-    max-width: 400px;
-    margin: 40px auto;
-    text-align: center;
-}
-
-.login-icon {
-    width: 64px;
-    height: 64px;
-    background: var(--primary-light);
-    color: var(--primary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-}
-
-.login-icon svg {
-    width: 32px;
-    height: 32px;
-}
-
-.login-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.login-subtitle {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-bottom: 24px;
-}
-
-.login-input-wrapper {
-    position: relative;
-    margin-bottom: 16px;
-}
-
-.login-input-wrapper input {
-    width: 100%;
-    padding: 12px 16px 12px 44px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--input-border);
-    background: var(--input-bg);
-    color: var(--text-main);
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.login-input-wrapper input:focus {
-    border-color: var(--input-focus);
-}
-
-.login-input-wrapper svg {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-}
-
-.login-error {
-    background: var(--danger-bg);
-    color: var(--danger);
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-/* نوار آمار و اطلاعات کلی. */
-.stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.stat-chip {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius-md);
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.stat-chip svg {
-    width: 20px;
-    height: 20px;
-    color: var(--primary);
-    flex-shrink: 0;
-}
-
-.stat-value {
-    font-weight: 700;
-    color: var(--text-main);
-    margin-right: auto;
-}
-
-/* تب‌های ناوبری. */
-.tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    background: var(--card-bg);
-    padding: 6px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--card-border);
-}
-
-.tab {
-    flex: 1;
-    padding: 10px 16px;
-    text-align: center;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-}
-
-.tab svg {
-    width: 18px;
-    height: 18px;
-}
-
-.tab.active {
-    background: var(--primary);
-    color: #ffffff;
-    box-shadow: var(--shadow-sm);
-}
-
-/* کنترل‌های فرم و منوهای کشویی. */
 .control-group {
-    margin-bottom: 20px;
+    max-width: 420px;
+    margin-block-end: var(--space-4);
 }
 
-.control-group label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-main);
-}
-
-.select-wrapper {
-    position: relative;
-}
-
-.select-wrapper select {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--input-border);
-    background: var(--input-bg);
-    color: var(--text-main);
-    font-size: 0.95rem;
-    appearance: none;
-    outline: none;
-    cursor: pointer;
-}
-
-.select-wrapper svg {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    color: var(--text-muted);
-    pointer-events: none;
-}
-
-/* منوی کشویی با قابلیت جستجو. */
+/* دراپ‌داون جستجوپذیر کاربر ------------------------------------------------- */
 .searchable-dropdown {
     position: relative;
 }
 
 .sd-input-wrapper {
+    position: relative;
     display: flex;
     align-items: center;
-    padding: 10px 16px;
-    background: var(--input-bg);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    gap: 10px;
-    transition: border-color 0.2s;
+    min-height: var(--control-h);
+    padding-inline: 38px 34px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: text;
+    transition: border-color var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
 }
 
-.sd-search-icon, .sd-chevron {
-    color: var(--text-muted);
-    flex-shrink: 0;
+.sd-input-wrapper:hover {
+    border-color: var(--border-strong);
+}
+
+.searchable-dropdown.is-open .sd-input-wrapper {
+    border-color: var(--accent);
+    box-shadow: var(--ring);
+}
+
+.sd-search-icon {
+    position: absolute;
+    inset-inline-start: 12px;
+    color: var(--text-subtle);
+    pointer-events: none;
 }
 
 .sd-search-input {
-    border: none;
-    background: transparent;
-    color: var(--text-main);
-    font-size: 0.95rem;
-    outline: none;
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
+    padding-inline: 38px 34px;
+    border: 0;
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.searchable-dropdown.is-open .sd-search-input {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.searchable-dropdown.is-open #sdSelectedLabel {
+    opacity: 0;
+}
+
+#sdSelectedLabel {
+    overflow: hidden;
+    font-size: var(--fs-md);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: opacity var(--dur-fast) var(--ease-standard);
 }
 
 .sd-placeholder {
-    font-size: 0.95rem;
-    color: var(--text-muted);
+    color: var(--text-subtle);
 }
 
 .sd-clear-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 2px;
+    position: absolute;
+    inset-inline-end: 34px;
+    width: 24px;
+    height: 24px;
+}
+
+.sd-chevron {
+    position: absolute;
+    inset-inline-end: 10px;
+    color: var(--text-subtle);
+    pointer-events: none;
+    transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.searchable-dropdown.is-open .sd-chevron {
+    transform: rotate(180deg);
 }
 
 .sd-dropdown-list {
     position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    left: 0;
-    background: var(--input-bg);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-md);
-    max-height: 220px;
+    inset-inline: 0;
+    inset-block-start: calc(100% + 4px);
+    z-index: var(--z-sticky);
+    max-height: 260px;
     overflow-y: auto;
-    z-index: 100;
-    box-shadow: var(--shadow-lg);
     display: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-overlay);
+}
+
+.searchable-dropdown.is-open .sd-dropdown-list {
+    display: block;
 }
 
 .sd-option {
-    padding: 10px 16px;
+    padding: 8px 12px;
     cursor: pointer;
-    border-bottom: 1px solid var(--card-border);
-    transition: background 0.15s;
+    transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
-.sd-option:last-child {
-    border-bottom: none;
+.sd-option:hover,
+.sd-option.focused {
+    background: var(--surface-alt);
 }
 
-.sd-option:hover {
-    background: var(--primary-light);
+.sd-option + .sd-option {
+    border-block-start: 1px solid var(--border);
 }
 
 .sd-option-main {
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-size: var(--fs-md);
 }
 
 .sd-option-sub {
-    font-size: 0.75rem;
     color: var(--text-muted);
-    margin-top: 2px;
+    font-size: var(--fs-xs);
 }
 
 .sd-empty {
-    padding: 16px;
-    text-align: center;
+    padding: var(--space-4);
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
+    text-align: center;
 }
 
-/* کادرهای پیام و هشدار. */
-.alert {
-    padding: 14px 18px;
-    border-radius: var(--radius-md);
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    font-size: 0.875rem;
-    margin-bottom: 24px;
-}
-
-.alert-info {
-    background: rgba(37, 99, 235, 0.1);
-    border: 1px solid rgba(37, 99, 235, 0.2);
-    color: var(--primary);
-}
-
-/* کارت‌های گرید سطوح دسترسی. */
+/* شبکه‌ی دسترسی‌ها --------------------------------------------------------- */
 .permissions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    margin-bottom: 28px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-3);
+    margin-block: var(--space-5);
 }
 
 .perm-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: var(--radius-md);
-    padding: 16px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color var(--dur-fast) var(--ease-standard),
+        background-color var(--dur-fast) var(--ease-standard);
 }
 
 .perm-card:hover {
-    background: var(--card-hover-bg);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--primary);
+    border-color: var(--border-strong);
+    background: var(--surface-alt);
+}
+
+.perm-card:has(.toggle-switch input:checked) {
+    border-color: var(--accent-border);
+    background: var(--accent-soft);
 }
 
 .perm-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
+    min-width: 0;
 }
 
 .perm-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-sm);
-    background: var(--primary-light);
-    color: var(--primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    flex: none;
+    color: var(--text-muted);
+    transition: color var(--dur-fast) var(--ease-standard);
 }
 
-.perm-icon svg {
-    width: 20px;
-    height: 20px;
+.perm-card:has(.toggle-switch input:checked) .perm-icon {
+    color: var(--accent);
 }
 
 .perm-label {
-    font-size: 0.9rem;
-    font-weight: 600;
+    overflow: hidden;
+    font-size: var(--fs-md);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* سوییچ‌های تغییر وضعیت. */
+/* کلید سوییچ — ریل ثابت + دستگیره‌ی متحرک، فقط transform/رنگ تغییر می‌کند. */
 .toggle-switch {
     position: relative;
-    width: 46px;
+    display: inline-block;
+    flex: none;
+    width: 40px;
     height: 24px;
 }
 
 .toggle-switch input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
     opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
     cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: var(--input-border);
-    transition: .3s;
-    border-radius: 24px;
 }
 
-.slider:before {
+.toggle-switch .slider {
     position: absolute;
-    content: "";
-    height: 18px;
+    inset: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--surface-sunken);
+    transition: background-color var(--dur) var(--ease-standard),
+        border-color var(--dur) var(--ease-standard);
+}
+
+.toggle-switch .slider::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
     width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .3s;
+    height: 18px;
     border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--shadow-xs);
+    transition: transform var(--dur) var(--ease-out);
 }
 
-input:checked + .slider {
-    background-color: var(--primary);
+.toggle-switch input:checked + .slider {
+    border-color: var(--accent);
+    background: var(--accent);
 }
 
-input:checked + .slider:before {
-    transform: translateX(22px);
+.toggle-switch input:checked + .slider::before {
+    transform: translateX(calc(-1 * (40px - 18px - 4px)));
+    background: var(--on-accent);
 }
 
-/* دکمه‌های عملیاتی. */
-.btn-primary {
-    background: var(--primary);
-    color: #ffffff;
-    border: none;
-    padding: 12px 24px;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.2s, transform 0.1s;
+.toggle-switch input:focus-visible + .slider {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
-.btn-primary:hover {
-    background: var(--primary-hover);
-}
-
-.btn-primary:active {
-    transform: scale(0.98);
-}
-
-.btn-outline-danger {
-    background: transparent;
-    border: 1px solid var(--danger);
+/* چک‌باکس خطرناک (حذف تنظیم اختصاصی) */
+.field-check-danger {
     color: var(--danger);
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
+    font-size: var(--fs-sm);
 }
 
-.btn-outline-danger:hover {
-    background: var(--danger);
-    color: #ffffff;
+.field-check-danger input {
+    accent-color: var(--danger);
 }
 
-.icon-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    color: var(--text-main);
-    width: 38px;
-    height: 38px;
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.icon-btn:hover {
-    background: var(--card-hover-bg);
-}
-
+/* فوتر فرم */
 .footer-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 20px;
-    border-top: 1px solid var(--card-border);
     flex-wrap: wrap;
-    gap: 16px;
-}
-
-.checkbox-danger {
-    display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--danger);
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-/* نشان و پاورقی. */
-.panel-footer {
-    display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--card-border);
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    gap: var(--space-3);
+    padding-block-start: var(--space-4);
+    border-block-start: 1px solid var(--border);
 }
 
-.panel-footer-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--primary-light);
-    color: var(--primary);
-    padding: 4px 10px;
-    border-radius: var(--radius-full);
-    font-weight: 600;
+.footer-actions .btn {
+    margin-inline-start: auto;
 }
 
-/* پیام‌های شناور توست. */
-#toast-container {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
+@media (max-width: 600px) {
+    .permissions-grid {
+        grid-template-columns: 1fr;
+    }
 
-.toast {
-    background: var(--panel-bg);
-    border: 1px solid var(--card-border);
-    backdrop-filter: blur(12px);
-    padding: 12px 18px;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.875rem;
-    min-width: 260px;
-    animation: fadeIn 0.3s ease;
-}
+    .footer-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-.toast-success { border-right: 4px solid var(--success); }
-.toast-error { border-right: 4px solid var(--danger); }
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; transform: translateY(0); }
-    to { opacity: 0; transform: translateY(-10px); }
-}
-
-/* تنظیمات واکنش‌گرایی برای صفحات نمایش کوچک. */
-@media (max-width: 640px) {
-    .glass-panel { padding: 20px; }
-    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    .permissions-grid { grid-template-columns: 1fr; }
-    .footer-actions { flex-direction: column; align-items: stretch; }
-    .btn-primary { width: 100%; justify-content: center; }
+    .footer-actions .btn {
+        margin-inline-start: 0;
+    }
 }
