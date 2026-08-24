@@ -484,7 +484,7 @@ private fun IndustrialLoginFormCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "نام کاربری و رمز عبور عددی خود را وارد کنید",
+                    text = "نام کاربری و رمز عبور خود را وارد کنید",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -516,9 +516,9 @@ private fun IndustrialLoginFormCard(
             IndustrialInputField(
                 value = formState.password,
                 onValueChange = onPasswordChanged,
-                label = "رمز عبور (فقط عدد)",
+                label = "رمز عبور",
                 placeholder = "••••",
-                fieldDescription = "فیلد رمز عبور عددی",
+                fieldDescription = "فیلد رمز عبور",
                 trailingIcon = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -549,7 +549,7 @@ private fun IndustrialLoginFormCard(
                 },
                 isPassword = true,
                 passwordVisible = formState.isPasswordVisible,
-                keyboardType = KeyboardType.NumberPassword,
+                keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
                 keyboardActions = KeyboardActions(
                     onDone = {

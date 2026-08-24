@@ -64,9 +64,9 @@ class AuthViewModel(
         }
     }
 
- // به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم و ریست خطا
+ // به‌روزرسانی رمز عبور در حالت فرم و ریست خطا
     fun onPasswordChanged(value: String) {
-        _formState.update { it.copy(password = value.filter { c -> c.isDigit() }) }
+        _formState.update { it.copy(password = value) }
         if (_loginState.value is LoginUiState.Error) {
             _loginState.value = LoginUiState.Idle
         }
