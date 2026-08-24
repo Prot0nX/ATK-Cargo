@@ -13,8 +13,7 @@ use App\Services\LoginAttemptLimiter;
 
 qr_send_page_headers();
 
-// اگر پنل دیگری (مثلاً Realtime_Dashboard) کاربر را برای ورود به این‌جا فرستاده، بعد از ورود باید
-// به همان‌جا برگردیم، نه همیشه به index.php همین پنل — قبلاً این پارامتر اصلاً در نظر گرفته نمی‌شد.
+// اگر پنل دیگری (مثلاً Realtime_Dashboard) کاربر را برای ورود به این‌جا فرستاده، بعد از ورود باید به همان‌جا برگردیم، نه همیشه به index.php همین پنل — قبلاً این پارامتر اصلاً در نظر گرفته نمی‌شد.
 $returnTo = qr_sanitize_return($_GET['return'] ?? ($_POST['return'] ?? null)) ?? 'index.php';
 
 if (qr_is_authenticated()) {

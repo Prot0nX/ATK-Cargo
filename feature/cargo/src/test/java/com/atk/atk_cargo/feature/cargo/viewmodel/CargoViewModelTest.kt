@@ -155,7 +155,7 @@ class CargoViewModelTest {
         assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
- // dismissDuplicateDialog seeded via a real duplicate load, not a test-only setter.
+ // بستن دیالوگ حواله تکراری با شبیه‌سازی بارگذاری واقعی حواله تکراری.
     @Test
     fun `dismissDuplicateDialog - clears duplicate state after a duplicate load`() = runTest(dispatcher) {
         stubCargoInfo(
@@ -172,7 +172,7 @@ class CargoViewModelTest {
 
  // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست؛ به یک derived value محلی در CargoDetailsScreen.kt منتقل شد و اینجا قابل‌تست نیست
 
- // ===== updateCargoConfirmation (seeded via a real load) =====
+ // تست به‌روزرسانی تأیید حواله با بارگذاری اولیه واقعی.
 
     @Test
     fun `updateCargoConfirmation - marks matching cargo confirmed and stamps missing exit time-date`() = runTest(dispatcher) {
@@ -212,7 +212,7 @@ class CargoViewModelTest {
         )
     }
 
- // ===== pure state, no seeding needed =====
+ // تست وضعیت‌های مستقل بدون نیاز به مقداردهی اولیه.
 
     @Test
     fun `updateSelectedShips - replaces selection set`() {

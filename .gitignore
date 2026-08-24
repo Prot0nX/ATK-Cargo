@@ -1,69 +1,75 @@
-# Gradle files
+# فایل‌ها و پوشه‌های خروجی بیلد گریدل.
 .gradle/
 build/
+app/build/
+.cxx/
+**/build/
+.kotlin/
+app/release/
 
-# ProGuard/R8 mapping archive (~100MB+ per release, too large for git — back up externally per release)
+
+
+# آرشیو مپینگ ProGuard و R8 برای ریلیزها.
 mapping-archive/
 
-# Local configuration file (sdk path, etc)
+# فایل‌های پیکربندی محلی محیط توسعه (مانند مسیر SDK).
 local.properties
 
-# Log/OS Files
+# فایل‌های لاگ و فایل‌های موقت سیستم‌عامل.
 *.log
+.DS_Store
+Thumbs.db
 
-# Android Studio generated files and folders
-captures/
-.externalNativeBuild/
-.cxx/
-*.apk
-output.json
-
-# IntelliJ
-*.iml
+# فایل‌ها و پوشه‌های تولیدشده توسط Android Studio و IntelliJ.
 .idea/
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
+*.iml
+.idea/modules/
+.idea/caches/
+.idea/libraries/
 
-# Keystore files
+# تنظیمات محیط کاربری در IDE.
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetDropDown.xml
+
+# فایل‌های کلید و امضای دیجیتال.
 *.jks
 *.keystore
 keystore.properties
 
-# Google Services (e.g. APIs or Firebase)
+# پیکربندی سرویس‌های Google.
 google-services.json
 
-# Android Profiling
+# فایل‌های پروفایلینگ عملکرد اندروید.
+captures/
 *.hprof
-*.salive
-*.dm
 
-# Environment / Secret Files
+# فایل‌های محیطی و محرمانه‌ها.
 .env
-*.env
+.env.local
 
-# سرور info dump (DEEP_CODE_AUDIT.md) — شامل نسخه‌های نرم‌افزار سرور، cron، پیکربندی PHP
-php_server_info_*.txt
+# فایل‌های اطلاعات سرور و گزارش‌های سیستمی.
+server_info.json
 
-# PHP composer dependencies — vendor/ لایو در web root است و نباید کامیت شود
-# (DEEP_CODE_AUDIT.md #Phase2.2). deploy باید composer install --no-dev اجرا کند.
-# .htaccess داخل vendor/ (Phase1.7) عمداً استثنا شده — باید کامیت/deploy شود.
-/PHP/vendor/*
-!/PHP/vendor/.htaccess
+# وابستگی‌های Composer در PHP (به استثنای فایل‌های htaccess محافظتی).
+PHP/vendor/*
+!PHP/vendor/.htaccess
 
-# PHP runtime state (rate-limit/login-lock/session-activity/crash-report
-# فایل‌ها) — تولیدشده در زمان اجرا، نه کد منبع. .htaccess محافظتی هر پوشه
-# عمداً استثنا شده.
-/PHP/log/*
-!/PHP/log/.htaccess
-/PHP/logs/*
-!/PHP/logs/.htaccess
+# فایل‌های وضعیت و نشست‌های موقت PHP در زمان اجرا.
+PHP/log/*
+!PHP/log/.htaccess
+PHP/logs/*
+!PHP/logs/.htaccess
 
-/app/release/baselineProfiles
+# فایل‌های خروجی و کش PHPStan.
+PHP/build/
 
-# خروجی گراف graphify — اسنپ‌شات‌های روزانه و ~۹۷ مگابایت، نباید کامیت شود
-# (DEEP_CODE_AUDIT.md فاز۳ #۳۰). فقط محلی بماند، هرکس با graphify update . خودش می‌سازد.
-/graphify-out/
+# پایگاه داده محلی SQLite.
+*.db
+*.sqlite
 
-/app/release/baselineProfiles
-php_server_info.txt
+# خروجی گراف دانش و اسنپ‌شات‌های ابزار graphify.
+graphify-out/

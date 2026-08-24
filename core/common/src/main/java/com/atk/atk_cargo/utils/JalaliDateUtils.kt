@@ -24,7 +24,7 @@ object JalaliDateUtils {
                     ldt.atZone(ZoneId.of("Asia/Tehran")).toInstant()
                 }
                 else -> {
- // Timestamp (Numeric)
+ // برچسب زمانی عددی.
                     Instant.ofEpochMilli(input.toLong())
                 }
             }
@@ -90,7 +90,7 @@ object JalaliDateUtils {
             gDayNo += gDaysInMonth[i]
         }
         
- // Leap year check for February
+ // بررسی سال کبیسه برای ماه فوریه.
         if (gm_ > 1 && ((gy_ % 4 == 0 && gy_ % 100 != 0) || (gy_ % 400 == 0))) {
             gDayNo++
         }

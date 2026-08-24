@@ -1,8 +1,4 @@
-# جلوگیری از دسترسی مستقیم HTTP به این پوشه (session_activity.log،
-# crash_reports.log). `<DirectoryMatch>` در .htaccess ریشه‌ی PHP/ نامعتبر
-# است (فقط در httpd.conf مجاز است، نه .htaccess) — این فایل مستقیم داخل
-# پوشه، تنها روش قابل‌اتکاست (DEEP_CODE_AUDIT.md، بخش Logging & Observability
-# → «نبود مانیتورینگ»). سازگار با Apache 2.2 (mod_access_compat) و 2.4.
+# مسدودسازی دسترسی مستقیم HTTP به پوشه لاگ‌ها.
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>

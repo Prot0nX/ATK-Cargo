@@ -85,7 +85,7 @@ fun ScannerGuideOverlay(
         val left = (width - scanAreaWidth) / 2
         val top = (height - scanAreaHeight) / 2
 
- // Main rectangle frame
+ // کادر اصلی مستطیل اسکن.
         drawRect(
             color = guideColor,
             topLeft = Offset(left, top),
@@ -93,10 +93,10 @@ fun ScannerGuideOverlay(
             style = Stroke(width = guideThickness)
         )
 
- // Corner indicators
+ // نشانگرهای گوشه‌های کادر.
         val cornerSize = 20f
 
- // Top-left corner
+ // گوشه بالا چپ.
         drawLine(
             color = guideColor,
             start = Offset(left, top),
@@ -110,7 +110,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
- // Top-right corner
+ // گوشه بالا راست.
         drawLine(
             color = guideColor,
             start = Offset(left + scanAreaWidth, top),
@@ -124,7 +124,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
- // Bottom-left corner
+ // گوشه پایین چپ.
         drawLine(
             color = guideColor,
             start = Offset(left, top + scanAreaHeight),
@@ -138,7 +138,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
- // Bottom-right corner
+ // گوشه پایین راست.
         drawLine(
             color = guideColor,
             start = Offset(left + scanAreaWidth, top + scanAreaHeight),
@@ -152,7 +152,7 @@ fun ScannerGuideOverlay(
             strokeWidth = guideThickness
         )
 
- // Horizontal guide line
+ // خط راهنمای افقی.
         drawLine(
             color = guideColor.copy(alpha = 0.4f),
             start = Offset(left, top + scanAreaHeight / 2),
@@ -177,7 +177,7 @@ fun EnhancedCameraPreview(
     val lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     val executor = ContextCompat.getMainExecutor(context)
 
- // Weight detection state
+ // وضعیت تشخیص وزن بار.
     var detectedNumber by remember { mutableStateOf<String?>(null) }
     var isValidWeight by remember { mutableStateOf(false) }
     var processingActive by remember { mutableStateOf(true) }
@@ -186,11 +186,11 @@ fun EnhancedCameraPreview(
     var isAIAnalyzing by remember { mutableStateOf(false) }
     var analysisSource by remember { mutableStateOf<String?>(null) }
 
- // Camera status
+ // وضعیت دوربین.
     var hasTorch by remember { mutableStateOf(false) }
     var isTorchOn by remember { mutableStateOf(false) }
 
- // Scanner guide parameters
+ // پارامترهای راهنمای اسکنر.
     val guideColor = Color.Green.copy(alpha = 0.7f)
     val guideThickness = 2.dp
     val scanAreaSize = 0.7f // 70% of screen width
@@ -293,7 +293,7 @@ fun EnhancedCameraPreview(
             modifier = Modifier.matchParentSize()
         )
 
- // Scanner guide overlay
+ // لایه راهنمای اسکنر دوربین.
         ScannerGuideOverlay(
             scanAreaSize = scanAreaSize,
             guideColor = guideColor,
@@ -458,7 +458,7 @@ fun EnhancedCameraPreview(
             }
         }
 
- // Capture button
+ // دکمه ثبت تصویر.
         var isCapturing by remember { mutableStateOf(false) }
 
         Surface(
@@ -514,7 +514,7 @@ fun EnhancedCameraPreview(
             }
         }
 
- // Flashlight button
+ // دکمه چراغ قوه.
         if (hasTorch) {
             Surface(
                 modifier = Modifier

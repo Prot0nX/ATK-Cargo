@@ -27,8 +27,7 @@ android {
         compose = true
     }
 
-    // بدون این، JVM Unit Test روی android.util.Log با "not mocked" می‌شکند
- // (همان الگوی core:network
+    // بدون این، JVM Unit Test روی android.util.Log با "not mocked" می‌شکند (همان الگوی core:network
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -53,9 +52,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
-    // AuthRepositoryImpl مستقیماً Gson را برای پارس بدنه‌ی خطای ۴۰۹ صدا
-    // می‌زند؛ implementation در core:network transitive نیست، پس این ماژول
-    // هم باید خودش این وابستگی را اعلام کند.
+    // AuthRepositoryImpl مستقیماً Gson را برای پارس بدنه‌ی خطای ۴۰۹ صدا می‌زند؛ implementation در core:network transitive نیست، پس این ماژول هم باید خودش این وابستگی را اعلام کند.
     implementation(libs.retrofit.gson)
 
     testImplementation(libs.junit)

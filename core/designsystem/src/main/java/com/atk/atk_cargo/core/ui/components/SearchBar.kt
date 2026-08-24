@@ -68,7 +68,7 @@ fun SearchBar(
             imeAction = ImeAction.Search
         ),
         keyboardActions = KeyboardActions(
-            onSearch = { /* Done internally / state-based search */ }
+            onSearch = { /* مدیریت داخلی جستجو مبتنی بر وضعیت */ }
         ),
         textStyle = MaterialTheme.typography.bodyMedium,
         modifier = modifier

@@ -12,10 +12,7 @@ android {
         minSdk = 28
     }
 
-    // بدون این، android.util.Log.w (در TokenRefresher.catch) و بررسی داخلی
-    // OkHttp از Log.isLoggable روی JVM Unit Test (بدون دستگاه/امولاتور) با
-    // "Method ... not mocked" استثنا می‌اندازند، چون android.jar تست فقط
-    // stub است.
+    // بدون این، android.util.Log.w (در TokenRefresher.catch) و بررسی داخلی OkHttp از Log.isLoggable روی JVM Unit Test (بدون دستگاه/امولاتور) با "Method ... not mocked" استثنا می‌اندازند، چون android.jar تست فقط stub است.
     testOptions {
         unitTests.isReturnDefaultValues = true
     }

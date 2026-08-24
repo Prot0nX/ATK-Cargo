@@ -78,7 +78,7 @@ fun QuotaSelectionDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
- // Quotas List
+ // فهرست کوتاژها.
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier

@@ -2,7 +2,7 @@ package com.atk.atk_cargo.feature.auth.data
 
 import kotlinx.coroutines.flow.Flow
 
-// ===== TYPES / INTERFACES =====
+// تعاریف تایپ‌ها و اینترفیس‌ها.
 
 // قرارداد لایه داده احراز هویت که پیاده‌سازی را از ViewModel پنهان می‌کند
 interface AuthRepository {

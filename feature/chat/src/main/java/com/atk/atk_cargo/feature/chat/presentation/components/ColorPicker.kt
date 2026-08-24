@@ -80,7 +80,7 @@ fun ColorWheel(
             val center = Offset(size.width / 2f, size.height / 2f)
             val radius = min(size.width, size.height) / 2f
             
- // Draw Color Wheel
+ // ترسیم گردونه رنگ‌ها.
             val sweepGradient = Brush.sweepGradient(
                 colors = listOf(
                     Color.Red, Color.Magenta, Color.Blue, Color.Cyan,
@@ -95,7 +95,7 @@ fun ColorWheel(
                 center = center
             )
             
- // Saturation Overlay (White in center)
+ // لایه اشباع رنگ با مرکز سفید.
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(Color.White, Color.Transparent),
@@ -106,7 +106,7 @@ fun ColorWheel(
                 center = center
             )
             
- // Selector Indicator
+ // نشانگر انتخاب رنگ.
             val selectorAngleRad = (hue * Math.PI / 180)
             val selectorDist = saturation * radius
             val selectorX = center.x + selectorDist * cos(selectorAngleRad).toFloat()

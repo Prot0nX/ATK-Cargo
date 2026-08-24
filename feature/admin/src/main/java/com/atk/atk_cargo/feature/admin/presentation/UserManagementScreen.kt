@@ -100,7 +100,7 @@ fun UserManagementDialog(
     var showForceLogoutConfirmation by remember { mutableStateOf<User?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
 
- // Single expanded role state (accordion behavior - only one role open at a time)
+ // وضعیت باز بودن تکی نقش در ساختار آکاردئونی.
     var expandedRole by remember { mutableStateOf<String?>("admin") }
 
     val context = LocalContext.current
@@ -132,7 +132,7 @@ fun UserManagementDialog(
         fetchUsersWithStatus()
     }
 
- // Filtered users logic
+ // منطق فیلتر کردن کاربران.
     val filteredUsers = remember(users, searchQuery, selectedRoleFilter) {
         users.filter { user ->
             val matchesQuery = searchQuery.isEmpty() ||
@@ -150,7 +150,7 @@ fun UserManagementDialog(
         }
     }
 
- // Grouping by role
+ // گروه‌بندی کاربران بر اساس نقش.
     val groupedUsers = remember(filteredUsers) {
         val groups = LinkedHashMap<String, List<User>>()
         val roleOrder = listOf("admin", "operator", "verifier")
@@ -162,7 +162,7 @@ fun UserManagementDialog(
             }
         }
 
- // Other roles if any
+ // سایر نقش‌های کاربری.
         val others = filteredUsers.filter { it.userType !in roleOrder }
         if (others.isNotEmpty()) {
             groups["other"] = others
@@ -206,12 +206,12 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
- // Dashboard Summary Cards
+ // کارت‌های خلاصه وضعیت داشبورد.
                 DashboardSummaryRow(users = users)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
- // Search Bar
+ // نوار جستجو.
                 UserSearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it }
@@ -219,7 +219,7 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
- // Filter Chips
+ // چیپ‌های فیلتر.
                 RoleFilterChipRow(
                     selectedFilter = selectedRoleFilter,
                     totalCount = users.size,
@@ -231,7 +231,7 @@ fun UserManagementDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
- // Content Area
+ // بخش محتوای اصلی.
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -260,7 +260,7 @@ fun UserManagementDialog(
                                 groupedUsers.forEach { (role, roleUserList) ->
                                     val isExpanded = (expandedRole == role)
 
- // Sticky Header for each role group
+ // سرستون چسبان برای هر گروه نقشی.
                                     stickyHeader(key = "header_$role") {
                                         RoleGroupHeader(
                                             role = role,
@@ -834,7 +834,7 @@ private fun EnterpriseUserCard(
                 )
             }
 
- // Actions dropdown menu
+ // منوی کشویی عملیات.
             if (canManage) {
                 Box {
                     IconButton(

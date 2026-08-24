@@ -197,7 +197,7 @@ fun PersianDatePickerDialog(
         val monthListState = rememberLazyListState()
         val dayListState = rememberLazyListState()
 
- // Auto-center year
+ // تنظیم و اسکرول خودکار سال در مرکز.
         LaunchedEffect(selectedYear, isOpen) {
             val index = years.indexOf(selectedYear)
             if (index >= 0) {
@@ -208,7 +208,7 @@ fun PersianDatePickerDialog(
             }
         }
 
- // Auto-center month
+ // تنظیم و اسکرول خودکار ماه در مرکز.
         LaunchedEffect(selectedMonth, isOpen) {
             val index = selectedMonth - 1
             if (index >= 0) {
@@ -219,7 +219,7 @@ fun PersianDatePickerDialog(
             }
         }
 
- // Auto-center day
+ // تنظیم و اسکرول خودکار روز در مرکز.
         LaunchedEffect(selectedDay, isOpen) {
             val index = selectedDay - 1
             if (index >= 0) {
@@ -284,7 +284,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xl))
 
- // Year Selector
+ // انتخابگر سال.
                     Text(
                         text = "سال",
                         style = MaterialTheme.typography.labelMedium,
@@ -314,7 +314,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
- // Month Selector
+ // انتخابگر ماه.
                     Text(
                         text = "ماه",
                         style = MaterialTheme.typography.labelMedium,
@@ -345,7 +345,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
- // Day Selector
+ // انتخابگر روز.
                     Text(
                         text = "روز",
                         style = MaterialTheme.typography.labelMedium,
@@ -397,7 +397,7 @@ fun PersianDatePickerDialog(
 
                     Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxl))
 
- // Actions
+ // اکشن‌ها.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End

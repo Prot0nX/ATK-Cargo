@@ -1,12 +1,6 @@
 <?php /* In the name of Allah = بسم اللّه الرّحمن الرّحیم */
 
-/**
- * @فارسی : توابع زمان و تاریخ هجری شمسی (جلالی) در پی اچ پی
- * @name: Hijri_Shamsi,Solar(Jalali) Date and Time Functions
- * @Author : Reza Gholampanahi & WebSite : http://jdf.scr.ir
- * @License: GNU/LGPL _ Open Source & Free : [all functions]
- * @Version: 2.76 =>[ 1399/11/28 = 1442/07/04 = 2021/02/16 ]
- */
+/** توابع زمان و تاریخ هجری شمسی (جلالی) در PHP نسخه ۲.۷۶. */
 
 /*	F	*/
 function jdate($format, $timestamp = '', $none = '', $time_zone = 'Asia/Tehran', $tr_num = 'en') {
@@ -589,14 +583,7 @@ function jdate_words($array, $mod = '') {
 }
 
 
-/**  Gregorian & Jalali (Hijri_Shamsi,Solar) Date Converter Functions
-Author: JDF.SCR.IR =>> Download Full Version :  http://jdf.scr.ir/jdf
-License: GNU/LGPL _ Open Source & Free :: Version: 2.80 : [2020=1399]
----------------------------------------------------------------------
-355746=361590-5844 & 361590=(30*33*365)+(30*8) & 5844=(16*365)+(16/4)
-355666=355746-79-1 & 355668=355746-79+1 &  1595=605+990 &  605=621-16
-990=30*33 & 12053=(365*33)+(32/4) & 36524=(365*100)+(100/4)-(100/100)
-1461=(365*4)+(4/4) & 146097=(365*400)+(400/4)-(400/100)+(400/400)  */
+/** Gregorian & Jalali (Hijri_Shamsi,Solar) Date Converter Functions Author: JDF.SCR.IR =>> Download Full Version : http://jdf.scr.ir/jdf License: GNU/LGPL _ Open Source & Free :: Version: 2.80 : [2020=1399] --------------------------------------------------------------------- 355746=361590-5844 & 361590=(30*33*365)+(30*8) & 5844=(16*365)+(16/4) 355666=355746-79-1 & 355668=355746-79+1 & 1595=605+990 & 605=621-16 990=30*33 & 12053=(365*33)+(32/4) & 36524=(365*100)+(100/4)-(100/100) 1461=(365*4)+(4/4) & 146097=(365*400)+(400/4)-(400/100)+(400/400) */
 
 /*	F	*/
 function gregorian_to_jalali($gy, $gm, $gd, $mod = '') {

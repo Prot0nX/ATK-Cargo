@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-// XOR encryption key
+// کلید رمزنگاری XOR.
 const uint8_t XOR_KEY = 0x5A;
 
 std::string decryptXor(const uint8_t* encryptedBytes, size_t length) {

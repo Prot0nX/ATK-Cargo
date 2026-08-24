@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {
- // Context of the app under test.
+ // دریافت بافت (Context) برنامه تحت تست.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.atk.atk_cargo", appContext.packageName)
     }

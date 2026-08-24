@@ -155,7 +155,7 @@ fun ShipSelectionDialog(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
- // Header Title Section
+ // بخش هدر و عنوان دیالوگ.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -209,7 +209,7 @@ fun ShipSelectionDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
- // Search Bar
+ // نوار جستجو.
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -295,7 +295,7 @@ fun ShipSelectionDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
- // Ships List
+ // فهرست کشتی‌ها.
                 if (filteredShips.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -392,7 +392,7 @@ fun ShipSelectionDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
- // Bottom Action Buttons
+ // دکمه‌های عملیاتی پایین دیالوگ.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)

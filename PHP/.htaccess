@@ -1,64 +1,39 @@
-#############################################
-# 🔐 جلوگیری از نمایش لیست فایل‌ها در پوشه‌ها
-#############################################
+# جلوگیری از نمایش فهرست فایل‌ها در پوشه‌ها.
 Options -Indexes
 
-#############################################
-# ⛔️ جلوگیری از دسترسی به فایل‌های حساس
-#############################################
-
-# فایل‌های پیکربندی (config.php و ...)
+# جلوگیری از دسترسی به فایل‌های پیکربندی و حساس.
 <FilesMatch "^(config\.php|db\.php|env\.php|\.env|\.htaccess)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-#############################################
-# 🛡️ جلوگیری از اجرای فایل‌های آپلود شده مشکوک
-#############################################
+# جلوگیری از اجرای فایل‌های حساس و اسکریپت‌ها.
 <FilesMatch "\.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-#############################################
-# 📄 جلوگیری از دسترسی مستقیم به فایل‌های خاص
-#############################################
+# جلوگیری از دسترسی مستقیم به فایل‌های سیستمی.
 <FilesMatch "\.(htaccess|htpasswd|ini|log|sh)$">
     Require all denied
 </FilesMatch>
 
-#############################################
-# 🌐 محدود کردن انواع دسترسی‌های مشکوک
-#############################################
-# جلوگیری از hotlink تصاویر و فایل‌ها
+# جلوگیری از Hotlink تصاویر و فایل‌ها.
 RewriteEngine on
 RewriteCond %{HTTP_REFERER} !^$
 RewriteCond %{HTTP_REFERER} !^https?://(www\.)?atk-nk\.ir [NC]
 RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
 
-#############################################
-# 🚦 مسیریابی API نسخه‌ی ۲ (Router صریح — جایگزین تدریجی protected_proxy.php)
-#############################################
-
+# مسیریابی درخواست‌های API نسخه ۲.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/v2/(.*)$ api/v2/index.php [L,QSA]
 
-#############################################
-# 🔒 محافظت از پوشه‌های خاص
-#############################################
-
-#############################################
-# ⚠️ TODO: پنل‌های زیر فقط با رمز محافظت می‌شوند؛ <ADMIN_IP_OR_CIDR> را با IP خودتان پر و از کامنت خارج کنید (DEEP_CODE_AUDIT.md #۸)
-# <FilesMatch "^(PermissionManager|file_manager)\.php$">
-#     <RequireAny>
-#         Require ip <ADMIN_IP_OR_CIDR>
-#     </RequireAny>
+# TODO: محدودسازی دسترسی پنل‌های مدیریتی به IP مجاز مدیر در صورت نیاز.
+# <FilesMatch "^(PermissionManager|file_manager)\.php$"> <RequireAny> Require ip <ADMIN_IP_OR_CIDR> </RequireAny>
 # </FilesMatch>
-#############################################
-# ✅ کش کردن فایل‌های استاتیک برای بهبود سرعت
-#############################################
+
+# کش کردن فایل‌های استاتیک برای بهبود کارایی.
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpg "access plus 30 days"
@@ -72,9 +47,7 @@ RewriteRule ^api/v2/(.*)$ api/v2/index.php [L,QSA]
   ExpiresByType application/font-woff2 "access plus 1 month"
 </IfModule>
 
-#############################################
-# ✅ فشرده‌سازی GZIP برای افزایش سرعت سایت
-#############################################
+# فشرده‌سازی خروجی با mod_deflate جهت افزایش سرعت انتقال.
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/javascript application/json
 </IfModule>

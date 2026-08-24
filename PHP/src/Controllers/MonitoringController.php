@@ -55,10 +55,7 @@ class MonitoringController {
         ];
     }
 
- /**
- * @param array<string,mixed> $row
- * @return array<string,mixed>
- */
+ /** @param array<string,mixed> $row @return array<string,mixed> */
     private function presentEvent(array $row): array {
         return [
             'id' => (int)$row['id'],

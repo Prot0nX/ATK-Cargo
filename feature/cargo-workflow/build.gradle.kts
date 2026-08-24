@@ -39,9 +39,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:domain"))
     implementation(project(":feature:cargo"))
-    // استثنای عمدی از قانون «بدون وابستگی feature-to-feature»: CargoDetailsScreen
-    // و SelectInfoScreen مستقیم ReportsRepository() را instantiate می‌کنند
-    // (نه فقط اینترفیس QuotaRepository)، یک‌طرفه و بدون چرخه.
+    // استثنای عمدی از قانون «بدون وابستگی feature-to-feature»: CargoDetailsScreen و SelectInfoScreen مستقیم ReportsRepository() را instantiate می‌کنند (نه فقط اینترفیس QuotaRepository)، یک‌طرفه و بدون چرخه.
     implementation(project(":feature:reports"))
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)

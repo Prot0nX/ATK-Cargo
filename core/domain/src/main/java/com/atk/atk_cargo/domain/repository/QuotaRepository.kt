@@ -45,8 +45,7 @@ interface QuotaRepository {
  // فراخوان‌کننده باید بعد از هر تغییری که تناژ باقی‌مانده‌ی سرور را عوض می‌کند (ثبت/حذف/تغییر وضعیت حواله) این را صدا بزند تا فراخوانی بعدی getLoadableTonnage مقدار کهنه‌ی کش‌شده را برنگرداند.
     suspend fun invalidateLoadableTonnageCache()
 
- // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند =====
- // تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel منطق UI-محور و به‌شدت خاص هر عملیات است.
+ // ===== شش متد زیر عمداً Response<T> خام Retrofit را برمی‌گردانند ===== تفسیر هر پاسخ (کد HTTP، بدنه‌ی خطا، فیلدهای status/error خاص هر endpoint) در CargoViewModel منطق UI-محور و به‌شدت خاص هر عملیات است.
 
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): Response<QuotaExistenceMultipleResponse>
 

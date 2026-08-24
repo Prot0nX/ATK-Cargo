@@ -41,7 +41,7 @@
         }
     };
 
- /* --- ارتباط با سرور -------------------------------------------------- */
+ /* ارتباط با سرور */
 
  // هر پاسخ ۴۰۱ یعنی نشست منقضی شده — کاربر به صفحه‌ی ورود برمی‌گردد به‌جای اینکه با خطاهای مبهم روبه‌رو شود. /.
     function request(action, method, payload, params) {
@@ -71,7 +71,7 @@
         });
     }
 
- /* --- توست ------------------------------------------------------------ */
+ /* توست */
     function toast(message, type) {
         var node = document.createElement('div');
         node.className = 'toast toast-' + (type || 'success');
@@ -80,7 +80,7 @@
         setTimeout(function () { node.remove(); }, 3500);
     }
 
- /* --- قالب‌بندی ------------------------------------------------------- */
+ /* قالب‌بندی */
     function formatDateTime(value) {
         if (!value) { return '—'; }
         var date = new Date(value.replace(' ', 'T'));
@@ -107,7 +107,7 @@
         return formatDate(value);
     }
 
- /* --- ساخت جدول ------------------------------------------------------- */
+ /* ساخت جدول */
     function iconButton(symbolId, label, action, id, extraClass) {
         var button = document.createElement('button');
         button.type = 'button';
@@ -205,7 +205,7 @@
             'این ماه ' + stats.this_month + ' · ماه قبل ' + stats.last_month;
     }
 
- /* --- بارگذاری داده --------------------------------------------------- */
+ /* بارگذاری داده */
     function filterParams() {
         var params = {};
         if (state.search) { params.search = state.search; }
@@ -237,7 +237,7 @@
             });
     }
 
- /* --- دیالوگ تأیید ---------------------------------------------------- */
+ /* دیالوگ تأیید */
     function confirmAction(title, message, confirmLabel) {
         return new Promise(function (resolve) {
             el.confirmTitle.textContent = title;
@@ -259,7 +259,7 @@
         });
     }
 
- /* --- فرم ایجاد/ویرایش ------------------------------------------------ */
+ /* فرم ایجاد/ویرایش */
 
  // ورودی datetime-local فقط قالب `YYYY-MM-DDTHH:MM` را می‌پذیرد، اما دیتابیس `YYYY-MM-DD HH:MM:SS` برمی‌گرداند. /.
     function toDatetimeLocal(value) {
@@ -330,7 +330,7 @@
             });
     }
 
- /* --- جزئیات ---------------------------------------------------------- */
+ /* جزئیات */
     function showDetails(license) {
         var rows = [
             ['نام شرکت', license.company_name],
@@ -368,7 +368,7 @@
         el.details.showModal();
     }
 
- /* --- عملیات ردیف ----------------------------------------------------- */
+ /* عملیات ردیف */
     function findLicense(id) {
         return state.licenses.filter(function (item) {
             return String(item.id) === String(id);
@@ -426,7 +426,7 @@
         });
     }
 
- /* --- پوسته ----------------------------------------------------------- */
+ /* پوسته */
     function currentTheme() {
         var explicit = document.documentElement.dataset.theme;
         if (explicit) { return explicit; }
@@ -440,7 +440,7 @@
         document.cookie = 'lic_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
- /* --- اتصال رویدادها -------------------------------------------------- */
+ /* اتصال رویدادها */
     function debounce(fn, delay) {
         var timer = null;
         return function () {

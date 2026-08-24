@@ -37,7 +37,7 @@ class AtkCargoApplication : Application() {
         val animatorDurationScale = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
         AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
 
- // Initialize Koin DI
+ // مقداردهی اولیه فریم‌ورک تزریق وابستگی Koin.
         val koinApp = startKoin {
  // لاگ verbose فقط در build های debug — در release نباید فعال باشد
             if (BuildConfig.DEBUG) {

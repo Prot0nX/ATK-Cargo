@@ -285,8 +285,7 @@ class SessionRepository {
         return $stmt->fetchAll();
     }
 
- // دریافت همه‌ی جلسات (آنلاین و آفلاین) طی بازه‌ی اخیر — برای گرید تاریخ‌محورِ پنل مدیریت کاربران آنلاین.
- // برخلاف getOnlineUsers فیلتر is_active ندارد اما برای جلوگیری از dump نامحدود به ۹۰ روز اخیر محدود می‌شود.
+ // دریافت تمام جلسات اخیر (آنلاین و آفلاین تا ۹۰ روز) برای پنل مدیریت کاربران آنلاین.
     public function getAllSessions(int $days = 90): array {
         $stmt = $this->db->prepare("
             SELECT us.id, us.username, u.userType, us.device_model, us.device_id, us.app_version,

@@ -9,6 +9,5 @@ find_library(log-lib
 target_link_libraries(secrets
         ${log-lib})
 
-# سازگاری با اندروید ۱۵+ که اندازه صفحه حافظه ۱۶ کیلوبایتی است (بدون این، dlopen با
-# UnsatisfiedLinkError روی چنین دستگاه‌هایی شکست می‌خورد)
+# تنظیم اندازه صفحه حافظه ۱۶ کیلوبایتی جهت سازگاری با اندروید ۱۵ و بالاتر.
 target_link_options(secrets PRIVATE "-Wl,-z,max-page-size=16384")

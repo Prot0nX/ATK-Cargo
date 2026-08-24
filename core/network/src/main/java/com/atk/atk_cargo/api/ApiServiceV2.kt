@@ -246,8 +246,7 @@ interface ApiServiceV2 {
         @Query("route") route: String = "cargo/initial-info"
     ): Response<Void>
 
- // ===== USERS =====
- // برخلاف v1، اینجا نیازی به @Query("action") نیست چون handler هر route خودش action را قبل از UserController::handle تنظیم می‌کند
+ // ===== USERS ===== برخلاف v1، اینجا نیازی به @Query("action") نیست چون handler هر route خودش action را قبل از UserController::handle تنظیم می‌کند
 
     @GET("api/v2/index.php")
     suspend fun getAllUsers(
@@ -367,8 +366,7 @@ interface ApiServiceV2 {
         @Query("route") route: String = "utility/sync-permissions"
     ): Response<PermissionSyncResponse>
 
- // ===== AUTH =====
- // auth/refresh قبلاً جدا در TokenRefresher.kt (با OkHttp خام) پیاده‌سازی شده و همان الگوی route=... را استفاده می‌کند
+ // ===== AUTH ===== auth/refresh قبلاً جدا در TokenRefresher.kt (با OkHttp خام) پیاده‌سازی شده و همان الگوی route=... را استفاده می‌کند
 
     @POST("api/v2/index.php")
     suspend fun checkLogin(
@@ -413,7 +411,7 @@ interface ApiServiceV2 {
         @Query("route") route: String
     ): Response<ApiResponse>
 
- // ===== AUDIT LOG =====
+ // اندپوینت‌های لاگ رویدادها (Audit Log).
 
     @GET("api/v2/index.php")
     suspend fun getAuditLogs(

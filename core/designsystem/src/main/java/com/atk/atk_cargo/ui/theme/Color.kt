@@ -144,8 +144,7 @@ val Blue400 = Color(0xFF60A5FA) // blue-400
 val Blue800 = Color(0xFF1e40af) // blue-800
 val Blue900 = Color(0xFF1e3a8a) // blue-900
 
-// ===== رنگ‌های انتخاب تم برنامه =====
-// — آبی‌ها
+// ===== رنگ‌های انتخاب تم برنامه ===== — آبی‌ها
 val ThemeBlue        = Color(0xFF137fec) // آبی اصلی (پیش‌فرض)
 val ThemeBlueDark    = Color(0xFF1976D2) // آبی تیره
 val ThemeBlueOcean   = Color(0xFF0288D1) // آبی اقیانوس

@@ -3,16 +3,16 @@ includes:
 
 parameters:
     level: 7
-    # هم‌راستا با composer.json (php: >=8.1) — DEEP_CODE_AUDIT.md #Phase2.10.
+    # تنظیم نسخه هدف PHP برای تحلیل استاتیک.
     phpVersion: 80100
     paths:
         - src
         - api
-        # پنل مدیریت لایسنس — کد واقعی است و باید مثل بقیه آنالیز شود.
+        # مسیر پنل مدیریت لایسنس.
         - Lic
-        # داشبورد مانیتورینگ (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ب) — همان دلیل بالا.
+        # مسیر داشبورد مانیتورینگ.
         - Monitoring
-        # فایل‌های ریشه‌ی PHP/ — پنل‌های مدیریتی و shimهای مستقل که قبلاً از آنالیز جا افتاده بودند (DEEP_CODE_AUDIT.md فاز۳ #۳۱)
+        # اسکریپت‌ها و فایل‌های ریشه جهت تحلیل استاتیک.
         - scripts
         - User
         - config
@@ -30,24 +30,10 @@ parameters:
     excludePaths:
         - vendor/*
     tmpDir: build/phpstan
-    # این پروژه از یک autoloader سفارشی/legacy برای برخی توابع و کلاس‌ها
-    # استفاده می‌کند که با PSR-4 بارگذاری نمی‌شوند (jdate در jdf.php،
-    # SessionManager سراسری) — این‌ها فقط برای scan (نه اجرا) کافی‌اند.
+    # فایل‌های کمکی خارج از PSR-4 جهت اسکن توابع و کلاس‌های عمومی.
     scanFiles:
         - jdf.php
         - SessionManager.php
-    # APP_ROOT/UPDATE_CHECK_API_KEY با define() و مقدار دینامیک (نه رشته‌ی
-    # لفظی) در bootstrap.php/config.php تعریف می‌شوند؛ scanFiles برای این‌ها
-    # کافی نیست (فقط define با مقدار literal را می‌فهمد). bootstrap.php
-    # امن است برای اجرای واقعی در زمان آنالیز چون فقط autoload/timezone/ثابت‌ها
-    # را تنظیم می‌کند، هیچ اتصال دیتابیسی برقرار نمی‌کند.
+    # فایل راه‌اندازی اولیه جهت تعریف ثابت‌ها و بارگذاری بدون اتصال پایگاه داده.
     bootstrapFiles:
         - src/bootstrap.php
-    # UPDATE_CHECK_API_KEY مقداردهی‌اش به .env محیط اجرا وابسته است — در نبود
-    # .env مقدار '' می‌شود، پس === '' در checkUpdate رفتار درست و عمدی است
-    # (S-13: در نبود پیکربندی، دسترسی رد شود، نه fallback ساکت)، نه یک باگ.
-    # نکته‌ی فاز۳ #۳۱: قانون ignore قبلی این خط دیگر با نسخه‌ی نصب‌شده‌ی
-    # phpstan/nikic-php-parser (پس از composer install اول این پروژه) match
-    # نمی‌شود — نوع UPDATE_CHECK_API_KEY دیگر به رشته‌ی لفظی '' باریک نمی‌شود،
-    # پس PHPStan خودش دیگر این خط را «همیشه-ثابت» گزارش نمی‌کند و ignore
-    # اضافه‌ای لازم نیست (طبق همان اصل که در نکته‌ی Phase3 #21 بالا مستند شده).

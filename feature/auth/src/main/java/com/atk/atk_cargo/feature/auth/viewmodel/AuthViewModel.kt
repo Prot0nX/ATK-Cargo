@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// ===== TYPES / ENUMS =====
+// تعاریف انواع و شمارنده‌ها (Enums).
 
 // وضعیت جاری UI صفحه ورود
 sealed class LoginUiState {
@@ -28,7 +28,7 @@ data class LoginFormState(
     val isPasswordVisible: Boolean = false
 )
 
-// ===== CORE LOGIC =====
+// منطق اصلی ماژول.
 
 // ViewModel صفحه ورود: نگهداری حالت فرم و مدیریت چرخه ورود از طریق LoginUseCase
 class AuthViewModel(
@@ -54,7 +54,7 @@ class AuthViewModel(
         }
     }
 
- // ===== CORE LOGIC =====
+ // منطق اصلی ماژول.
 
  // به‌روزرسانی نام کاربری در حالت فرم و ریست خطا
     fun onUsernameChanged(value: String) {

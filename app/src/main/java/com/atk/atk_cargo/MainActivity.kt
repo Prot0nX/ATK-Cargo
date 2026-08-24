@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
                         is UpdateManager.DownloadState.Error -> {
                             showMessage(state.message)
                         }
-                        else -> { /* Other states don't require specific handling */ }
+                        else -> { /* سایر وضعیت‌ها نیازی به پردازش اختصاصی ندارند */ }
                     }
                 }
 

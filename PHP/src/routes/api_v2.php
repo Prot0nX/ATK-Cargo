@@ -531,9 +531,7 @@ return [
         'method' => 'POST', 'path' => 'diagnostics/crash', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
     ],
-
- // ===== MONITORING — نوشتن رویداد از داخل SecurityAlerter::alert انجام می‌شود؛ این مسیرها فقط خواندن/تایید REST هستند
- // =====.
+    // مسیرهای REST خواندن و تأیید رویدادهای مانیتورینگ.
     [
  // auth=>false مشابه health اصلی: همان دلیل دسترسی عمومی، همان کنترلر صدا زده می‌شود
         'method' => 'GET', 'path' => 'monitoring/health', 'auth' => false, 'permission' => null,

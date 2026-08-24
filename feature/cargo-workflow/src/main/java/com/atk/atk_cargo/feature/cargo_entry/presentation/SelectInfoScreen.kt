@@ -576,7 +576,7 @@ private fun ShipGroup(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
- // Update dialog state
+ // به‌روزرسانی وضعیت نمایش دیالوگ.
     LaunchedEffect(showDialog) {
         onDialogStateChange(showDialog)
     }
@@ -698,7 +698,7 @@ private fun ShipCardDesign(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
- // Top Row: Title and Icon
+ // ردیف بالا: عنوان و آیکون.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

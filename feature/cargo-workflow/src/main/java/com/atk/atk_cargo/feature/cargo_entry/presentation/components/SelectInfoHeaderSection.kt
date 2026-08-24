@@ -70,7 +70,7 @@ fun AnimatedHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
- // Right Side: Title and Subtitle
+ // سمت راست: عنوان و زیرعنوان.
                 Column(
                     horizontalAlignment = Alignment.Start
                 ) {
@@ -120,12 +120,12 @@ fun AnimatedHeader(
                     }
                 }
 
- // Left Side: Buttons
+ // سمت چپ: دکمه‌های عملیاتی.
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
- // Refresh Button
+ // دکمه بازخوانی اطلاعات.
                     Surface(
                         onClick = onRefresh,
                         shape = RoundedCornerShape(12.dp),
@@ -152,7 +152,7 @@ fun AnimatedHeader(
                         }
                     }
 
- // Ship Selection Button
+ // دکمه انتخاب کشتی.
                     Surface(
                         onClick = onSelectShips,
                         shape = RoundedCornerShape(12.dp),
@@ -169,7 +169,7 @@ fun AnimatedHeader(
                         }
                     }
 
- // Count Badge
+ // نشانگر تعداد آیتم‌ها.
                     Surface(
                         onClick = onClickCount,
                         shape = RoundedCornerShape(12.dp),

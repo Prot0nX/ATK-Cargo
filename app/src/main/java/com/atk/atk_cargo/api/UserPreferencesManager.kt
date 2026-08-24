@@ -235,7 +235,7 @@ class UserPreferencesManager(
         private val BATTERY_OPTIMIZATION_REQUESTED_KEY = booleanPreferencesKey("battery_optimization_requested")
         private val LAST_SESSION_VERIFIED_TIMESTAMP_KEY = longPreferencesKey("last_session_verified_timestamp")
 
- // Chat Settings
+ // تنظیمات چت و پیام‌رسان.
         private val CHAT_FONT_SIZE_KEY = intPreferencesKey("chat_font_size")
         private val CHAT_MY_BUBBLE_COLOR_KEY = longPreferencesKey("chat_my_bubble_color")
         private val CHAT_OTHER_BUBBLE_COLOR_KEY = longPreferencesKey("chat_other_bubble_color")

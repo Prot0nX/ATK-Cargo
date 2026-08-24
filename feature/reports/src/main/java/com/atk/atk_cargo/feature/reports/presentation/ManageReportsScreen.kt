@@ -479,7 +479,7 @@ fun PersianDateRangePickerDialog(
     var endTimeText by rememberSaveable { mutableStateOf("07:00") }
 
     if (isOpen) {
- // Dialog states
+ // وضعیت‌های مختلف دیالوگ.
         var showStartDatePicker by remember { mutableStateOf(false) }
         var showStartTimePicker by remember { mutableStateOf(false) }
         var showEndDatePicker by remember { mutableStateOf(false) }
@@ -781,7 +781,7 @@ fun TimePickerDialog(
     onTimeSelected: (time: String) -> Unit
 ) {
     if (isOpen) {
- // Parse initial time
+ // پردازش و تجزیه زمان اولیه.
         val timeParts = initialTime.split(":")
         var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
         var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
@@ -823,7 +823,7 @@ fun TimePickerDialog(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
- // Time Value Display
+ // نمایش مقدار زمان.
                     Surface(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
                         shape = RoundedCornerShape(CornerXL),
@@ -865,7 +865,7 @@ fun TimePickerDialog(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
- // Actions
+ // اکشن‌ها.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)

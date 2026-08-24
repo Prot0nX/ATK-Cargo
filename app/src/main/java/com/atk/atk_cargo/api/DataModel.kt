@@ -2,13 +2,13 @@ package com.atk.atk_cargo.api
 
 import androidx.compose.ui.graphics.Color
 
-// ===== RE-EXPORT VIEWMODELS & REPOSITORIES =====
+// صدور مجدد ویومدل‌ها و ریپازیتوری‌ها.
 typealias CargoViewModel = com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 typealias CargoViewModelFactory = com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModelFactory
 typealias ReportsViewModel = com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 typealias ReportsRepository = com.atk.atk_cargo.data.repository.ReportsRepository
 
-// ===== RE-EXPORT AUTH MODELS =====
+// صدور مجدد مدل‌های احراز هویت.
 typealias LoginRequest = com.atk.atk_cargo.data.model.LoginRequest
 typealias LoginResponse = com.atk.atk_cargo.data.model.LoginResponse
 typealias LogoutRequest = com.atk.atk_cargo.data.model.LogoutRequest
@@ -26,7 +26,7 @@ typealias UpdateUserRequest = com.atk.atk_cargo.data.model.UpdateUserRequest
 typealias DeleteUserRequest = com.atk.atk_cargo.data.model.DeleteUserRequest
 typealias CreateUserRequest = com.atk.atk_cargo.data.model.CreateUserRequest
 
-// ===== RE-EXPORT CARGO MODELS =====
+// صدور مجدد مدل‌های حواله بار.
 typealias CargoInfo = com.atk.atk_cargo.data.model.CargoInfo
 typealias CargoInfoRequest = com.atk.atk_cargo.data.model.CargoInfoRequest
 typealias CargoDeleteResponse = com.atk.atk_cargo.data.model.CargoDeleteResponse
@@ -44,7 +44,7 @@ typealias MessageType = com.atk.atk_cargo.data.model.MessageType
 typealias ScaleReceiptCheckResponse = com.atk.atk_cargo.data.model.ScaleReceiptCheckResponse
 typealias LoadableTonnageResponse = com.atk.atk_cargo.data.model.LoadableTonnageResponse
 
-// ===== RE-EXPORT REPORT MODELS =====
+// صدور مجدد مدل‌های گزارش‌ها.
 typealias ActiveShipInfo = com.atk.atk_cargo.data.model.ActiveShipInfo
 typealias ShiftInfo = com.atk.atk_cargo.data.model.ShiftInfo
 typealias WarningStatus = com.atk.atk_cargo.data.model.WarningStatus
@@ -71,7 +71,7 @@ typealias ShipSortingMode = com.atk.atk_cargo.data.model.ShipSortingMode
 typealias QuotaItem = com.atk.atk_cargo.data.model.QuotaItem
 typealias ColorSelector = com.atk.atk_cargo.core.ui.components.ColorSelector
 
-// ===== UTILS EXPOSED FROM REPORT MODELS =====
+// توابع کمکی صادرشده از مدل‌های گزارش.
 val cardColors = com.atk.atk_cargo.core.ui.components.cardColors
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean) = com.atk.atk_cargo.core.ui.components.adjustColorForTheme(color, isDarkTheme)
 fun Float.toTon(): Int = (this / 1000).toInt()

@@ -1,6 +1,4 @@
-// داشبورد لحظه‌ای بارگیری — جاوااسکریپت وانیلا بدون وابستگی خارجی، هم‌معماری با Quota_Reports/assets/app.js.
-// تفاوت اصلی: این پنل به‌صورت خودکار poll می‌کند و از پشتیبانی ETag/304 سرور (AnalyticsController)
-// واقعاً استفاده می‌کند — چیزی که در نسخه‌ی قدیمی این داشبورد اصلاً به کار گرفته نشده بود.
+// داشبورد لحظه‌ای بارگیری — جاوااسکریپت وانیلا بدون وابستگی خارجی، هم‌معماری با Quota_Reports/assets/app.js. تفاوت اصلی: این پنل به‌صورت خودکار poll می‌کند و از پشتیبانی ETag/304 سرور (AnalyticsController) واقعاً استفاده می‌کند — چیزی که در نسخه‌ی قدیمی این داشبورد اصلاً به کار گرفته نشده بود.
 
 (function () {
     'use strict';
@@ -79,7 +77,7 @@
         }
     };
 
-    /* --- تنظیمات (localStorage — ترجیح نمایشی، نه امنیتی) -------------------- */
+    /* تنظیمات (localStorage — ترجیح نمایشی، نه امنیتی) */
     function defaultSettings() {
         return { refreshInterval: 30000, pageSize: 25, notifyToast: true, notifySound: false, notifyBrowser: false };
     }
@@ -109,7 +107,7 @@
         el.notifyBrowserInput.checked = state.settings.notifyBrowser;
     }
 
-    /* --- توست ------------------------------------------------------------ */
+    /* توست */
     function toast(message, type) {
         var node = document.createElement('div');
         node.className = 'toast toast-' + (type || 'success');
@@ -118,7 +116,7 @@
         setTimeout(function () { node.remove(); }, 3500);
     }
 
-    /* --- قالب‌بندی اعداد --------------------------------------------------- */
+    /* قالب‌بندی اعداد */
     function formatNumber(value, decimals) {
         var n = Number(value);
         if (isNaN(n)) { return '—'; }
@@ -136,10 +134,7 @@
         return [row.loadingQuotaNumber, row.shipName, row.loadingWarehouse, row.shippingCompany, row.cargoType].join('|');
     }
 
-    /* --- ارتباط با سرور: fetch با پشتیبانی واقعی ETag/If-None-Match ----------
-       AnalyticsController::sendCacheableRealTimeResponse از قبل ETag/304 می‌فرستد؛
-       این‌جا برای اولین بار یک کلاینت واقعاً از آن استفاده می‌کند تا در صورت
-       بدون‌تغییر بودن داده، هیچ بدنه‌ی JSON کامل دوباره منتقل نشود. */
+    /* ارتباط با سرور: fetch با پشتیبانی واقعی ETag/If-None-Match ---------- AnalyticsController::sendCacheableRealTimeResponse از قبل ETag/304 می‌فرستد؛ این‌جا برای اولین بار یک کلاینت واقعاً از آن استفاده می‌کند تا در صورت بدون‌تغییر بودن داده، هیچ بدنه‌ی JSON کامل دوباره منتقل نشود. */
     function fetchRealtime() {
         var headers = {};
         if (state.lastEtag) { headers['If-None-Match'] = state.lastEtag; }
@@ -156,9 +151,7 @@
                 var etag = response.headers.get('ETag');
                 if (etag) { state.lastEtag = etag; }
                 return response.json().then(function (data) {
-                    // برخلاف Quota_Reports/api.php، پاسخ موفق AnalyticsController::sendCacheableRealTimeResponse
-                    // پوشش {success:true,...} ندارد (فقط {shiftInfo,data} خام) — success فقط روی خطا ست می‌شود؛
-                    // پس معیار موفقیت وضعیت HTTP است، نه data.success.
+                    // برخلاف Quota_Reports/api.php، پاسخ موفق AnalyticsController::sendCacheableRealTimeResponse پوشش {success:true,...} ندارد (فقط {shiftInfo,data} خام) — success فقط روی خطا ست می‌شود؛ پس معیار موفقیت وضعیت HTTP است، نه data.success.
                     if (!response.ok) {
                         throw new Error((data && data.message) || 'خطای ناشناخته رخ داد.');
                     }
@@ -167,7 +160,7 @@
             });
     }
 
-    /* --- تشخیص کوتاژهای تازه‌وارد و ردیف‌های تغییرکرده ------------------------ */
+    /* تشخیص کوتاژهای تازه‌وارد و ردیف‌های تغییرکرده */
     function mergeAndDiff(newRows) {
         var prevByKey = {};
         state.rows.forEach(function (r) { prevByKey[rowKey(r)] = r; });
@@ -232,19 +225,19 @@
         } catch (err) { /* پخش صدا اختیاری است؛ خطا نباید جریان اصلی را متوقف کند */ }
     }
 
-    /* --- وضعیت اتصال --------------------------------------------------------- */
+    /* وضعیت اتصال */
     function setConnectionStatus(isOnline) {
         el.connectionStatus.classList.toggle('is-offline', !isOnline);
         el.connectionStatus.querySelector('span').textContent = isOnline ? 'زنده' : 'قطع شده';
     }
 
-    /* --- شیفت جاری ------------------------------------------------------------ */
+    /* شیفت جاری */
     function renderShiftBadge(shiftInfo) {
         if (!shiftInfo) { return; }
         el.shiftBadge.textContent = 'شیفت ' + shiftInfo.type;
     }
 
-    /* --- فیلترهای انتخابی (کشتی/باربری/انبار) --------------------------------- */
+    /* فیلترهای انتخابی (کشتی/باربری/انبار) */
     function populateSelectOptions(select, values, placeholder) {
         var current = select.value;
         select.replaceChildren();
@@ -273,7 +266,7 @@
         populateSelectOptions(el.warehouseFilter, uniqueSorted(state.rows.map(function (r) { return r.loadingWarehouse; })), 'همه‌ی انبارها');
     }
 
-    /* --- فیلتر/جستجو/مرتب‌سازی سمت کلاینت -------------------------------------- */
+    /* فیلتر/جستجو/مرتب‌سازی سمت کلاینت */
     function compareValues(a, b, type) {
         if (type === 'number') { return (Number(a) || 0) - (Number(b) || 0); }
         return (a || '').toString().localeCompare((b || '').toString(), 'fa');
@@ -307,7 +300,7 @@
         renderTable();
     }
 
-    /* --- کارت‌های آماری -------------------------------------------------------- */
+    /* کارت‌های آماری */
     function renderStats(rows) {
         var entry = 0, exit = 0, weight = 0;
         var carriers = new Set();
@@ -325,7 +318,7 @@
         el.stats.carriers.textContent = formatNumber(carriers.size);
     }
 
-    /* --- جدول -------------------------------------------------------------- */
+    /* جدول */
     function buildRow(row) {
         var tr = document.createElement('tr');
         var key = rowKey(row);
@@ -373,7 +366,7 @@
         el.nextPageBtn.disabled = state.currentPage >= totalPages;
     }
 
-    /* --- بازخوانی داده --------------------------------------------------------- */
+    /* بازخوانی داده */
     function poll(isManual) {
         if (state.isPolling) { return Promise.resolve(); }
         state.isPolling = true;
@@ -405,7 +398,7 @@
             });
     }
 
-    /* --- شمارش‌معکوس بازخوانی خودکار -------------------------------------------- */
+    /* شمارش‌معکوس بازخوانی خودکار */
     function resetCountdown() {
         state.countdownRemainingMs = state.settings.refreshInterval;
         updateCountdownDisplay();
@@ -437,7 +430,7 @@
         state.countdownTimer = setInterval(tickCountdown, 1000);
     }
 
-    /* --- پوسته ------------------------------------------------------------- */
+    /* پوسته */
     function currentTheme() {
         var explicit = document.documentElement.dataset.theme;
         if (explicit) { return explicit; }
@@ -450,7 +443,7 @@
         document.cookie = 'realtime_dashboard_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
-    /* --- کمکی --------------------------------------------------------------- */
+    /* کمکی */
     function debounce(fn, delay) {
         var timer = null;
         return function () {
@@ -459,7 +452,7 @@
         };
     }
 
-    /* --- اتصال رویدادها ------------------------------------------------------- */
+    /* اتصال رویدادها */
     el.searchForm.addEventListener('submit', function (event) { event.preventDefault(); });
 
     el.searchInput.addEventListener('input', debounce(function () {
@@ -555,7 +548,7 @@
         persistSettingsFromForm();
     });
 
-    /* --- شروع -------------------------------------------------------------- */
+    /* شروع */
     el.settingsDialog && applySettingsToForm();
     setConnectionStatus(true);
     poll(true).then(function () { restartTimers(); });

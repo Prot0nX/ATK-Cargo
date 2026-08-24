@@ -24,7 +24,7 @@ object RetrofitClient {
     private const val WRITE_TIMEOUT_SECONDS = 30L
     private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024 * 1024
 
- // Base URL from Secrets
+ // دریافت آدرس پایه سرور از ماژول امنیتی Secrets.
     private val BASE_URL = Secrets.getBaseUrl()
 
  // باید پیش از اولین دسترسی به apiService (در AtkCargoApplication.onCreate) فراخوانی شود تا کش HTTP دیسک فعال شود
@@ -51,7 +51,7 @@ object RetrofitClient {
         }
     }
 
- // Float Type Adapter for better handling of float values
+ // مبدل سفارشی Gson جهت مدیریت دقیق مقادیر اعشاری.
     private class FloatTypeAdapter : TypeAdapter<Float>() {
         override fun write(out: JsonWriter, value: Float) {
             out.value(value)
@@ -87,7 +87,7 @@ object RetrofitClient {
         }
     }
 
- // Configure Gson with custom type adapter
+ // پیکربندی شیء Gson همراه با مبدل‌های سفارشی.
     private val gson = GsonBuilder()
         .setStrictness(Strictness.LENIENT)
         .serializeNulls()
@@ -155,7 +155,7 @@ object RetrofitClient {
         builder.build()
     }
 
- // Configure and create Retrofit instance
+ // پیکربندی و ساخت نمونه Retrofit.
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)

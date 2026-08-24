@@ -1,12 +1,6 @@
-# =======================================================================
-# ENTERPRISE PROGUARD & R8 CONFIGURATION - ATK-CARGO
-# Production-Grade Security Hardening, Optimization & Shrinking Rules
-# =======================================================================
+# قوانین بهینه‌سازی، امنیت و مبهم‌سازی R8 و ProGuard برای نسخه نهایی.
 
-# -----------------------------------------------------------------------
-# SECTION 1: GENERAL OPTIMIZATION & R8 HARDENING
-# -----------------------------------------------------------------------
-# Obfuscation Dictionaries & Repackaging
+# تنظیم دیکشنری‌های مبهم‌سازی نام کلاس‌ها و پکیج‌ها.
 -obfuscationdictionary proguard-dictionary.txt
 -classobfuscationdictionary proguard-dictionary.txt
 -packageobfuscationdictionary proguard-dictionary.txt
@@ -15,16 +9,12 @@
 -allowaccessmodification
 -renamesourcefileattribute SourceFile
 
-# -----------------------------------------------------------------------
-# SECTION 2: ATTRIBUTE PRESERVATION & METADATA
-# -----------------------------------------------------------------------
+# حفظ متادیتا و انوتیشن‌های ضروری در زمان اجرا.
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
 -keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
 -keepattributes SourceFile,LineNumberTable
 
-# -----------------------------------------------------------------------
-# SECTION 3: ANDROID CORE ENTRY POINTS
-# -----------------------------------------------------------------------
+# حفظ کامپوننت‌های اصلی فریم‌ورک اندروید.
 -keep public class * extends android.app.Activity
 -keep public class * extends android.app.Application
 -keep public class * extends android.app.Service
@@ -32,47 +22,35 @@
 -keep public class * extends android.content.ContentProvider
 -keep public class * extends android.app.backup.BackupAgent
 
-# -----------------------------------------------------------------------
-# SECTION 4: JNI & NATIVE BRIDGE PROTECTION
-# -----------------------------------------------------------------------
-# libsecrets.so اکنون از JNI_OnLoad + RegisterNatives استفاده می‌کند (نه قرارداد نام‌گذاری
-# استاندارد Java_pkg_Class_method) — بنابراین نام‌های واقعی متد در جدول سیمبل .so دیگر
-# فاش نمی‌شوند. اما چون RegisterNatives با رشتهٔ ثابت نام متد در زمان کامپایل C++ بایند
-# می‌شود، نام کلاس/متدهای Secrets باید دقیقاً حفظ شوند وگرنه JNI_OnLoad شکست می‌خورد.
+# حفظ کلاس‌ها و متدهای متصل به کدهای محلی C++ و JNI.
 -keep class com.atk.atk_cargo.api.Secrets { *; }
 
-# -----------------------------------------------------------------------
-# SECTION 5: SECURITY & CRITICAL APPLICATION HARDENING
-# -----------------------------------------------------------------------
-# SecurityVerifier / CryptoManager / UserPreferencesManager:
+# حفظ کلاس‌ها و انوم‌های ماژول‌های امنیتی.
 -keepclassmembers enum com.atk.atk_cargo.security.SecurityErrorType {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
 
-# Preserve MainActivity lifecycle entry point
+# حفظ اکتیویتی اصلی برنامه.
 -keep class com.atk.atk_cargo.MainActivity {
     public <init>();
     protected void onCreate(android.os.Bundle);
 }
 
-# -----------------------------------------------------------------------
-# SECTION 6: NETWORKING (RETROFIT, OKHTTP, GSON)
-# -----------------------------------------------------------------------
-# Retrofit Interfaces & Annotations
+# قوانین شبکه، Retrofit، OkHttp و سریال‌سازی Gson.
 -keep interface com.atk.atk_cargo.api.ApiServiceV2 { *; }
 
 -keepclassmembers interface * {
     @retrofit2.http.* <methods>;
 }
 
-# Data Models & DTO Preservation (Gson Reflection Safety)
+# حفظ ساختار مدل‌های داده و DTOها جهت عملکرد صحیح Gson.
 -keep class com.atk.atk_cargo.data.model.** {
     <fields>;
     <init>(...);
 }
 
-# Gson TypeAdapters & SerializedName Annotations
+# حفظ مبدل‌های سفارشی Gson و فیلدهای دارای SerializedName.
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
@@ -81,26 +59,24 @@
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# Gson TypeToken anonymous subclasses (LoadingNotificationService, UserPreferencesManager)
+# حفظ ساب‌کلاس‌های TypeToken برای پردازش ساختارهای جنریک در Gson.
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 
-# -----------------------------------------------------------------------
-# SECTION 7: KOTLIN, COROUTINES & SERIALIZATION
-# -----------------------------------------------------------------------
+# قوانین کاتلین، کوروتین‌ها و سریال‌سازی kotlinx.serialization.
 -dontwarn kotlin.**
 -keepclassmembers class **$WhenMappings {
     <fields>;
 }
 
-# Kotlin Coroutines
+# حفظ کارخانه‌های مدیریت کوروتین‌های کاتلین.
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler
 -keepclassmembers class kotlinx.coroutines.** {
     volatile <fields>;
 }
 
-# Kotlinx Serialization & Navigation Routes
+# حفظ مسیرها و اشیای سریال‌پذیر در ناوبری کامپوز.
 -keep @kotlinx.serialization.Serializable class * { *; }
 -keepclassmembers class * {
     @kotlinx.serialization.Serializable <fields>;
@@ -119,9 +95,7 @@
     @kotlinx.serialization.Serializer *** serializer(...);
 }
 
-# -----------------------------------------------------------------------
-# SECTION 8: ROOM DATABASE & PARCELABLE
-# -----------------------------------------------------------------------
+# قوانین پایگاه داده Room و رابط Parcelable.
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
 -keep @androidx.room.Dao class *
@@ -134,17 +108,13 @@
     public static final android.os.Parcelable$Creator *;
 }
 
-# -----------------------------------------------------------------------
-# SECTION 10: WORKMANAGER & BACKGROUND TASKS
-# -----------------------------------------------------------------------
+# قوانین تسک‌های پس‌زمینه و WorkManager.
 -keep class * extends androidx.work.ListenableWorker {
     public <init>(android.content.Context, androidx.work.WorkerParameters);
 }
 -dontwarn androidx.work.**
 
-# -----------------------------------------------------------------------
-# SECTION 11: JETPACK COMPOSE & UI LIBRARIES
-# -----------------------------------------------------------------------
+# قوانین مربوط به Jetpack Compose و ناوبری رابط کاربری.
 -dontwarn androidx.compose.**
 -keep class androidx.compose.ui.platform.NestedScrollInteropConnection { *; }
 
@@ -152,22 +122,14 @@
     @androidx.navigation.** <methods>;
 }
 
-# -----------------------------------------------------------------------
-# SECTION 12: MEDIA, DOCUMENT & THIRD-PARTY SDKs
-# -----------------------------------------------------------------------
-# Image Loading & Animations
+# قوانین کتابخانه‌های شخص ثالث، Lottie، ZXing و CameraX.
 -dontwarn com.airbnb.lottie.**
-
-# Barcode & CameraX ML Kit
 -dontwarn com.google.zxing.**
 -dontwarn com.google.mlkit.**
 -dontwarn androidx.camera.**
 -dontwarn androidx.media3.**
 
-# -----------------------------------------------------------------------
-# SECTION 13: RELEASE LOGGING STRIPPING & WARNING SUPPRESSIONS
-# -----------------------------------------------------------------------
-# Strip Android Log methods from Release Binary
+# حذف لاگ‌های تشخیصی android.util.Log در نسخه نهایی (Release).
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -176,7 +138,7 @@
     public static int w(...);
 }
 
-# Global Warning Suppressions
+# نادیده گرفتن هشدارهای عمومی وابستگی‌های بدون مصرف در زمان اجرا.
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**

@@ -27,10 +27,7 @@ class AuditLogController {
         }
     }
 
- /**
- * @param array<string,mixed> $row
- * @return array<string,mixed>
- */
+ /** @param array<string,mixed> $row @return array<string,mixed> */
     private function presentLog(array $row): array {
         $detailsRaw = $row['details'] ?? null;
         $details = $detailsRaw !== null ? json_decode((string)$detailsRaw, true) : null;

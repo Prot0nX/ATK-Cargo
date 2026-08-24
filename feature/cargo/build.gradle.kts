@@ -28,11 +28,7 @@ android {
 }
 
 dependencies {
-    // QuotaValidationUseCase به QuotaRepository (core:domain) و
-    // MessageType/QuotaValidationResult (core:network) نیاز دارد؛ بدون
-    // Compose چون هر دو کلاس این ماژول (CargoSnackbarQueue،
-    // QuotaValidationUseCase) خالص Kotlin/coroutines هستند
- //.
+    // QuotaValidationUseCase به QuotaRepository (core:domain) و MessageType/QuotaValidationResult (core:network) نیاز دارد؛ بدون Compose چون هر دو کلاس این ماژول (CargoSnackbarQueue، QuotaValidationUseCase) خالص Kotlin/coroutines هستند .
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
     implementation(project(":core:common"))

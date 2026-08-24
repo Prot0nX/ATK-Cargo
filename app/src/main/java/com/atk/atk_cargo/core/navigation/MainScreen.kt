@@ -1,6 +1,6 @@
 package com.atk.atk_cargo.core.navigation
 
-// ===== FEATURE NAVIGATION IMPORTS =====
+// مسیرهای ناوبری فیچرها.
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition

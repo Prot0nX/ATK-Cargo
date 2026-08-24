@@ -20,7 +20,7 @@ class ChatNotificationWorker(
 
     override suspend fun doWork(): ListenableWorker.Result {
         return try {
- // Check if user is logged in
+ // بررسی وضعیت ورود کاربر.
             val username = userPreferencesManager.username.first()
             if (username.isEmpty()) {
                 return ListenableWorker.Result.success()
@@ -29,14 +29,14 @@ class ChatNotificationWorker(
             val userType = userPreferencesManager.userType.first()
             val lastNotifiedId = userPreferencesManager.lastNotifiedMessageId.first()
             
- // Fetch latest messages
+ // دریافت آخرین پیام‌های چت.
             val response = RetrofitClient.apiServiceV2.getChatMessages(username = username, limit = 20)
             
             if (response.isSuccessful) {
                 val messagesResponse = response.body()
                 val messages = messagesResponse?.messages ?: emptyList()
                 
- // Filter new messages (ID > lastNotifiedId)
+ // فیلتر پیام‌های جدید بر اساس آخرین شناسه اعلان‌شده.
                 val newMessages = messages.filter { it.id > lastNotifiedId }
                     .sortedBy { it.id }
 
@@ -50,17 +50,17 @@ class ChatNotificationWorker(
                             maxId = message.id
                         }
 
- // Don't notify for own messages
+ // عدم ارسال اعلان برای پیام‌های ارسال‌شده توسط خود کاربر.
                         if (message.username == username) continue
 
- // Notification Logic
+ // منطق پردازش و ارسال اعلان پیام‌ها.
                         if (userType == "admin") {
- // Admin gets notified for all new messages
+ // ارسال اعلان تمام پیام‌های جدید برای کاربر مدیر.
                             val senderName = message.fullName ?: message.username
                             messagesToShow.add("$senderName: ${message.message}")
                             uniqueSenders.add(senderName)
                         } else if (message.message.contains("@$username")) {
- // Regular user gets notified if mentioned
+ // ارسال اعلان برای کاربر عادی در صورت منشن شدن.
                             val senderName = message.fullName ?: message.username
                             messagesToShow.add("$senderName: ${message.message}")
                             uniqueSenders.add(senderName)
@@ -76,7 +76,7 @@ class ChatNotificationWorker(
                         showGroupedNotification(messagesPairs, uniqueSenders)
                     }
 
- // Update last notified ID
+ // به‌روزرسانی آخرین شناسه پیام اعلان‌شده.
                     userPreferencesManager.saveLastNotifiedMessageId(maxId)
                 }
             }

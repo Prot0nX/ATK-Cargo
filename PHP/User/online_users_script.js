@@ -1,7 +1,4 @@
-// پنل مدیریت کاربران آنلاین ATK — معماری ماژولار ES6+. بدون Tailwind/Font Awesome؛ کلاس‌ها
-// معنایی‌اند و از assets/app.css + ../assets/ui/core.css می‌آیند. به‌خاطر CSP سخت‌گیرانه‌ی این
-// پنل (script-src/style-src 'self'، بدون unsafe-inline) هیچ‌جا از onclick="" یا style="" استفاده
-// نمی‌شود؛ همه‌چیز با addEventListener و کلاس/attribute انجام می‌شود.
+// پنل مدیریت کاربران آنلاین ATK — معماری ماژولار ES6+. بدون Tailwind/Font Awesome؛ کلاس‌ها معنایی‌اند و از assets/app.css + ../assets/ui/core.css می‌آیند. به‌خاطر CSP سخت‌گیرانه‌ی این پنل (script-src/style-src 'self'، بدون unsafe-inline) هیچ‌جا از onclick="" یا style="" استفاده نمی‌شود؛ همه‌چیز با addEventListener و کلاس/attribute انجام می‌شود.
 
 // ===== پیکربندی =====
 const CONFIG = {
@@ -27,8 +24,7 @@ const Utils = {
     }
 };
 
-// ===== مدیریت تم =====
-// الگوی دقیق toggleTheme در Quota_Reports/assets/app.js: data-theme + کوکی سمت سرور (بدون FOUC).
+// ===== مدیریت تم ===== الگوی دقیق toggleTheme در Quota_Reports/assets/app.js: data-theme + کوکی سمت سرور (بدون FOUC).
 class ThemeManager {
     constructor() {
         this.toggleBtn = document.getElementById('themeToggle');

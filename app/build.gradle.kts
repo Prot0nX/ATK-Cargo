@@ -10,12 +10,7 @@ plugins {
     id("kotlin-parcelize")
 }
 
-// امضای release از طریق keystore.properties (خارج از git، الگو در
-// keystore.properties.example) یا متغیرهای محیطی CI — چون این اپ خودش را از
-// downloads/app-release.apk به‌روز می‌کند و امضا در SecurityVerifier به‌عنوان
-// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار.
-// اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود
-// (برای لینت/کامپایل محلی کافی است) اما قابل نصب/توزیع نخواهد بود.
+// امضای release از طریق keystore.properties (خارج از git، الگو در keystore.properties.example) یا متغیرهای محیطی CI — چون این اپ خودش را از downloads/app-release.apk به‌روز می‌کند و امضا در SecurityVerifier به‌عنوان یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار. اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود (برای لینت/کامپایل محلی کافی است) اما قابل نصب/توزیع نخواهد بود.
 val keystoreProperties = Properties().apply {
     val propsFile = rootProject.file("keystore.properties")
     if (propsFile.exists()) {
@@ -58,9 +53,7 @@ android {
     signingConfigs {
         if (releaseSigningConfigured) {
             create("release") {
-                // rootProject به‌جای project (که ماژول app است) — چون
-                // keystore.properties در ریشه‌ی پروژه است، مسیر نسبی هم باید
-                // نسبت به همان‌جا resolve شود، نه نسبت به app/.
+                // rootProject به‌جای project (که ماژول app است) — چون keystore.properties در ریشه‌ی پروژه است، مسیر نسبی هم باید نسبت به همان‌جا resolve شود، نه نسبت به app/.
                 storeFile = rootProject.file(releaseStorePath!!)
                 storePassword = signingProperty("storePassword", "KEYSTORE_PASSWORD")
                 keyAlias = signingProperty("keyAlias", "KEY_ALIAS")
@@ -270,18 +263,18 @@ dependencies {
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
-    // ==================== Core Library Desugaring ====================
+    // کتابخانه‌های Desugaring هسته جاوا.
     coreLibraryDesugaring(libs.desugar.jdk.libs.v215)
 
     // ==================== Compose BOM (باید اول باشد) ====================
     implementation(platform(libs.compose.bom))
 
-    // ==================== AndroidX Core Libraries ====================
+    // کتابخانه‌های اصلی AndroidX.
     implementation(libs.androidx.core.ktx.v1160)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose.v1101)
 
-    // ==================== Lifecycle Components ====================
+    // کامپوننت‌های مدیریت چرخه حیات (Lifecycle).
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.livedata.ktx)
@@ -293,21 +286,21 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.foundation)
 
-    // ==================== Material Design ====================
+    // کامپوننت‌های طراحی متریال.
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
 
     // ==================== Navigation ====================
     implementation(libs.androidx.navigation.compose.v290)
 
-    // ==================== Camera & ML Kit ====================
+    // کتابخانه‌های دوربین و پردازش تصویر ML Kit.
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.play.services.mlkit.barcode.scanning)
     implementation(libs.text.recognition)
 
-    // ==================== Data Storage ====================
+    // ذخیره‌سازی داده‌ها با DataStore و Room.
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.datastore.core)
 
@@ -317,17 +310,17 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // ==================== Coroutines & Serialization ====================
+    // کوروتین‌ها و سریال‌سازی داده‌ها.
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 
-    // ==================== Work Manager ====================
+    // مدیریت کارهای پس‌زمینه با WorkManager.
     implementation(libs.androidx.work.runtime.ktx)
 
-    // ==================== Barcode Scanning ====================
+    // اسکن بارکد و QR کد.
     implementation(libs.zxing.android.embedded)
 
-    // ==================== Animation & UI Effects ====================
+    // انیمیشن‌ها و افکت‌های بصری رابط کاربری.
     implementation(libs.lottie.compose)
 
     // ==================== Testing ====================
@@ -340,11 +333,11 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // ==================== Debug Tools ====================
+    // ابزارهای عیب‌یابی و دیباگ.
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    // ==================== Dependency Injection (Koin) ====================
+    // تزریق وابستگی با فریم‌ورک Koin.
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
 }

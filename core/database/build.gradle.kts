@@ -25,8 +25,7 @@ android {
 }
 
 dependencies {
-    // api عمداً (نه implementation): app به AppDatabase (که RoomDatabase را
-    // extend می‌کند) و انواع Room runtime دیگر مستقیماً دسترسی نیاز دارد.
+    // صدور وابستگی Room به صورت api جهت دسترسی مستقیم ماژول app به AppDatabase.
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

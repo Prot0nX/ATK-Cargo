@@ -19,9 +19,7 @@ class AuditLogRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
- /**
- * @return array<int,array<string,mixed>>
- */
+ /** @return array<int,array<string,mixed>> */
     public function listLogs(int $limit, ?int $beforeId = null, ?string $username = null, ?string $entityType = null): array {
         $limit = max(1, min($limit, self::MAX_ROWS));
         $where = [];

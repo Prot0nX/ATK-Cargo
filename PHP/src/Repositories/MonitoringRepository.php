@@ -19,10 +19,7 @@ class MonitoringRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
- /**
- * @param string $status یکی از open، acknowledged یا all
- * @return array<int,array<string,mixed>>
- */
+ /** @param string $status یکی از open، acknowledged یا all @return array<int,array<string,mixed>> */
     public function listEvents(string $status, int $limit, ?int $beforeId = null): array {
         $limit = max(1, min($limit, self::MAX_ROWS));
         $where = [];

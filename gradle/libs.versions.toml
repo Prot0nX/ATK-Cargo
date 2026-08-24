@@ -1,5 +1,5 @@
 [versions]
-# Build Tools
+# ابزارهای ساخت
 activity-compose = "1.11.0"
 agp = "8.13.0"
 camera-camera2 = "1.5.0"
@@ -13,21 +13,21 @@ kotlinx-coroutines-android = "1.10.2"
 kotlinx-serialization-json = "1.9.0"
 koin = "4.1.1"
 
-# Compose
+# کامپوز
 compose-bom = "2025.09.00"
 
-# Material Design
+# طراحی متریال
 lifecycle-runtime-ktx = "2.9.4"
 lottie-compose = "6.6.9"
 
-# Networking
+# ارتباطات شبکه
 navigation-compose = "2.9.4"
 play-services-mlkit-barcode-scanning = "18.3.1"
 retrofit = "3.0.0"
 room = "2.7.0"
 okhttp = "5.1.0"
 
-# Testing
+# ابزارهای تست
 junit = "4.13.2"
 androidx-junit = "1.3.0"
 espresso = "3.7.0"
@@ -35,19 +35,19 @@ kotlinx-coroutines-test = "1.10.2"
 turbine = "1.2.1"
 mockk = "1.14.6"
 
-# Other
+# سایر وابستگی‌ها
 text-recognition = "16.0.1"
 work-runtime-ktx = "2.10.4"
 zxing-android-embedded = "4.3.0"
 
-# Baseline Profile
+# پروفایل بهینه‌سازی پایه
 androidx-benchmark-macro-junit4 = "1.4.1"
 androidx-baselineprofile-plugin = "1.3.3"
 androidx-profileinstaller = "1.4.1"
 androidx-uiautomator = "2.3.0"
 
 [libraries]
-# AndroidX Core
+# هسته AndroidX
 androidx-activity-compose-v1101 = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camera-camera2" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camera-camera2" }
@@ -55,7 +55,7 @@ androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "
 androidx-core-ktx-v1160 = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "core-splashscreen" }
 
-# Compose BOM
+# کامپوز BOM
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastore-preferences" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore-preferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
@@ -82,12 +82,12 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
 
-# Room
+# پایگاه داده Room
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
-# Networking
+# ارتباطات شبکه
 play-services-mlkit-barcode-scanning = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-services-mlkit-barcode-scanning" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
@@ -95,7 +95,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 
-# Testing
+# ابزارهای تست
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
@@ -103,7 +103,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
-# Other
+# سایر وابستگی‌ها
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "text-recognition" }
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing-android-embedded" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }

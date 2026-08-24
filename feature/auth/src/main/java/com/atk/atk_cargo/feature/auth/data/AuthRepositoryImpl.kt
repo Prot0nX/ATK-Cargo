@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-// ===== DEPENDENCIES / IMPORTS =====
+// وابستگی‌ها و ایمپورت‌ها.
 
 // پیاده‌سازی AuthRepository که تمام ارتباط با API و DataStore را متمرکز می‌کند
 class AuthRepositoryImpl(
@@ -38,7 +38,7 @@ class AuthRepositoryImpl(
                 if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
                     return@withContext androidId
                 }
-            } catch (_: Exception) { /* Fallback */ }
+            } catch (_: Exception) { /* حالت جایگزین */ }
 
  // Fallback: UUID ذخیره‌شده در DataStore
             val storedDeviceId = userPreferencesManager.deviceId.first()
@@ -57,7 +57,7 @@ class AuthRepositoryImpl(
         }
     }
 
- // ===== CORE LOGIC =====
+ // منطق اصلی ماژول.
 
     override suspend fun login(
         username: String,

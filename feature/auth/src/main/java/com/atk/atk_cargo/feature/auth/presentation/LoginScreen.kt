@@ -95,14 +95,14 @@ fun LoginScreen(
     val loginState by viewModel.loginState.collectAsStateWithLifecycle()
     val formState by viewModel.formState.collectAsStateWithLifecycle()
 
- // ===== SIDE EFFECTS =====
+ // مدیریت اثرات جانبی (Side Effects).
     LaunchedEffect(loginState) {
         if (loginState is LoginUiState.Success) {
             onLoginSuccess()
         }
     }
 
- // ===== ADAPTIVE LAYOUT & THEME TOKENS =====
+ // توکن‌های قالب و چیدمان انطباقی.
     val adaptiveConfig = rememberAdaptiveLayoutConfig()
 
     Surface(
@@ -475,7 +475,7 @@ private fun IndustrialLoginFormCard(
             verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l)
         ) {
 
- // Title & Helper
+ // عنوان و متن راهنما.
             Column(verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)) {
                 Text(
                     text = "ورود پرسنل",
@@ -490,7 +490,7 @@ private fun IndustrialLoginFormCard(
                 )
             }
 
- // Username Field
+ // فیلد ورود نام کاربری.
             IndustrialInputField(
                 value = formState.username,
                 onValueChange = onUsernameChanged,
@@ -512,7 +512,7 @@ private fun IndustrialLoginFormCard(
                 )
             )
 
- // Password Field (Numeric PIN)
+ // فیلد ورود رمز عبور (پین عددی).
             IndustrialInputField(
                 value = formState.password,
                 onValueChange = onPasswordChanged,
@@ -563,7 +563,7 @@ private fun IndustrialLoginFormCard(
                 focusRequester = passwordFocusRequester
             )
 
- // Error Banner (Animated Visibility & Accessibility LiveRegion)
+ // بنر نمایش پیام خطا با انیمیشن و قابلیت دسترسی‌پذیری.
             AnimatedVisibility(
                 visible = errorMessage != null,
                 enter = expandVertically(animationSpec = tween(ATKCargoTheme.motion.durationMedium2)) + fadeIn(),

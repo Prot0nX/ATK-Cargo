@@ -84,8 +84,7 @@ try {
 } catch (ApiException $e) {
     Response::error($e->getMessage(), $e->getStatusCode(), $e->getDetails());
 } catch (\Throwable $e) {
-    // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه لاگ می‌شوند تا ساختار دیتابیس افشا نشود.
-    // کلاس + فایل:خط هم ثبت می‌شود چون فقط پیام خطا برای عیب‌یابی (مثلاً خطاهای PDO) کافی نیست.
+    // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه لاگ می‌شوند تا ساختار دیتابیس افشا نشود. کلاس + فایل:خط هم ثبت می‌شود چون فقط پیام خطا برای عیب‌یابی (مثلاً خطاهای PDO) کافی نیست.
     Logger::getInstance()->error(sprintf(
         'Quota Reports api.php (action=%s): [%s] %s in %s:%d',
         $action,

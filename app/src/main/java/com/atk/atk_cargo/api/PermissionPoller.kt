@@ -1,6 +1,6 @@
 package com.atk.atk_cargo.api
 
-// ===== DEPENDENCIES / IMPORTS =====
+// وابستگی‌ها و ایمپورت‌ها.
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,13 +15,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-// ===== CONFIGURATION & GLOBALS =====
+// تنظیمات و متغیرهای سراسری.
 private const val TAG = "PermissionPoller"
 
 // فاصله زمانی بین هر بار بررسی permissions از سرور (پیش‌فرض ۳ دقیقه)
 private const val POLL_INTERVAL_MS = 3 * 60 * 1000L // 3 minutes
 
-// ===== CORE LOGIC / IMPLEMENTATION =====
+// پیاده‌سازی منطق اصلی.
 
 // مدیریت به‌روزرسانی زنده سطوح دسترسی: هر POLL_INTERVAL_MS از سرور permissions می‌گیرد و DataStore/StateFlow را برای re-compose خودکار Composable ها به‌روز می‌کند
 class PermissionPoller(

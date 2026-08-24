@@ -94,8 +94,7 @@ function ou_require_auth_json(): void {
     }
 }
 
-// تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا FOUC هنگام بارگذاری رخ ندهد.
-// @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
+// تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا FOUC هنگام بارگذاری رخ ندهد. @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
 function ou_theme(): string {
     $theme = $_COOKIE['online_users_theme'] ?? '';
     return in_array($theme, ['light', 'dark'], true) ? $theme : '';
@@ -106,8 +105,7 @@ function e(?string $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// اعتبارسنجی مسیر بازگشت بعد از ورود/خروج — فقط index.php همین پنل یا index.php یک پنل خواهرِ
-// هم‌سطح (../SomeDir/index.php) مجاز است؛ هر چیز دیگر رد می‌شود تا این پارامتر مسیر open redirect نشود.
+// اعتبارسنجی مسیر بازگشت بعد از ورود/خروج — فقط index.php همین پنل یا index.php یک پنل خواهرِ هم‌سطح (../SomeDir/index.php) مجاز است؛ هر چیز دیگر رد می‌شود تا این پارامتر مسیر open redirect نشود.
 function ou_sanitize_return(?string $raw): ?string {
     if ($raw === null || $raw === '') {
         return null;

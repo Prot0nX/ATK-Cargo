@@ -1,9 +1,4 @@
-# جلوگیری از دسترسی مستقیم HTTP به فایل‌های لاگ (proxy_access.log،
-# loginlimit_*.json و غیره) — DEEP_CODE_AUDIT.md #Phase1.7. سازگار با
-# Apache 2.2 (mod_access_compat) و 2.4. این تنها لایه‌ی محافظت واقعی است —
-# یک DirectoryMatch مشابه قبلاً در .htaccess ریشه‌ی PHP/ هم بود، اما
-# `<Directory>`/`<DirectoryMatch>` در .htaccess اصلاً معتبر نیستند (فقط در
-# httpd.conf مجازند) و حذف شدند (DEEP_CODE_AUDIT.md).
+# مسدودسازی دسترسی مستقیم HTTP به فایل‌های لاگ.
 <IfModule mod_authz_core.c>
     Require all denied
 </IfModule>

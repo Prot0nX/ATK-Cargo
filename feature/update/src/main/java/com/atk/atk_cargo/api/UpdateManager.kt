@@ -155,7 +155,7 @@ class UpdateManager(
                             }
                             _minAllowedVersion.value = minAllowed.ifEmpty { null }
                             val isVersionAllowed = if (minAllowed.isNotEmpty()) {
- // compare > 0 => current newer; ==0 => equal; <0 => current older
+ // مقایسه نسخه: مثبت یعنی نسخه فعلی جدیدتر، صفر یعنی برابر، و منفی یعنی قدیمی‌تر.
                                 compareVersions(currentAppVersion, minAllowed) >= 0
                             } else {
                                 true

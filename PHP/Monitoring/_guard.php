@@ -95,8 +95,7 @@ function mon_require_auth_json(): void {
     }
 }
 
-// تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا FOUC هنگام بارگذاری رخ ندهد.
-// @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
+// تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا FOUC هنگام بارگذاری رخ ندهد. @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
 function mon_theme(): string {
     $theme = $_COOKIE['monitoring_theme'] ?? '';
     return in_array($theme, ['light', 'dark'], true) ? $theme : '';

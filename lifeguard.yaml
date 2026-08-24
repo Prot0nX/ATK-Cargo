@@ -1,7 +1,4 @@
-# Lifeguard Custom Rules
-# Replace these examples with rules specific to your project
-# Each rule should have a clear name and detailed description
-
+# قوانین سفارشی اعتبارسنجی Lifeguard برای بررسی استانداردهای پروژه.
 rules:
   - name: "Database transactions must be properly handled"
     description: "Ensure all database operations are wrapped in transactions with proper rollback handling. Check that commit/rollback is called in all code paths including error scenarios."

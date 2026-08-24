@@ -71,7 +71,7 @@ class CryptoManager {
         if (encryptedBase64.isEmpty()) return ""
         return try {
             val combined = Base64.decode(encryptedBase64, Base64.DEFAULT)
-            val iv = ByteArray(12) // GCM IV size is 12 bytes
+            val iv = ByteArray(12) // طول بردار اولیه (IV) در استاندارد AES-GCM برابر با ۱۲ بایت است.
             val encryptedBytes = ByteArray(combined.size - iv.size)
             
             System.arraycopy(combined, 0, iv, 0, iv.size)

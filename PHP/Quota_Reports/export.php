@@ -149,11 +149,7 @@ try {
     qr_export_fail('تولید خروجی با خطا مواجه شد. جزئیات در لاگ سرور ثبت شد.');
 }
 
-/**
- * @param array<int, array{0: string, 1: string}> $summaryRows
- * @param array<int, string> $tableHeaders
- * @param array<int, array<int, string>> $tableRows
- */
+/** @param array<int, array{0: string, 1: string}> $summaryRows @param array<int, string> $tableHeaders @param array<int, array<int, string>> $tableRows */
 function qr_generate_export(string $format, string $kotazh, string $baseFilename, array $summaryRows, array $tableHeaders, array $tableRows): void {
     switch ($format) {
         case 'excel':
@@ -175,11 +171,7 @@ function qr_generate_export(string $format, string $kotazh, string $baseFilename
     }
 }
 
-/**
- * @param array<int, array{0: string, 1: string}> $summaryRows
- * @param array<int, string> $tableHeaders
- * @param array<int, array<int, string>> $tableRows
- */
+/** @param array<int, array{0: string, 1: string}> $summaryRows @param array<int, string> $tableHeaders @param array<int, array<int, string>> $tableRows */
 function qr_stream_excel(string $title, array $summaryRows, array $tableHeaders, array $tableRows, string $filename): void {
     $lastCol = Coordinate::stringFromColumnIndex(count($tableHeaders));
 

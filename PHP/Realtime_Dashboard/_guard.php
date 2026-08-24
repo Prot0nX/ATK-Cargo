@@ -103,8 +103,7 @@ function rtd_require_auth_json(): void {
     }
 }
 
-// تم انتخابی کاربر — کوکی جداگانه از Quota_Reports چون فقط نشست/رمز مشترک است، نه ترجیحات نمایشی.
-// @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
+// تم انتخابی کاربر — کوکی جداگانه از Quota_Reports چون فقط نشست/رمز مشترک است، نه ترجیحات نمایشی. @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
 function rtd_theme(): string {
     $theme = $_COOKIE['realtime_dashboard_theme'] ?? '';
     return in_array($theme, ['light', 'dark'], true) ? $theme : '';

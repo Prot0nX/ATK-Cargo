@@ -115,7 +115,7 @@ fun EnhancedAddUserDialog(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
- // Header: title + subtitle, icon badge
+ // بخش هدر دیالوگ: عنوان، زیرعنوان و نشان آیکون.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -197,7 +197,7 @@ fun EnhancedAddUserDialog(
                     )
                 )
 
- // Role selection section
+ // بخش انتخاب نقش کاربری.
                 UserTypeSelection(
                     selectedUserType = selectedUserType,
                     onUserTypeSelected = { selectedUserType = it },

@@ -87,7 +87,7 @@
         }
     };
 
-    /* --- ارتباط با سرور -------------------------------------------------- */
+    /* ارتباط با سرور */
     function request(action, params) {
         var query = new URLSearchParams(params || {});
         query.set('action', action);
@@ -107,7 +107,7 @@
             });
     }
 
-    /* --- توست ------------------------------------------------------------ */
+    /* توست */
     function toast(message, type) {
         var node = document.createElement('div');
         node.className = 'toast toast-' + (type || 'success');
@@ -116,7 +116,7 @@
         setTimeout(function () { node.remove(); }, 3500);
     }
 
-    /* --- قالب‌بندی اعداد --------------------------------------------------- */
+    /* قالب‌بندی اعداد */
     function formatNumber(value, decimals) {
         var n = Number(value);
         if (isNaN(n)) { return '—'; }
@@ -130,7 +130,7 @@
         return td;
     }
 
-    /* --- نمای داشبورد ------------------------------------------------------ */
+    /* نمای داشبورد */
     var NEAR_COMPLETION_PERCENTAGE = 90;
 
     function buildQuotaRow(quota) {
@@ -195,9 +195,7 @@
         return tr;
     }
 
-    // سرستون دسته‌بندی سطح دوم (صاحب کالا)، تودرتوی سرستون انبار؛ نام وسط‌چین با خط‌چین در دو طرف تا عرض کامل.
-    // فلکس عمداً روی یک div داخل td است، نه خودِ td: بعضی موتورهای مرورگر display:flex را روی سلول جدول
-    // (که یک جعبه‌ی داخلی جدول است) نادیده می‌گیرند و به table-cell معمولی برمی‌گردند.
+    // سرستون دسته‌بندی سطح دوم (صاحب کالا)، تودرتوی سرستون انبار؛ نام وسط‌چین با خط‌چین در دو طرف تا عرض کامل. فلکس عمداً روی یک div داخل td است، نه خودِ td: بعضی موتورهای مرورگر display:flex را روی سلول جدول (که یک جعبه‌ی داخلی جدول است) نادیده می‌گیرند و به table-cell معمولی برمی‌گردند.
     function buildCargoOwnerHeaderRow(ownerName, count) {
         var tr = document.createElement('tr');
         tr.className = 'subgroup-header';
@@ -414,7 +412,7 @@
             });
     }
 
-    /* --- نمای جزئیات -------------------------------------------------------- */
+    /* نمای جزئیات */
     function renderStats(info) {
         el.stats.total.textContent = formatNumber(info.totalTonnage, 2);
         el.stats.loaded.textContent = formatNumber(info.loadedTonnage, 2);
@@ -509,8 +507,7 @@
         });
     }
 
-    // نمودار SVG دست‌ساز و بدون وابستگی خارجی — میله‌ی تعداد حواله + خط وزن خالص روزانه؛
-    // جایگزین Chart.js از CDN که با CSP سخت‌گیرانه‌ی این پنل (script-src 'self') ناسازگار بود.
+    // نمودار SVG دست‌ساز و بدون وابستگی خارجی — میله‌ی تعداد حواله + خط وزن خالص روزانه؛ جایگزین Chart.js از CDN که با CSP سخت‌گیرانه‌ی این پنل (script-src 'self') ناسازگار بود.
     function renderChart() {
         if (!el.chartCanvas) { return; }
         el.chartCanvas.replaceChildren();
@@ -651,7 +648,7 @@
             });
     }
 
-    /* --- ناوبری بین نماها ---------------------------------------------------- */
+    /* ناوبری بین نماها */
     function showDashboard(pushState) {
         state.view = 'dashboard';
         el.dashboardView.classList.remove('is-hidden');
@@ -681,7 +678,7 @@
         loadDetail(kotazh);
     }
 
-    /* --- پوسته ------------------------------------------------------------- */
+    /* پوسته */
     function currentTheme() {
         var explicit = document.documentElement.dataset.theme;
         if (explicit) { return explicit; }
@@ -694,7 +691,7 @@
         document.cookie = 'quota_reports_theme=' + next + '; path=/; max-age=31536000; samesite=Lax';
     }
 
-    /* --- اتصال رویدادها ------------------------------------------------------ */
+    /* اتصال رویدادها */
     function debounce(fn, delay) {
         var timer = null;
         return function () {
@@ -835,7 +832,7 @@
         if (kotazh) { showDetail(kotazh, false); } else { showDashboard(false); }
     });
 
-    /* --- شروع -------------------------------------------------------------- */
+    /* شروع */
     var initialParams = new URLSearchParams(window.location.search);
     var initialKotazh = initialParams.get('kotazh');
     if (initialKotazh && /^\d{8}$/.test(initialKotazh)) {

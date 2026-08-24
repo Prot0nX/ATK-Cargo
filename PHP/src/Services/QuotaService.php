@@ -198,8 +198,7 @@ final class QuotaService {
         return null;
     }
 
- // خلاصه‌ی همه‌ی کوتاژها (فعال و غیرفعال) برای داشبورد گزارش — همان الگوی JOIN اثبات‌شده‌ی getQuotaDetails، بدون فیلتر تک‌کوتاژ
- // فقط زمانی صدا زده می‌شود که کاربر مرتب‌سازی سراسری را فعال کند؛ بارگذاری اولیه‌ی داشبورد از getQuotaGroupsSummary (سبک) استفاده می‌کند
+ // خلاصه تمام کوتاژها برای داشبورد گزارش هنگام فعال‌سازی مرتب‌سازی سراسری (الگوی JOIN بدون فیلتر تک‌کوتاژ).
     public function getQuotasSummary(): array {
         return MicroCache::remember('quota_reports_summary', 10, fn() => $this->fetchQuotasSummary());
     }
@@ -258,9 +257,7 @@ final class QuotaService {
         ];
     }
 
- // فهرست سبک همه‌ی کوتاژها برای بارگذاری اولیه‌ی داشبورد: فقط ستون‌های خود InitialInfo، بدون JOIN/تجمیع روی CargoInfo.
- // محاسبات سنگین (تناژ بارگیری‌شده، درصد، تعداد حواله) عمداً اینجا نیستند؛ فقط با باز شدن دسته‌بندی هر کشتی و از طریق
- // getQuotaStatsForShip برای همان یک کشتی انجام می‌شوند.
+ // فهرست سبک کوتاژها برای بارگذاری اولیه داشبورد بدون JOIN سنگین با CargoInfo.
     public function getQuotaGroupsSummary(): array {
         return MicroCache::remember('quota_reports_groups_summary', 10, fn() => $this->fetchQuotaGroupsSummary());
     }
@@ -291,9 +288,7 @@ final class QuotaService {
         return $quotas;
     }
 
- // آمار محاسبه‌شده (تناژ بارگیری‌شده/باقی‌مانده، درصد، تعداد حواله) فقط برای کوتاژهای یک کشتی (و در صورت
- // مشخص‌بودن، فقط یک نوع کالای همان کشتی) — دقیقاً همان شکل خروجی fetchQuotasSummary اما محدود به WHERE
- // shipName [+ cargoType]، تا داشبورد بدون تغییر منطق رندر بتواند از آن استفاده کند.
+ // آمار بارگیری و مانده کوتاژهای یک کشتی مشخص برای بارگذاری تدریجی در داشبورد.
     public function getQuotaStatsForShip(string $shipName, ?string $cargoType = null): array {
         $shipName = InputValidator::validateIdentifier($shipName);
         $cargoType = $cargoType !== null && $cargoType !== '' ? InputValidator::validateIdentifier($cargoType) : null;

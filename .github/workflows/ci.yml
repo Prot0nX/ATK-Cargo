@@ -25,23 +25,17 @@ jobs:
       - name: Composer install
         run: composer install --no-interaction --prefer-dist --no-progress
 
- # php -l روی هر فایل .php پروژه (بدون vendor) — قبل از این CI، سه باگ
- # واقعی (Request::post ناموجود، cleanupExpiredSessions ناموجود،
- # generateDailyStats.php روی کلاس حذف‌شده) فقط با بررسی دستی پیدا شدند
- # این گیت آن‌ها را در همان کامیت مسدود می‌کند.
+ # اعتبارسنجی سینتکس تمام فایل‌های PHP پروژه با دستور php -l.
       - name: PHP syntax check (php -l)
         run: |
           find . -name '*.php' -not -path './vendor/*' -print0 \
             | xargs -0 -n1 -P4 php -l
 
- # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon دقیقاً
- # همین حالت (نبود .env) را پیش‌فرض می‌شناسد. خطاهای از‌پیش‌موجود (عمدتاً
- # jdf.php شخص‌ثالث) در phpstan-baseline.neon نگه داشته شده‌اند.
+ # تحلیل استاتیک کدهای PHP با ابزار PHPStan.
       - name: PHPStan (level 7)
         run: vendor/bin/phpstan analyse --no-progress --error-format=github
 
- # فقط منطق خالص (بدون دیتابیس) مثل QuotaCalculator — تست‌هایی که به
- # MySQL واقعی نیاز دارند در این CI (بدون سرویس دیتابیس) اجرا نمی‌شوند.
+ # اجرای تست‌های واحد PHPUnit برای منطق‌های مستقل از دیتابیس.
       - name: PHPUnit
         run: vendor/bin/phpunit
 
@@ -60,10 +54,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
- # gradlew در گیت با mode غیرقابل‌اجرا (100644) ذخیره شده — احتمالاً
- # چون این ریپو از یک محیط ویندوز کار شده که bit اجرایی یونیکس را
- # حفظ نمی‌کند؛ بدون این مرحله ./gradlew روی runner لینوکسی با خطای
- # Permission denied شکست می‌خورد.
+ # تنظیم دسترسی اجرایی برای اسکریپت gradlew در محیط لینوکس CI.
       - name: Make gradlew executable
         run: chmod +x gradlew
 

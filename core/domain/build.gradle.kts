@@ -28,19 +28,14 @@ android {
 }
 
 dependencies {
-    // مدل دامنه‌ی حواله/کوتاژ/کشتی از DTOهای شبکه (CargoInfo/InitialInfo)
- // مپ می‌شود
+    // مدل دامنه‌ی حواله/کوتاژ/کشتی از DTOهای شبکه (CargoInfo/InitialInfo) مپ می‌شود
     implementation(project(":core:network"))
-    // امضای چند متد QuotaRepository مستقیماً Response<T>/JsonElement را برمی‌گردانند
-    // (فراخوانی‌های cargo/quota که تفسیر پاسخشان پیچیده و خاص هر متد است، بدون تغییر
- // به Repository منتقل شدند
+    // امضای چند متد QuotaRepository مستقیماً Response<T>/JsonElement را برمی‌گردانند (فراخوانی‌های cargo/quota که تفسیر پاسخشان پیچیده و خاص هر متد است، بدون تغییر به Repository منتقل شدند
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     // UserPreferencesStore (مرز DI برای featureها — Phase5.12) از Flow استفاده می‌کند.
     implementation(libs.kotlinx.coroutines.android)
-    // فقط برای staticCompositionLocalOf در LocalStartupViewModel/
-    // LocalNotificationPermissionRequester (Phase4 #29) — runtime تنها، بدون
-    // نیاز به UI toolkit کامل.
+    // فقط برای staticCompositionLocalOf در LocalStartupViewModel/ LocalNotificationPermissionRequester (Phase4 #29) — runtime تنها، بدون نیاز به UI toolkit کامل.
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.compose.runtime)
 

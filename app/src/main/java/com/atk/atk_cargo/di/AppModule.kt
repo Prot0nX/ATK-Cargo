@@ -21,16 +21,14 @@ import org.koin.dsl.module
 
 // فقط زیرساخت مشترک بین فیچرها (احراز هویت نشست، دیتابیس محلی، امنیت) اینجا می‌ماند.
 val appModule = module {
- // ===== API Service =====
- // استفاده انحصاری از Router v2 به عنوان تنها API stack کلاینت.
+ // ===== API Service ===== استفاده انحصاری از Router v2 به عنوان تنها API stack کلاینت.
     single { RetrofitClient.apiServiceV2 }
 
  // ===== Security =====
     single { CryptoManager() }
     single { SecurityVerifier(androidContext()) }
 
- // ===== Preferences Manager =====
- // اتصال UserPreferencesManager به اینترفیس مرزی UserPreferencesStore برای استفاده در فیچرهای مستقل.
+ // مدیریت تنظیمات و داده‌های کاربر. اتصال UserPreferencesManager به اینترفیس مرزی UserPreferencesStore برای استفاده در فیچرهای مستقل.
     single { UserPreferencesManager(androidContext(), get()) } bind UserPreferencesStore::class
  // بازگردانی سینگلتون UserPreferencesManager به عنوان ChatPreferencesStore.
     single<ChatPreferencesStore> { get<UserPreferencesManager>() }
