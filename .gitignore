@@ -64,6 +64,10 @@ PHP/log/*
 PHP/logs/*
 !PHP/logs/.htaccess
 
+# فایل‌های پشتیبان دیتابیس تولیدشده توسط پنل PHP/MySQL_Manager — هرگز نباید وارد گیت شوند.
+PHP/storage/mysql_backups/*
+!PHP/storage/mysql_backups/.gitkeep
+
 # فایل‌های خروجی و کش PHPStan.
 PHP/build/
 

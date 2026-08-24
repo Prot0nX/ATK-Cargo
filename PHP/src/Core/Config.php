@@ -34,6 +34,10 @@ class Config {
  // رمز پنل مدیریت کاربران آنلاین — مستقل از چهار رمز بالا
             'online_users_admin_password_hash' => self::env('ONLINE_USERS_ADMIN_PASSWORD_HASH', ''),
             'online_users_session_idle_timeout' => (int)(self::env('ONLINE_USERS_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
+
+ // رمز پنل مدیریت MySQL — مستقل از رمزهای بالا
+            'mysql_manager_admin_password_hash' => self::env('MYSQL_MANAGER_ADMIN_PASSWORD_HASH', ''),
+            'mysql_manager_session_idle_timeout' => (int)(self::env('MYSQL_MANAGER_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
         ];
 
     }

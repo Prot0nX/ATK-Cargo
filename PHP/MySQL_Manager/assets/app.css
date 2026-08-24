@@ -1,0 +1,472 @@
+/* پنل مدیریت MySQL — ویجت‌های اختصاصی این پنل. توکن‌ها و کامپوننت‌های پایه (دکمه، فرم، جدول، دیالوگ، توست، نوار بالا و ...)
+   در ../assets/ui/core.css تعریف شده‌اند و اینجا فقط تکمیل می‌شوند.
+   این تنها پنل خانواده با Sidebar واقعی است (طبق درخواست صریح کاربر)؛ به همین دلیل کلاس‌های .mys-shell/.mys-sidebar/.mys-main
+   عمداً اینجا نگه داشته می‌شوند نه در core.css مشترک، تا روی طراحی سایر پنل‌ها (که فقط topbar+container دارند) اثر نگذارد. */
+
+.mys-shell {
+    display: flex;
+    align-items: flex-start;
+    min-height: calc(100dvh - var(--topbar-h));
+}
+
+.mys-only-mobile {
+    display: none;
+}
+
+/* ---------- Sidebar ---------- */
+.mys-sidebar {
+    flex: none;
+    width: 220px;
+    border-inline-end: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: var(--topbar-h);
+    height: calc(100dvh - var(--topbar-h));
+    overflow-y: auto;
+    padding: var(--space-3);
+    transition: width var(--dur) var(--ease-standard);
+}
+
+.mys-sidebar-collapse {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: var(--control-h-sm);
+    margin-block-end: var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-standard),
+        transform var(--dur) var(--ease-standard);
+}
+
+.mys-sidebar-collapse:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+}
+
+.mys-sidebar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mys-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-md);
+    text-align: start;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard);
+}
+
+.mys-sidebar-item .icon {
+    flex: none;
+}
+
+.mys-sidebar-item span:not(.mys-soon-dot) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mys-sidebar-item:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+}
+
+.mys-sidebar-item.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.mys-soon-dot {
+    inset-inline-start: auto;
+    margin-inline-start: auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warning);
+    flex: none;
+}
+
+.mys-sidebar.is-collapsed {
+    width: 56px;
+}
+
+.mys-sidebar.is-collapsed .mys-sidebar-item span,
+.mys-sidebar.is-collapsed .mys-sidebar-collapse span {
+    display: none;
+}
+
+.mys-sidebar.is-collapsed .mys-sidebar-item {
+    justify-content: center;
+}
+
+.mys-sidebar.is-collapsed .mys-sidebar-collapse .icon {
+    transform: rotate(180deg);
+}
+
+/* ---------- Drawer (زیر ۹۰۰px) ---------- */
+.mys-drawer-backdrop {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .mys-only-mobile {
+        display: inline-flex;
+    }
+
+    .mys-sidebar {
+        position: fixed;
+        inset-block: var(--topbar-h) 0;
+        inset-inline-start: 0;
+        z-index: var(--z-dialog);
+        width: 260px;
+        transform: translateX(100%);
+        box-shadow: var(--shadow-overlay);
+        transition: transform var(--dur-slow) var(--ease-out);
+    }
+
+    html[dir="rtl"] .mys-sidebar {
+        transform: translateX(-100%);
+    }
+
+    .mys-sidebar.is-open {
+        transform: translateX(0);
+    }
+
+    .mys-drawer-backdrop.is-open {
+        display: block;
+        position: fixed;
+        inset: var(--topbar-h) 0 0 0;
+        z-index: calc(var(--z-dialog) - 1);
+        background: rgb(8 10 13 / 45%);
+        animation: atk-backdrop-in var(--dur) var(--ease-standard);
+    }
+
+    .mys-sidebar.is-collapsed {
+        width: 260px;
+    }
+
+    .mys-sidebar.is-collapsed .mys-sidebar-item span,
+    .mys-sidebar.is-collapsed .mys-sidebar-collapse span {
+        display: inline;
+    }
+
+    .mys-sidebar-collapse {
+        display: none;
+    }
+}
+
+/* ---------- Main ---------- */
+.mys-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-block: var(--space-5);
+}
+
+.mys-view {
+    display: none;
+}
+
+.mys-view.is-active {
+    display: block;
+    animation: atk-fade-up var(--dur-slow) var(--ease-out);
+}
+
+.mys-subheading {
+    margin-block: var(--space-5) var(--space-2);
+    font-size: var(--fs-lg);
+}
+
+.mys-two-col {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-5);
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .mys-two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Health card ---------- */
+.mys-health-card {
+    margin-block-end: var(--space-5);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.mys-health-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-block-end: var(--space-2);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+.mys-health-label {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.mys-health-bar {
+    height: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    background: var(--accent-soft);
+    overflow: hidden;
+}
+
+/* نوار SVG به‌جای width تنظیم‌شده با style تا با CSP سخت‌گیرانه‌ی این پنل (style-src 'self'، بدون unsafe-inline) سازگار باشد؛
+   عرض با setAttribute (ویژگی محتوایی SVG) تنظیم می‌شود، نه با CSSOM. */
+.mys-health-bar-svg {
+    display: block;
+    width: 100%;
+    height: 10px;
+}
+
+.mys-health-bar-fill {
+    fill: var(--accent);
+    transition: width var(--dur-slow) var(--ease-out);
+}
+
+.mys-health-bar-fill.is-warning {
+    fill: var(--warning);
+}
+
+.mys-health-bar-fill.is-danger {
+    fill: var(--danger);
+}
+
+.mys-health-reasons {
+    margin: var(--space-2) 0 0;
+    padding-inline-start: var(--space-4);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.mys-health-reasons:empty {
+    display: none;
+}
+
+/* ---------- Fragmentation ---------- */
+.mys-fragmentation-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 90px;
+}
+
+.mys-fragmentation-track {
+    flex: 1 1 auto;
+    width: 60px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-sunken);
+    overflow: hidden;
+    display: block;
+}
+
+.mys-fragmentation-fill {
+    fill: var(--accent);
+}
+
+.mys-fragmentation-fill.is-medium {
+    fill: var(--warning);
+}
+
+.mys-fragmentation-fill.is-high {
+    fill: var(--danger);
+}
+
+/* ---------- کمکی: جایگزین‌های style inline برای سازگاری با CSP سخت‌گیرانه ---------- */
+.mys-subheading-flush {
+    margin-block-start: 0;
+}
+
+.mys-mt-2 {
+    margin-block-start: var(--space-2);
+}
+
+.mys-mt-3 {
+    margin-block-start: var(--space-3);
+}
+
+.mys-mt-4 {
+    margin-block-start: var(--space-4);
+}
+
+.mys-align-center {
+    align-self: center;
+}
+
+.mys-code-block {
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    direction: ltr;
+    unicode-bidi: isolate;
+    overflow-x: auto;
+}
+
+.mys-load-more {
+    display: flex;
+    justify-content: center;
+    margin-block-start: var(--space-4);
+}
+
+
+.mys-badge-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.mys-table-name-btn {
+    width: auto;
+    justify-content: flex-start;
+    gap: var(--space-2);
+}
+
+.mys-issue-list {
+    margin: var(--space-2) 0 0;
+    padding-inline-start: var(--space-5);
+}
+
+/* ---------- Empty state (بخش‌های به‌زودی) ---------- */
+.mys-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-7) var(--space-4);
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.mys-empty-state .icon-lg {
+    color: var(--text-subtle);
+}
+
+/* ---------- Backup / Cleanup form cards ---------- */
+.mys-card {
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.mys-card .field,
+.mys-card .field-check {
+    margin-block-end: var(--space-3);
+}
+
+.mys-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-3);
+    padding: 0;
+    border: none;
+}
+
+.mys-radio-group legend {
+    margin-block-end: var(--space-2);
+    padding: 0;
+}
+
+.mys-table-picker {
+    margin-block-end: var(--space-3);
+}
+
+.mys-checkbox-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-2);
+    max-height: 180px;
+    overflow-y: auto;
+    padding: var(--space-3);
+    margin-block-start: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+}
+
+/* ---------- Recommendation cards (بند ۱۱ spec) ---------- */
+.mys-recommend-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-block-end: var(--space-5);
+}
+
+.mys-recommend-list:empty {
+    display: none;
+}
+
+.mys-recommend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.mys-recommend-item.is-high {
+    border-inline-start-color: var(--danger);
+}
+
+.mys-recommend-item.is-medium {
+    border-inline-start-color: var(--warning);
+}
+
+.mys-recommend-item.is-low {
+    border-inline-start-color: var(--accent);
+}
+
+.mys-recommend-table {
+    font-weight: 500;
+}
+
+.mys-recommend-reason {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+/* ---------- Storage chart (SVG دست‌ساز، بدون کتابخانه) ---------- */
+.mys-chart-bar rect {
+    fill: var(--chart-1);
+}
+
+.mys-chart-bar text {
+    fill: var(--text-muted);
+    font-size: 11px;
+}

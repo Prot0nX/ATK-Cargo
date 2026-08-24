@@ -20,7 +20,7 @@ class AuditLogRepository {
     }
 
  /** @return array<int,array<string,mixed>> */
-    public function listLogs(int $limit, ?int $beforeId = null, ?string $username = null, ?string $entityType = null): array {
+    public function listLogs(int $limit, ?int $beforeId = null, ?string $username = null, ?string $entityType = null, ?string $actionPrefix = null): array {
         $limit = max(1, min($limit, self::MAX_ROWS));
         $where = [];
         $params = [];
@@ -38,6 +38,11 @@ class AuditLogRepository {
         if ($entityType !== null && $entityType !== '') {
             $where[] = 'entity_type = :entity_type';
             $params[':entity_type'] = $entityType;
+        }
+
+        if ($actionPrefix !== null && $actionPrefix !== '') {
+            $where[] = 'action LIKE :action_prefix ESCAPE \'\\\\\'';
+            $params[':action_prefix'] = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $actionPrefix) . '%';
         }
 
         $sql = 'SELECT * FROM audit_log';

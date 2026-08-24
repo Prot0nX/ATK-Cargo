@@ -1,0 +1,11 @@
+# PHP/cron/.htaccess — دفاع در عمق: اسکریپت‌های این پوشه فقط باید از CLI اجرا شوند (خودشان هم PHP_SAPI را چک
+# می‌کنند)، اما دسترسی مستقیم HTTP هم اینجا صراحتاً مسدود می‌شود تا حتی در صورت غیرفعال بودن آن چک، درخواست به
+# سطح وب‌سرور رد شود.
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

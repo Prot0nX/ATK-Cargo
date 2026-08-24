@@ -1,0 +1,16 @@
+# PHP/storage/.htaccess — این پوشه (و همه‌ی زیرپوشه‌هایش، از جمله mysql_backups/) هرگز نباید مستقیم از طریق
+# HTTP قابل دسترسی باشد. فایل‌های پشتیبان دیتابیس فقط از طریق api.php?action=downloadBackup با احراز هویت
+# و بررسی مجوز باید تحویل داده شوند. هر دو نحو Apache 2.2 و 2.4 پوشش داده شده تا مستقل از نسخه‌ی سرور کار کند.
+
+Options -Indexes -ExecCGI -FollowSymLinks
+DirectoryIndex disabled
+
+<IfModule mod_authz_core.c>
+    # Apache 2.4+
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    # Apache 2.2
+    Order allow,deny
+    Deny from all
+</IfModule>
