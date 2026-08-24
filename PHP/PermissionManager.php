@@ -123,7 +123,7 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
         $features = [
             'initial_info', 'select_info', 'cargo_counter', 'manage_ships',
             'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo',
-            'view_reports', 'active_quotas', 'tonnage_warning', 'manage_quotas',
+            'view_reports', 'tonnage_warning', 'manage_quotas',
             'view_monitoring'
         ];
 
@@ -182,7 +182,6 @@ $feature_labels = [
     'edit_cargo' => ['label' => 'ویرایش حواله', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>'],
     'delete_cargo' => ['label' => 'حذف حواله', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>'],
     'view_reports' => ['label' => 'مشاهده آمار تحلیلی', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>'],
-    'active_quotas' => ['label' => 'گزارش کوتاژهای فعال', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>'],
     'tonnage_warning' => ['label' => 'هشدار تناژ سیستمی', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'],
  // دسترسی مشترک رویدادهای مانیتورینگ سلامت و امنیت سیستم
     'view_monitoring' => ['label' => 'مانیتورینگ (رویدادهای سلامت و امنیت)', 'icon' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>']
@@ -636,7 +635,7 @@ $feature_labels = [
     }
 
     function applyPermissions(perms) {
-        const features = ['initial_info', 'select_info', 'cargo_counter', 'manage_ships', 'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo', 'view_reports', 'active_quotas', 'tonnage_warning', 'manage_quotas', 'view_monitoring'];
+        const features = ['initial_info', 'select_info', 'cargo_counter', 'manage_ships', 'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo', 'view_reports', 'tonnage_warning', 'manage_quotas', 'view_monitoring'];
         features.forEach(f => {
             const el = document.getElementById('perm_' + f);
             if(el) el.checked = !!perms[f];

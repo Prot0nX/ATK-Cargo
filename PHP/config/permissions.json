@@ -10,7 +10,6 @@
             "edit_cargo": true,
             "delete_cargo": true,
             "view_reports": true,
-            "active_quotas": true,
             "tonnage_warning": true,
             "manage_quotas": true,
             "view_monitoring": true
@@ -25,7 +24,6 @@
             "edit_cargo": false,
             "delete_cargo": false,
             "view_reports": false,
-            "active_quotas": false,
             "tonnage_warning": false,
             "manage_quotas": false,
             "view_monitoring": false
@@ -40,7 +38,6 @@
             "edit_cargo": false,
             "delete_cargo": false,
             "view_reports": false,
-            "active_quotas": false,
             "tonnage_warning": false,
             "manage_quotas": false,
             "view_monitoring": false
