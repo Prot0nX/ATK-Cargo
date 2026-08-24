@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-// کلید رمزنگاری XOR.
+// XOR encryption key
 const uint8_t XOR_KEY = 0x5A;
 
 std::string decryptXor(const uint8_t* encryptedBytes, size_t length) {
@@ -101,7 +101,7 @@ static const JNINativeMethod kSecretsMethods[] = {
         {"getApiKey", "()Ljava/lang/String;", (void*) n7},
 };
 
-extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /* رزرو شده */) {
     JNIEnv* env;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
         return JNI_ERR;
