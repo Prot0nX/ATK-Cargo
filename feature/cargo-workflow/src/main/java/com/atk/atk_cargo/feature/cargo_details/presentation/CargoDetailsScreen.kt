@@ -35,12 +35,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -71,8 +73,12 @@ import com.atk.atk_cargo.feature.cargo_details.presentation.components.InitialIn
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.SearchAndRefreshSection
 import com.atk.atk_cargo.feature.cargo_entry.presentation.SnackbarMessage
 import com.atk.atk_cargo.feature.cargo_entry.presentation.StatusSnackbar
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedFabTourOverlay
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedTourPreferences
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedTourStep
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.MessageDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.tourTarget
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -139,6 +145,76 @@ fun CargoDetailsScreen(
     var isFabExpanded by remember { mutableStateOf(false) }
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
     var isConfirmingCargo by remember { mutableStateOf(false) }
+
+ // ===== تور راهنمای دکمه شناور: فقط یک‌بار برای هر کاربر نمایش داده می‌شود =====
+    var fabTargetBounds by remember { mutableStateOf<Rect?>(null) }
+    var quotaFabItemBounds by remember { mutableStateOf<Rect?>(null) }
+    var shipFabItemBounds by remember { mutableStateOf<Rect?>(null) }
+    var showFabTour by remember { mutableStateOf(false) }
+    var fabTourStep by remember { mutableIntStateOf(0) }
+    var fabTourStarted by remember { mutableStateOf(false) }
+
+    fun finishFabTour() {
+        showFabTour = false
+        isFabExpanded = false
+        fabTourStarted = true
+        GuidedTourPreferences.markSeen(context, GuidedTourPreferences.KEY_CARGO_DETAILS_FAB)
+    }
+
+    LaunchedEffect(Unit) {
+        if (!GuidedTourPreferences.hasSeen(context, GuidedTourPreferences.KEY_CARGO_DETAILS_FAB)) {
+            isFabExpanded = true
+        }
+    }
+
+    LaunchedEffect(fabTargetBounds, quotaFabItemBounds, shipFabItemBounds, isFabExpanded) {
+        if (!fabTourStarted &&
+            isFabExpanded &&
+            !GuidedTourPreferences.hasSeen(context, GuidedTourPreferences.KEY_CARGO_DETAILS_FAB) &&
+            fabTargetBounds != null &&
+            quotaFabItemBounds != null &&
+            shipFabItemBounds != null
+        ) {
+            fabTourStep = 0
+            showFabTour = true
+            fabTourStarted = true
+        }
+    }
+
+    val fabTourSteps = remember(fabTargetBounds, quotaFabItemBounds, shipFabItemBounds) {
+        buildList {
+            fabTargetBounds?.let {
+                add(
+                    GuidedTourStep(
+                        bounds = it,
+                        title = "دکمه شناور",
+                        description = "برای دسترسی سریع به گزینه‌های تغییر کوتاژ و تغییر کشتی، این دکمه را لمس کنید.",
+                        icon = Icons.Default.Tune
+                    )
+                )
+            }
+            quotaFabItemBounds?.let {
+                add(
+                    GuidedTourStep(
+                        bounds = it,
+                        title = "تغییر کوتاژ",
+                        description = "با وارد کردن ۴ رقم آخر شماره کوتاژ یا اسکن بارکد کوتاژ، اطلاعات کوتاژ موردنظر از کشتی فعلی بارگذاری می‌شود.",
+                        icon = Icons.Default.ConfirmationNumber
+                    )
+                )
+            }
+            shipFabItemBounds?.let {
+                add(
+                    GuidedTourStep(
+                        bounds = it,
+                        title = "تغییر کشتی",
+                        description = "به صفحه انتخاب کشتی‌ها بازمی‌گردید تا کشتی جدیدی را انتخاب و جایگزین کنید.",
+                        icon = Icons.Default.DirectionsBoat
+                    )
+                )
+            }
+        }
+    }
 
     fun showUpdateMessage(message: String, type: MessageType) {
         snackbarMessage = SnackbarMessage(message, type)
@@ -301,6 +377,7 @@ fun CargoDetailsScreen(
                             icon = Icons.Default.ConfirmationNumber,
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.tourTarget { quotaFabItemBounds = it },
                             onClick = {
                                 isFabExpanded = false
                                 showQuotaEntryDialog = true
@@ -313,6 +390,7 @@ fun CargoDetailsScreen(
                             icon = Icons.Default.DirectionsBoat,
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.tourTarget { shipFabItemBounds = it },
                             onClick = {
                                 isFabExpanded = false
                                 onChangeSelectionClick?.invoke()
@@ -324,7 +402,9 @@ fun CargoDetailsScreen(
  // دکمه اصلی شناور (FAB)
                 FloatingActionButton(
                     onClick = { isFabExpanded = !isFabExpanded },
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .tourTarget { fabTargetBounds = it },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = CircleShape
@@ -335,6 +415,21 @@ fun CargoDetailsScreen(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+            }
+
+            if (showFabTour) {
+                GuidedFabTourOverlay(
+                    steps = fabTourSteps,
+                    currentStep = fabTourStep,
+                    onNext = {
+                        if (fabTourStep < fabTourSteps.lastIndex) {
+                            fabTourStep++
+                        } else {
+                            finishFabTour()
+                        }
+                    },
+                    onSkip = { finishFabTour() }
+                )
             }
         }
     }
@@ -397,10 +492,11 @@ private fun FloatingActionButtonItem(
     icon: ImageVector,
     containerColor: Color,
     contentColor: Color,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.clickable { onClick() },
+        modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
         contentColor = contentColor,

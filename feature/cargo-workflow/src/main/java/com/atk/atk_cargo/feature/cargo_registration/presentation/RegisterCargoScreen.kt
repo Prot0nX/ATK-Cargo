@@ -73,7 +73,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -94,10 +96,14 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Dupl
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateTrackingNumbersDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ErrorHandlingCargoInfoRow
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.FormSection
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedFabTourOverlay
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedTourPreferences
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.GuidedTourStep
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.MessageDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.NetWeightDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.tourTarget
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.journeyapps.barcodescanner.ScanContract
@@ -113,10 +119,12 @@ private fun FabMenuItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     palette: RegisterPalette,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(10.dp),
         color = palette.cardBg,
         border = BorderStroke(1.dp, palette.cardBorder)
@@ -212,6 +220,79 @@ fun RegisterCargoScreen(
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
 
+ // ===== تور راهنمای دکمه شناور: فقط یک‌بار برای هر کاربر نمایش داده می‌شود =====
+    val context = LocalContext.current
+    var fabTargetBounds by remember { mutableStateOf<Rect?>(null) }
+    var quotaItemBounds by remember { mutableStateOf<Rect?>(null) }
+    var shipItemBounds by remember { mutableStateOf<Rect?>(null) }
+    var showFabTour by remember { mutableStateOf(false) }
+    var fabTourStep by remember { mutableIntStateOf(0) }
+    var fabTourStarted by remember { mutableStateOf(false) }
+
+    fun finishFabTour() {
+        showFabTour = false
+        showFabMenu = false
+        fabTourStarted = true
+        GuidedTourPreferences.markSeen(context, GuidedTourPreferences.KEY_REGISTER_CARGO_FAB)
+    }
+
+    LaunchedEffect(Unit) {
+        if (!GuidedTourPreferences.hasSeen(context, GuidedTourPreferences.KEY_REGISTER_CARGO_FAB)) {
+            showFabMenu = true
+        }
+    }
+
+    LaunchedEffect(fabTargetBounds, quotaItemBounds, shipItemBounds, showFabMenu) {
+        if (!fabTourStarted &&
+            showFabMenu &&
+            !GuidedTourPreferences.hasSeen(context, GuidedTourPreferences.KEY_REGISTER_CARGO_FAB) &&
+            fabTargetBounds != null &&
+            quotaItemBounds != null &&
+            (onChangeSelectionClick == null || shipItemBounds != null)
+        ) {
+            fabTourStep = 0
+            showFabTour = true
+            fabTourStarted = true
+        }
+    }
+
+    val fabTourSteps = remember(fabTargetBounds, quotaItemBounds, shipItemBounds, onChangeSelectionClick) {
+        buildList {
+            fabTargetBounds?.let {
+                add(
+                    GuidedTourStep(
+                        bounds = it,
+                        title = "دکمه شناور",
+                        description = "برای دسترسی سریع به گزینه‌های تغییر کوتاژ و تغییر کشتی، این دکمه را لمس کنید.",
+                        icon = Icons.Default.ConfirmationNumber
+                    )
+                )
+            }
+            quotaItemBounds?.let {
+                add(
+                    GuidedTourStep(
+                        bounds = it,
+                        title = "تغییر کوتاژ",
+                        description = "با وارد کردن ۴ رقم آخر شماره کوتاژ یا اسکن بارکد کوتاژ، اطلاعات کوتاژ موردنظر از کشتی فعلی بارگذاری می‌شود.",
+                        icon = Icons.Default.ConfirmationNumber
+                    )
+                )
+            }
+            if (onChangeSelectionClick != null) {
+                shipItemBounds?.let {
+                    add(
+                        GuidedTourStep(
+                            bounds = it,
+                            title = "تغییر کشتی",
+                            description = "به صفحه انتخاب کشتی‌ها بازمی‌گردید تا کشتی جدیدی را انتخاب و جایگزین کنید.",
+                            icon = Icons.Default.LocalShipping
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     fun clearInputFields() {
         trackingNumber = ""
         numberOfPeople = ""
@@ -268,6 +349,7 @@ fun RegisterCargoScreen(
         label = "fab_scale"
     )
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -290,6 +372,7 @@ fun RegisterCargoScreen(
                             icon = Icons.Default.ConfirmationNumber,
                             label = "تغییر کوتاژ",
                             palette = palette,
+                            modifier = Modifier.tourTarget { quotaItemBounds = it },
                             onClick = {
                                 showFabMenu = false
                                 showQuotaEntryDialog = true
@@ -300,6 +383,7 @@ fun RegisterCargoScreen(
                                 icon = Icons.Default.LocalShipping,
                                 label = "تغییر کشتی",
                                 palette = palette,
+                                modifier = Modifier.tourTarget { shipItemBounds = it },
                                 onClick = {
                                     showFabMenu = false
                                     onChangeSelectionClick()
@@ -313,6 +397,7 @@ fun RegisterCargoScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .scale(scale)
+                        .tourTarget { fabTargetBounds = it }
                         .clickable(
                             interactionSource = fabInteractionSource,
                             indication = null
@@ -870,5 +955,21 @@ fun RegisterCargoScreen(
             currentQuota = initialInfo?.loadingQuotaNumber?.toString() ?: "",
             viewModel = viewModel
         )
+    }
+
+    if (showFabTour) {
+        GuidedFabTourOverlay(
+            steps = fabTourSteps,
+            currentStep = fabTourStep,
+            onNext = {
+                if (fabTourStep < fabTourSteps.lastIndex) {
+                    fabTourStep++
+                } else {
+                    finishFabTour()
+                }
+            },
+            onSkip = { finishFabTour() }
+        )
+    }
     }
 }
